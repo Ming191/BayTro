@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.compose.rememberNavController
 import com.example.baytro.navigation.AppScaffold
-import com.example.baytro.navigation.ContentType
 import com.example.baytro.navigation.NavigationType
 import com.example.baytro.ui.theme.BayTroTheme
 import com.example.baytro.view.navigationType.NavigationDrawerView
@@ -16,15 +15,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen() {
-    // This is a placeholder for the main screen content.
-    // You can implement your main screen UI here.
-    // For example, you might want to include a navigation drawer or a top bar.
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val navController = rememberNavController()
     BayTroTheme {
         val navigationType: NavigationType = NavigationType.NavigationDrawer
-        val contentType: ContentType = ContentType.List
         ModalNavigationDrawer(
             drawerContent = {
                 ModalDrawerSheet {
@@ -76,7 +71,6 @@ fun MainScreen() {
             drawerState = drawerState
         ) {
             AppScaffold(
-                contentType = contentType,
                 navigationType = navigationType,
                 navHostController = navController,
                 onDrawerClicked = {

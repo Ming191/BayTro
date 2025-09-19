@@ -1,4 +1,4 @@
-package com.example.baytro.view.screens
+package com.example.baytro.view.screens.auth
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +15,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,7 +35,8 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SignUpScreen(
-    viewModel: SignUpVM = koinViewModel()
+    viewModel: SignUpVM = koinViewModel(),
+    onNavigateToSignIn: () -> Unit
 ) {
     val uiState by viewModel.signUpUIState.collectAsState()
     val context = LocalContext.current
@@ -43,17 +45,27 @@ fun SignUpScreen(
         uiState = uiState,
         onSignUpClicked = { email, password, confirmPassword ->
             viewModel.signUp(email, password, confirmPassword)
-        }
+        },
+        onNavigateToSignIn = onNavigateToSignIn
     )
 
     //side-effects (Toast, Navigation)
     LaunchedEffect(key1 = uiState) {
         when (val state = uiState) {
-            is AuthUIState.Success -> {
-                Toast.makeText(context, "Success sign-up", Toast.LENGTH_SHORT).show()
+            is AuthUIState.NeedVerification -> {
+                Toast.makeText(
+                    context,
+                    "Success sign-up! Check your email for verification",
+                    Toast.LENGTH_SHORT)
+                    .show()
+                onNavigateToSignIn()
             }
             is AuthUIState.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    state.message,
+                    Toast.LENGTH_SHORT)
+                    .show()
             }
             else -> Unit
         }
@@ -64,7 +76,8 @@ fun SignUpScreen(
 @Composable
 fun SignUpContent(
     uiState: AuthUIState,
-    onSignUpClicked: (String, String, String) -> Unit
+    onSignUpClicked: (String, String, String) -> Unit,
+    onNavigateToSignIn: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -114,6 +127,9 @@ fun SignUpContent(
                 } else {
                     Text("Sign Up")
                 }
+            }
+            TextButton(onClick = onNavigateToSignIn) {
+                Text("Already have an account? Sign In")
             }
         }
     }

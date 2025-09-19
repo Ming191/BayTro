@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 class SignUpVM (
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
     private val _signUpUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
     val signUpUIState: MutableStateFlow<AuthUIState> = _signUpUIState
@@ -36,8 +36,9 @@ class SignUpVM (
         viewModelScope.launch {
             _signUpUIState.value = AuthUIState.Loading
             try {
-                val user = authRepository.signUp(email, password)
-                _signUpUIState.value = AuthUIState.Success(user)
+                authRepository.signUp(email, password)
+                authRepository.logout()
+                _signUpUIState.value = AuthUIState.NeedVerification("Please check your email for verification")
             } catch (e: Exception) {
                 _signUpUIState.value = AuthUIState.Error(e.message ?: "An unknown error occurred")
             }

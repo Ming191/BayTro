@@ -1,6 +1,7 @@
 package com.example.baytro.di
 
 import com.example.baytro.data.AuthRepository
+import com.example.baytro.viewModel.SignInVM
 import com.example.baytro.viewModel.SignUpVM
 import com.google.firebase.auth.FirebaseAuth
 import org.koin.core.module.dsl.viewModel
@@ -13,4 +14,5 @@ val appModule = module {
 val authModule = module {
     single { AuthRepository(get()) }
     viewModel { SignUpVM(get()) }
+    viewModel { SignInVM(get()) }
 }

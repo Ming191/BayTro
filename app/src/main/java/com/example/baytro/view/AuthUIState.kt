@@ -7,4 +7,5 @@ sealed class AuthUIState {
     object Loading : AuthUIState()
     data class Success(val user : FirebaseUser) : AuthUIState()
     data class Error(val message: String) : AuthUIState()
+    data class NeedVerification(val message: String) : AuthUIState()
 }
