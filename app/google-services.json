@@ -1,14 +1,13 @@
 {
   "project_info": {
-    "project_number": "657070813537",
-    "firebase_url": "https://baytro-afcb6-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "baytro-afcb6",
-    "storage_bucket": "baytro-afcb6.firebasestorage.app"
+    "project_number": "1009324738380",
+    "project_id": "bay-tro",
+    "storage_bucket": "bay-tro.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:657070813537:android:04b4892fa0fef8d0b71520",
+        "mobilesdk_app_id": "1:1009324738380:android:0ac381672289d5c06871e9",
         "android_client_info": {
           "package_name": "com.example.baytro"
         }
@@ -16,26 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDOhf3_XocIcF6Bhj8JS-WNueNNJwuqtl4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:657070813537:android:8ecdd4af6d719282b71520",
-        "android_client_info": {
-          "package_name": "com.example.chapter6"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDOhf3_XocIcF6Bhj8JS-WNueNNJwuqtl4"
+          "current_key": "AIzaSyDwnydISVfEaoKche893Cz3NtyKVEip53I"
         }
       ],
       "services": {

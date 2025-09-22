@@ -2,45 +2,82 @@ package com.example.baytro.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.baytro.data.AuthRepository
+import com.example.baytro.auth.AuthRepository
+import com.example.baytro.auth.SignInFormState
+import com.example.baytro.utils.ValidationResult
+import com.example.baytro.utils.Validator
 import com.example.baytro.view.AuthUIState
+import com.google.firebase.auth.FirebaseAuthException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class SignInVM(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val validator: Validator
 ) : ViewModel() {
-    private val _signInState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
-    val signInState: MutableStateFlow<AuthUIState> = _signInState
+    private val _signInUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
+    val signInUIState: StateFlow<AuthUIState> = _signInUIState
 
-    fun login(email: String, password: String) {
-        if (email.isBlank() || password.isBlank()) {
-            _signInState.value = AuthUIState.Error("Please fill in all fields")
-            return
-        }
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            _signInState.value = AuthUIState.Error("Please enter a valid email")
-            return
-        }
-        if (password.length < 6) {
-            _signInState.value = AuthUIState.Error("Password must be at least 6 characters")
-            return
-        }
+    private val _signInFormState = MutableStateFlow(SignInFormState())
+    val signInFormState: StateFlow<SignInFormState> = _signInFormState
 
-        viewModelScope.launch {
-            _signInState.value = AuthUIState.Loading
+    fun onEmailChange(email: String) {
+        _signInFormState.value = _signInFormState.value.copy(email = email, emailError = ValidationResult.Success)
+    }
+
+    fun onPasswordChange(password: String) {
+        _signInFormState.value = _signInFormState.value.copy(password = password, passwordError = ValidationResult.Success)
+    }
+
+    fun login() {
+        val formState = _signInFormState.value
+        if (validateInput(formState, validator = validator)) {
+            performLogin(formState.email, formState.password)
+        }
+    }
+
+    private fun validateInput(
+        formState: SignInFormState,
+        validator: Validator
+    ): Boolean {
+        val emailValidator = validator.validateEmail(formState.email)
+        val passwordValidator = validator.validatePassword(formState.password)
+        val isValid = emailValidator == ValidationResult.Success && passwordValidator == ValidationResult.Success
+
+        _signInFormState.value = formState.copy(
+            emailError = emailValidator,
+            passwordError = passwordValidator
+        )
+        return isValid
+    }
+
+    private fun performLogin(email: String, password: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _signInUIState.value = AuthUIState.Loading
             try {
-                val user = authRepository.login(email, password)
+                val user = authRepository.signIn(email, password)
+
                 if (user.isEmailVerified) {
-                    _signInState.value = AuthUIState.Success(user)
+                    _signInUIState.value = AuthUIState.Success(user)
                 } else {
-                    user.sendEmailVerification().await()
-                    authRepository.logout()
-                    _signInState.value = AuthUIState.NeedVerification("Please verify your email before logging in.")
+                    authRepository.sendVerificationEmail(user)
+                    authRepository.signOut()
+                    _signInUIState.value = AuthUIState.NeedVerification("Email chưa được xác thực. Chúng tôi đã gửi lại một email xác thực cho bạn.")
                 }
             } catch (e: Exception) {
-                _signInState.value = AuthUIState.Error(e.message ?: "An unknown error occurred")
+                val errorMessage = when (e) {
+                    is FirebaseAuthException -> when (e.errorCode) {
+                        "ERROR_INVALID_EMAIL", "ERROR_WRONG_PASSWORD", "ERROR_USER_NOT_FOUND" -> "Email hoặc mật khẩu không đúng."
+                        "ERROR_USER_DISABLED" -> "Tài khoản của bạn đã bị vô hiệu hóa."
+                        else -> "Đăng nhập thất bại. Vui lòng thử lại."
+                    }
+                    is java.net.UnknownHostException -> "Không có kết nối mạng."
+                    else -> "Đã có lỗi không xác định xảy ra."
+                }
+                _signInUIState.value = AuthUIState.Error(errorMessage)
             }
         }
     }

@@ -44,12 +44,11 @@ fun SignUpScreen(
     SignUpContent(
         uiState = uiState,
         onSignUpClicked = { email, password, confirmPassword ->
-            viewModel.signUp(email, password, confirmPassword)
+//            viewModel.signUp(email, password, confirmPassword)
         },
         onNavigateToSignIn = onNavigateToSignIn
     )
 
-    //side-effects (Toast, Navigation)
     LaunchedEffect(key1 = uiState) {
         when (val state = uiState) {
             is AuthUIState.NeedVerification -> {
@@ -101,19 +100,19 @@ fun SignUpContent(
                 singleLine = true
             )
 
-            PasswordTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = "Password",
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            PasswordTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = "Confirm Password",
-                modifier = Modifier.fillMaxWidth()
-            )
+//            PasswordTextField(
+//                value = password,
+//                onValueChange = { password = it },
+//                label = "Password",
+//                modifier = Modifier.fillMaxWidth()
+//            )
+//
+//            PasswordTextField(
+//                value = confirmPassword,
+//                onValueChange = { confirmPassword = it },
+//                label = "Confirm Password",
+//                modifier = Modifier.fillMaxWidth()
+//            )
 
             Spacer(modifier = Modifier.height(16.dp))
 

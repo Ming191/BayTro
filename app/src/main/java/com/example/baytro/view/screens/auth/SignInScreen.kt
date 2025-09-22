@@ -1,6 +1,7 @@
 package com.example.baytro.view.screens.auth
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,16 +21,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.baytro.auth.SignInFormState // Giả sử đây là data class SignInFormState
+import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.PasswordTextField
-import com.example.baytro.viewModel.SignInVM
+import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.viewModel.SignInVM // Tên ViewModel của bạn
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -38,21 +39,21 @@ fun SignInScreen(
     onSignInSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit
 ) {
-    val uiState by viewModel.signInState.collectAsState()
+    val formState by viewModel.signInFormState.collectAsState()
+    val loginUiState by viewModel.signInUIState.collectAsState()
     val context = LocalContext.current
 
     SignInContent(
-        uiState = uiState,
-        onSignInClicked = { email, password ->
-            viewModel.login(email, password)
-        },
+        formState = formState,
+        loginUiState = loginUiState,
+        onEmailChange = viewModel::onEmailChange,
+        onPasswordChange = viewModel::onPasswordChange,
+        onSignInClicked = viewModel::login,
         onNavigateToSignUp = onNavigateToSignUp
     )
-
-    LaunchedEffect(key1 = uiState) {
-        when (val state = uiState) {
+    LaunchedEffect(key1 = loginUiState) {
+        when (val state = loginUiState) {
             is AuthUIState.Success -> {
-                Toast.makeText(context, "Đăng nhập thành công! Chào mừng ${state.user.email}", Toast.LENGTH_SHORT).show()
                 onSignInSuccess()
             }
             is AuthUIState.Error -> {
@@ -69,12 +70,14 @@ fun SignInScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignInContent(
-    uiState: AuthUIState,
-    onSignInClicked: (String, String) -> Unit,
+    formState: SignInFormState,
+    loginUiState: AuthUIState,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onSignInClicked: () -> Unit,
     onNavigateToSignUp: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -89,38 +92,45 @@ fun SignInContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            RequiredTextField (
+                value = formState.email,
+                onValueChange = onEmailChange,
+                label = "Email",
+                isError = formState.emailError is ValidationResult.Error,
+                errorMessage = formState.emailError.let {
+                    if (it is ValidationResult.Error) it.message else null
+                },
+                modifier = Modifier.fillMaxWidth()
             )
 
             PasswordTextField(
-                value = password,
-                onValueChange = { password = it },
+                value = formState.password,
+                onValueChange = onPasswordChange,
                 label = "Password",
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = formState.passwordError is ValidationResult.Error,
+                errorMessage = formState.passwordError.let {
+                    if (it is ValidationResult.Error) it.message else null
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { onSignInClicked(email, password) },
-                enabled = uiState !is AuthUIState.Loading,
+                onClick = onSignInClicked,
+                enabled = loginUiState !is AuthUIState.Loading,
                 modifier = Modifier.fillMaxWidth().height(50.dp)
             ) {
-                if (uiState is AuthUIState.Loading) {
+                if (loginUiState is AuthUIState.Loading) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
                 } else {
                     Text("Sign In")
                 }
             }
+
             TextButton(onClick = onNavigateToSignUp) {
                 Text("Don't have an account? Sign Up")
             }
-
         }
     }
 }
