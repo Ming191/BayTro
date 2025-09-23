@@ -1,6 +1,7 @@
 package com.example.baytro.view.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -22,37 +23,43 @@ fun PasswordTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    isError: Boolean,
-    errorMessage: String?
+    isError: Boolean = false,
+    errorMessage: String? = null
 ) {
     var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
     val rotationDegree by animateFloatAsState(targetValue = if (isPasswordVisible) 180f else 0f)
 
-    OutlinedTextField(
-        modifier = modifier,
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        singleLine = true,
-        trailingIcon = {
-            val image = if (isPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility
-            val description = if (isPasswordVisible) "Hide password" else "Show password"
-            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                Icon(imageVector = image,
-                    contentDescription = description,
-                    modifier = Modifier.rotate(rotationDegree))
+    Crossfade(
+        targetState = isPasswordVisible,
+        label = "PasswordVisibilityAnimation"
+    ) { visible ->
+        OutlinedTextField(
+            modifier = modifier,
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            singleLine = true,
+            trailingIcon = {
+                val image = if (isPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility
+                val description = if (isPasswordVisible) "Hide password" else "Show password"
+                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    Icon(imageVector = image,
+                        contentDescription = description,
+                        modifier = Modifier.rotate(rotationDegree))
+                }
+            },
+            isError = isError,
+            supportingText = {
+                AnimatedVisibility(visible = isError && !errorMessage.isNullOrEmpty()) {
+                    Text(
+                        text = errorMessage ?: "",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
-        },
-        isError = isError,
-        supportingText = {
-            AnimatedVisibility(visible = isError && !errorMessage.isNullOrEmpty()) {
-                Text(
-                    text = errorMessage ?: "",
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-    )
+        )
+    }
+
 }

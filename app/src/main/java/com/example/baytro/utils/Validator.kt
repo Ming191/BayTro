@@ -15,6 +15,8 @@ class Validator {
     private val ERROR_PASSWORD_LOWERCASE = "Mật khẩu phải chứa ít nhất một chữ thường."
     private val ERROR_PASSWORD_DIGIT = "Mật khẩu phải chứa ít nhất một chữ số."
 
+    private val ERROR_CONFIRM_PASSWORD_EMPTY = "Vui lòng nhập mật khẩu xác nhận."
+
     fun validateEmail(email: String): ValidationResult = when {
         email.isBlank() -> ValidationResult.Error(ERROR_EMAIL_EMPTY)
         !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> ValidationResult.Error(ERROR_EMAIL_INVALID)
@@ -40,5 +42,7 @@ class Validator {
         return ValidationResult.Success
     }
     fun validateConfirmPassword(password: String, confirmPassword: String): ValidationResult =
-        if (password != confirmPassword) ValidationResult.Error(ERROR_PASSWORD_MISMATCH) else ValidationResult.Success
+        if (password != confirmPassword) ValidationResult.Error(ERROR_PASSWORD_MISMATCH)
+        else if (confirmPassword.isBlank()) ValidationResult.Error(ERROR_CONFIRM_PASSWORD_EMPTY)
+        else ValidationResult.Success
 }

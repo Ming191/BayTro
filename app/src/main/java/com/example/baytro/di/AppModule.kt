@@ -16,6 +16,6 @@ val appModule = module {
 val authModule = module {
     single<Validator> { Validator() }
     single<AuthRepository> { FirebaseAuthRepository(get()) }
-    viewModel { SignUpVM(get()) }
+    viewModel { SignUpVM(get(), get()) }
     viewModel { SignInVM(get(), get()) }
 }

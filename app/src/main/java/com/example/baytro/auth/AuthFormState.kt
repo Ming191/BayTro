@@ -19,5 +19,6 @@ data class SignUpFormState(
     val passwordStrengthError:  ValidationResult = ValidationResult.Success,
 
     val confirmPassword: String = "",
+    val confirmPasswordError: ValidationResult = ValidationResult.Success,
     val passwordMatchError: ValidationResult = ValidationResult.Success,
 )

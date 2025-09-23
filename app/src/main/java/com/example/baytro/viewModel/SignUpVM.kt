@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 
 class SignUpVM (
     private val authRepository: AuthRepository,
+    private val validator: Validator
 ) : ViewModel() {
     private val _signUpUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
     val signUpUIState: StateFlow<AuthUIState> = _signUpUIState
@@ -36,21 +37,21 @@ class SignUpVM (
         )
     }
 
-    fun onConfirmPasswordChange(confirmPassword: String, password: String) {
+    fun onConfirmPasswordChange(confirmPassword: String) {
         _signUpFormState.value = _signUpFormState.value.copy(
-            confirmPassword = password,
+            confirmPassword = confirmPassword,
+            confirmPasswordError = ValidationResult.Success,
             passwordMatchError = ValidationResult.Success
         )
     }
 
     private fun validateInput(
-        formState: SignUpFormState,
-        validator: Validator
+        formState: SignUpFormState
     ): Boolean {
         val emailValidator = validator.validateEmail(formState.email)
         val passwordValidator = validator.validatePassword(formState.password)
         val passwordStrengthValidator = validator.validatePasswordStrength(formState.password)
-        val confirmPasswordValidator = validator.validateConfirmPassword(formState.password, formState.password)
+        val confirmPasswordValidator = validator.validateConfirmPassword(formState.password, formState.confirmPassword)
         val isValid = emailValidator == ValidationResult.Success
                 && passwordValidator == ValidationResult.Success
                 && passwordStrengthValidator == ValidationResult.Success
@@ -60,14 +61,14 @@ class SignUpVM (
             emailError = emailValidator,
             passwordError = passwordValidator,
             passwordStrengthError = passwordStrengthValidator,
-            passwordMatchError = confirmPasswordValidator
+            confirmPasswordError = confirmPasswordValidator,
         )
         return isValid
     }
 
-    fun signUp(validator: Validator) {
+    fun signUp() {
         val formState = _signUpFormState.value
-        if (validateInput(formState, validator = validator)) {
+        if (validateInput(formState)) {
             performSignUp(formState.email, formState.password)
         }
     }
@@ -79,7 +80,6 @@ class SignUpVM (
                 authRepository.signUp(email, password)
                 authRepository.signOut()
                 _signUpUIState.value = AuthUIState.NeedVerification("Please check your email for verification")
-                TODO("Improve this later")
             } catch (e: Exception) {
                 _signUpUIState.value = AuthUIState.Error(e.message ?: "An unknown error occurred")
             }
