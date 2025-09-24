@@ -12,6 +12,7 @@ import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,40 +35,38 @@ fun PasswordStrengthIndicator(
     val strongColor = MaterialTheme.colorScheme.primary
     val weakColor = MaterialTheme.colorScheme.error
     val mediumColor = MaterialTheme.colorScheme.secondary
-//    val defaultColor = MaterialTheme.colorScheme.onSurface
 
+    // Memoize expensive password validation calculations
+    val passwordStrength = remember(password) {
+        PasswordStrength.calculate(password)
+    }
 
-    val criteria = listOf(
-        "Ít nhất 8 ký tự" to (password.length >= 8),
-        "Chứa chữ hoa" to password.any { it.isUpperCase() },
-        "Chứa chữ thường" to password.any { it.isLowerCase() },
-        "Chứa số" to password.any { it.isDigit() },
-    )
-
-    val strength = criteria.count { it.second }
-    val progressColor = when(strength) {
-        0,1 -> weakColor
-        2,4 -> mediumColor
+    val progressColor = when(passwordStrength.score) {
+        0, 1 -> weakColor
+        2, 3 -> mediumColor
         else -> strongColor
     }
-    val animatedProgress by animateFloatAsState(targetValue = strength / 5f, label = "password strength")
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = passwordStrength.score / 4f,
+        label = "password strength"
+    )
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        for ((text, valid) in criteria) {
-            if (valid) continue
-
+        // Only show the first unmet criterion to avoid UI clutter
+        passwordStrength.firstUnmetCriterion?.let { criterion ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 12.dp)
             ) {
                 Text(
-                    text = text,
+                    text = criterion,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            break
         }
+
         LinearProgressIndicator(
             progress = { animatedProgress },
             modifier = Modifier
@@ -79,17 +78,27 @@ fun PasswordStrengthIndicator(
             gapSize = 0.dp,
             drawStopIndicator = {}
         )
+    }
+}
 
-        Text(
-            text = when(strength) {
-                in 0..1 -> "Weak"
-                in 2..3 -> "Medium"
-                4,5 -> "Strong"
-                else -> ""
-            },
-            color = progressColor,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
-        )
+// Separate data class for better performance and testability
+private data class PasswordStrength(
+    val score: Int,
+    val firstUnmetCriterion: String?
+) {
+    companion object {
+        fun calculate(password: String): PasswordStrength {
+            val criteria = listOf(
+                "At least 8 characters" to (password.length >= 8),
+                "Contains uppercase letter" to password.any { it.isUpperCase() },
+                "Contains lowercase letter" to password.any { it.isLowerCase() },
+                "Contains number" to password.any { it.isDigit() },
+            )
+
+            val score = criteria.count { it.second }
+            val firstUnmetCriterion = criteria.firstOrNull { !it.second }?.first
+
+            return PasswordStrength(score, firstUnmetCriterion)
+        }
     }
 }

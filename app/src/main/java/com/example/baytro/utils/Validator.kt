@@ -1,21 +1,25 @@
 package com.example.baytro.utils
 
+import com.example.baytro.data.RoleType
+
 sealed class ValidationResult {
     object Success : ValidationResult()
     data class Error(val message: String) : ValidationResult()
 }
 
-class Validator {
-    private val ERROR_EMAIL_EMPTY = "Vui lòng nhập email."
-    private val ERROR_EMAIL_INVALID = "Email không hợp lệ."
-    private val ERROR_PASSWORD_EMPTY = "Vui lòng nhập mật khẩu."
-    private val ERROR_PASSWORD_MISMATCH = "Mật khẩu xác nhận không khớp."
-    private val ERROR_PASSWORD_LENGTH = "Mật khẩu phải có ít nhất 8 ký tự."
-    private val ERROR_PASSWORD_UPPERCASE = "Mật khẩu phải chứa ít nhất một chữ hoa."
-    private val ERROR_PASSWORD_LOWERCASE = "Mật khẩu phải chứa ít nhất một chữ thường."
-    private val ERROR_PASSWORD_DIGIT = "Mật khẩu phải chứa ít nhất một chữ số."
-
-    private val ERROR_CONFIRM_PASSWORD_EMPTY = "Vui lòng nhập mật khẩu xác nhận."
+object Validator {
+    private const val ERROR_EMAIL_EMPTY = "Please enter your email."
+    private const val ERROR_EMAIL_INVALID = "Invalid email address."
+    private const val ERROR_PASSWORD_EMPTY = "Please enter your password."
+    private const val ERROR_PASSWORD_MISMATCH = "Password confirmation does not match."
+    private const val ERROR_PASSWORD_LENGTH = "Password must be at least 8 characters."
+    private const val ERROR_PASSWORD_UPPERCASE = "Password must contain at least one uppercase letter."
+    private const val ERROR_PASSWORD_LOWERCASE = "Password must contain at least one lowercase letter."
+    private const val ERROR_PASSWORD_DIGIT = "Password must contain at least one digit."
+    private const val ERROR_CONFIRM_PASSWORD_EMPTY = "Please enter the confirmation password."
+    private const val ERROR_ROLE_INVALID = "Please select a valid role."
+    private const val ERROR_PHONE_EMPTY = "Please enter your phone number."
+    private const val ERROR_PHONE_INVALID = "Invalid phone number."
 
     fun validateEmail(email: String): ValidationResult = when {
         email.isBlank() -> ValidationResult.Error(ERROR_EMAIL_EMPTY)
@@ -24,25 +28,30 @@ class Validator {
     }
 
     fun validatePassword(password: String): ValidationResult =
-        if (password.isBlank()) ValidationResult.Error(ERROR_PASSWORD_EMPTY) else ValidationResult.Success
-
-    fun validatePasswordStrength(password: String): ValidationResult {
-        if (password.length < 8) {
-            return ValidationResult.Error(ERROR_PASSWORD_LENGTH)
-        }
-        if (!password.any { it.isUpperCase() }) {
-            return ValidationResult.Error(ERROR_PASSWORD_UPPERCASE)
-        }
-        if (!password.any { it.isLowerCase() }) {
-            return ValidationResult.Error(ERROR_PASSWORD_LOWERCASE)
-        }
-        if (!password.any { it.isDigit() }) {
-            return ValidationResult.Error(ERROR_PASSWORD_DIGIT)
-        }
-        return ValidationResult.Success
-    }
-    fun validateConfirmPassword(password: String, confirmPassword: String): ValidationResult =
-        if (password != confirmPassword) ValidationResult.Error(ERROR_PASSWORD_MISMATCH)
-        else if (confirmPassword.isBlank()) ValidationResult.Error(ERROR_CONFIRM_PASSWORD_EMPTY)
+        if (password.isBlank()) ValidationResult.Error(ERROR_PASSWORD_EMPTY)
         else ValidationResult.Success
+
+    fun validatePasswordStrength(password: String): ValidationResult = when {
+        password.length < 8 -> ValidationResult.Error(ERROR_PASSWORD_LENGTH)
+        !password.any { it.isUpperCase() } -> ValidationResult.Error(ERROR_PASSWORD_UPPERCASE)
+        !password.any { it.isLowerCase() } -> ValidationResult.Error(ERROR_PASSWORD_LOWERCASE)
+        !password.any { it.isDigit() } -> ValidationResult.Error(ERROR_PASSWORD_DIGIT)
+        else -> ValidationResult.Success
+    }
+
+    fun validateConfirmPassword(password: String, confirmPassword: String): ValidationResult = when {
+        confirmPassword.isBlank() -> ValidationResult.Error(ERROR_CONFIRM_PASSWORD_EMPTY)
+        password != confirmPassword -> ValidationResult.Error(ERROR_PASSWORD_MISMATCH)
+        else -> ValidationResult.Success
+    }
+
+    fun validateRole(role: RoleType?): ValidationResult =
+        if (role == null) ValidationResult.Error(ERROR_ROLE_INVALID)
+        else ValidationResult.Success
+
+    fun validatePhoneNumber(phoneNumber: String): ValidationResult = when {
+        phoneNumber.isBlank() -> ValidationResult.Error(ERROR_PHONE_EMPTY)
+        !android.util.Patterns.PHONE.matcher(phoneNumber).matches() -> ValidationResult.Error(ERROR_PHONE_INVALID)
+        else -> ValidationResult.Success
+    }
 }

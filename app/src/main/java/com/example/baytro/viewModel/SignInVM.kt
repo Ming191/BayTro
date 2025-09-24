@@ -4,19 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.SignInFormState
+import com.example.baytro.data.UserRepository
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
 import com.example.baytro.view.AuthUIState
 import com.google.firebase.auth.FirebaseAuthException
-import kotlinx.coroutines.Dispatchers
+import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 class SignInVM(
     private val authRepository: AuthRepository,
-    private val validator: Validator
+    private val userRepository: UserRepository
 ) : ViewModel() {
     private val _signInUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
     val signInUIState: StateFlow<AuthUIState> = _signInUIState
@@ -34,17 +34,16 @@ class SignInVM(
 
     fun login() {
         val formState = _signInFormState.value
-        if (validateInput(formState, validator = validator)) {
+        if (validateInput(formState)) {
             performLogin(formState.email, formState.password)
         }
     }
 
     private fun validateInput(
-        formState: SignInFormState,
-        validator: Validator
+        formState: SignInFormState
     ): Boolean {
-        val emailValidator = validator.validateEmail(formState.email)
-        val passwordValidator = validator.validatePassword(formState.password)
+        val emailValidator = Validator.validateEmail(formState.email)
+        val passwordValidator = Validator.validatePassword(formState.password)
         val isValid = emailValidator == ValidationResult.Success && passwordValidator == ValidationResult.Success
 
         _signInFormState.value = formState.copy(
@@ -55,29 +54,33 @@ class SignInVM(
     }
 
     private fun performLogin(email: String, password: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             _signInUIState.value = AuthUIState.Loading
             try {
                 val user = authRepository.signIn(email, password)
 
-                if (user.isEmailVerified) {
+                if (authRepository.checkVerification()) {
                     _signInUIState.value = AuthUIState.Success(user)
+                    userRepository.updateFields(
+                        user.uid,
+                        mapOf("lastLogin" to Timestamp.now())
+                    )
                 } else {
-                    authRepository.sendVerificationEmail(user)
+                    authRepository.sendVerificationEmail()
                     authRepository.signOut()
-                    _signInUIState.value = AuthUIState.NeedVerification("Email chưa được xác thực. Chúng tôi đã gửi lại một email xác thực cho bạn.")
+                    _signInUIState.value = AuthUIState.NeedVerification("Email is not verified. We have sent you a new verification email.")
                 }
             } catch (e: Exception) {
                 val errorMessage = when (e) {
                     is FirebaseAuthException -> when (e.errorCode) {
-                        "ERROR_INVALID_EMAIL", "ERROR_WRONG_PASSWORD", "ERROR_USER_NOT_FOUND" -> "Email hoặc mật khẩu không đúng."
-                        "ERROR_USER_DISABLED" -> "Tài khoản của bạn đã bị vô hiệu hóa."
-                        else -> "Đăng nhập thất bại. Vui lòng thử lại."
+                        "ERROR_INVALID_EMAIL", "ERROR_WRONG_PASSWORD", "ERROR_USER_NOT_FOUND" -> "Incorrect email or password."
+                        "ERROR_USER_DISABLED" -> "Your account has been disabled."
+                        else -> "Sign in failed. Please try again."
                     }
-                    is java.net.UnknownHostException -> "Không có kết nối mạng."
-                    else -> "Đã có lỗi không xác định xảy ra."
+                    is java.net.UnknownHostException -> "No network connection."
+                    else -> e.message
                 }
-                _signInUIState.value = AuthUIState.Error(errorMessage)
+                _signInUIState.value = AuthUIState.Error(errorMessage ?: "An unknown error occurred")
             }
         }
     }

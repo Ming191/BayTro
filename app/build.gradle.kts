@@ -29,15 +29,12 @@ android {
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    kotlin {
+        jvmToolchain(17)
     }
 }
 
@@ -75,4 +72,11 @@ dependencies {
 
     implementation (libs.androidx.compose.material.icons.core)
     implementation (libs.androidx.compose.material.icons.extended)
+
+    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+
+    implementation("dev.gitlive:firebase-firestore:2.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+
 }
