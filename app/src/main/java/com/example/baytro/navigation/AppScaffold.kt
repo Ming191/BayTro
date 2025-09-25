@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -24,7 +25,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold (
-    contentType: ContentType,
     navigationType: NavigationType,
     navHostController: NavHostController,
     onDrawerClicked: () -> Unit,
@@ -78,8 +78,8 @@ fun AppScaffold (
                         .padding(paddingValues)
                 ) {
                     AppNavigationController(
-                        contentType = contentType,
-                        navHostController = navHostController
+                        navHostController = navHostController,
+                        startDestination = Screens.Dashboard.route
                     )
                 }
             },

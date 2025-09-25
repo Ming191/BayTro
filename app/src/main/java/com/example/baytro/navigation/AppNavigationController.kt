@@ -1,9 +1,11 @@
 package com.example.baytro.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.baytro.MainScreen
 import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.BuildingListScreen
 import com.example.baytro.view.screens.AddBuildingScreen
@@ -11,15 +13,17 @@ import com.example.baytro.view.screens.ContractListScreen
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
+import com.example.baytro.view.screens.auth.SignInScreen
+import com.example.baytro.view.screens.auth.SignUpScreen
 
 @Composable
 fun AppNavigationController(
-    contentType: ContentType,
     navHostController: NavHostController,
+    startDestination: String
 ) {
     NavHost (
         navController = navHostController,
-        startDestination = Screens.BuildingList.route
+        startDestination = startDestination
     ) {
         composable(
             Screens.BuildingList.route
@@ -55,6 +59,40 @@ fun AppNavigationController(
             Screens.ContractList.route
         ) {
             ContractListScreen()
+        }
+        composable (
+            Screens.MainScreen.route
+        ) {
+            MainScreen()
+        }
+        composable(
+            Screens.SignIn.route
+        ) {
+            SignInScreen(
+                onSignInSuccess = {
+                    navHostController.navigate(Screens.MainScreen.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                    }
+                },
+                onNavigateToSignUp = {
+                    navHostController.navigate(Screens.SignUp.route) {
+                        popUpTo(Screens.SignIn.route) {
+                            inclusive = false
+                        }
+                    }
+                }
+            )
+        }
+        composable (
+            Screens.SignUp.route
+        ) {
+            SignUpScreen(
+                onNavigateToSignIn = {
+                    navHostController.popBackStack()
+                }
+            )
         }
     }
 }
