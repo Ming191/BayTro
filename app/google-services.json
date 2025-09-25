@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009324738380",
+    "project_id": "bay-tro",
+    "storage_bucket": "bay-tro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009324738380:android:0ac381672289d5c06871e9",
+        "android_client_info": {
+          "package_name": "com.example.baytro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwnydISVfEaoKche893Cz3NtyKVEip53I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
