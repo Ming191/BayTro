@@ -54,4 +54,8 @@ object Validator {
         !android.util.Patterns.PHONE.matcher(phoneNumber).matches() -> ValidationResult.Error(ERROR_PHONE_INVALID)
         else -> ValidationResult.Success
     }
+
+    fun validateNonEmpty(field: String, fieldName: String): ValidationResult =
+        if (field.isBlank()) ValidationResult.Error("Please enter your $fieldName.")
+        else ValidationResult.Success
 }

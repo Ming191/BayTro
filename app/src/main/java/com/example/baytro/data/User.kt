@@ -2,11 +2,17 @@ package com.example.baytro.data
 
 import com.google.firebase.firestore.DocumentId
 import dev.gitlive.firebase.firestore.Timestamp
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 enum class Gender {
     MALE, FEMALE, OTHER
+}
+
+@Serializable
+enum class BankCode{
+    MB, VCB, BIDV
 }
 
 @Serializable
@@ -17,6 +23,7 @@ enum class RoleType {
 @Serializable
 sealed class Role() {
     @Serializable
+    @SerialName("Tenant")
     data class Tenant(
         val fullName: String,
         val dateOfBirth: String,
@@ -32,6 +39,7 @@ sealed class Role() {
     ): Role()
 
     @Serializable
+    @SerialName("Landlord")
     data class Landlord(
         val fullName: String,
         val dateOfBirth: String,
@@ -53,4 +61,5 @@ data class User (
     val role: Role? = null,
     val phoneNumber: String,
     val lastLogin: Timestamp? = null,
+    val isFirstLogin : Boolean = true
 )

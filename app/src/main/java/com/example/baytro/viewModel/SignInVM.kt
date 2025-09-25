@@ -60,7 +60,14 @@ class SignInVM(
                 val user = authRepository.signIn(email, password)
 
                 if (authRepository.checkVerification()) {
-                    _signInUIState.value = AuthUIState.Success(user)
+
+                    val currentUser = userRepository.getById(user.uid)
+                    if(currentUser!!.isFirstLogin) {
+                        _signInUIState.value = AuthUIState.FirstTimeUser(user)
+                    }
+                    else {
+                        _signInUIState.value = AuthUIState.Success(user)
+                    }
                     userRepository.updateFields(
                         user.uid,
                         mapOf("lastLogin" to Timestamp.now())
