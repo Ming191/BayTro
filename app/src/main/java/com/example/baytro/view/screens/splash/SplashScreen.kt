@@ -2,6 +2,7 @@ package com.example.baytro.view.screens.splash
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -18,14 +19,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.baytro.view.AuthUIState
+import com.example.baytro.data.RoleType
+import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.Logo
+import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.splash.SplashScreenVM
-import com.example.baytro.viewModel.splash.SplashUiState
+import com.example.baytro.viewModel.splash.splashFormState
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -35,17 +39,25 @@ fun SplashScreen(
     viewModel: SplashScreenVM = koinViewModel()
 ) {
     val splashUiState by viewModel.splashUiState.collectAsState()
+    val formState by viewModel.splashFormState.collectAsState()
+    val context = LocalContext.current
+
     SplashScreenContent(
-        onSplashCompleted = viewModel::onComplete
+        onSplashCompleted = viewModel::onComplete,
+        formState = formState,
+        onRoleChange = viewModel::onRoleChange,
     )
 
     LaunchedEffect(key1 = splashUiState) {
-        when (splashUiState) {
-            is SplashUiState.TenantLogin -> {
-                navigateToTenantLogin()
+        when (val state = splashUiState) {
+            is UiState.Success -> {
+                when (state.data) {
+                    RoleType.LANDLORD -> navigateToLandlordLogin()
+                    RoleType.TENANT -> navigateToTenantLogin()
+                }
             }
-            is SplashUiState.LandlordLogin -> {
-                navigateToLandlordLogin()
+            is UiState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
             }
             else -> {}
         }
@@ -55,6 +67,8 @@ fun SplashScreen(
 @Composable
 fun SplashScreenContent(
     onSplashCompleted: () -> Unit,
+    formState : splashFormState,
+    onRoleChange: (RoleType) -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -67,7 +81,7 @@ fun SplashScreenContent(
             modifier = Modifier
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+            verticalArrangement = Arrangement.Center
         ) {
             Logo()
             Spacer(modifier = Modifier.padding(16.dp))
@@ -78,6 +92,15 @@ fun SplashScreenContent(
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
 
+            )
+            Spacer(modifier = Modifier.padding(16.dp))
+            DropdownSelectField(
+                options = RoleType.entries.toList(),
+                selectedOption = formState.role,
+                modifier = Modifier.fillMaxWidth(),
+                label = "You're a",
+                onOptionSelected = {onRoleChange(it)},
+                isLowerCased = true,
             )
             Spacer(modifier = Modifier.padding(16.dp))
             Button(
@@ -93,3 +116,4 @@ fun SplashScreenContent(
         }
     }
 }
+

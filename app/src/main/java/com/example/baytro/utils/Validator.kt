@@ -49,10 +49,14 @@ object Validator {
         if (role == null) ValidationResult.Error(ERROR_ROLE_INVALID)
         else ValidationResult.Success
 
-    fun validatePhoneNumber(phoneNumber: String): ValidationResult = when {
-        phoneNumber.isBlank() -> ValidationResult.Error(ERROR_PHONE_EMPTY)
-        !android.util.Patterns.PHONE.matcher(phoneNumber).matches() -> ValidationResult.Error(ERROR_PHONE_INVALID)
-        else -> ValidationResult.Success
+    fun validatePhoneNumber(phoneNumber: String): ValidationResult {
+        val vietnamPhoneRegex = Regex("^(0[3|5|7|8|9][0-9]{8}|\\+84[3|5|7|8|9][0-9]{8})\$")
+
+        return when {
+            phoneNumber.isBlank() -> ValidationResult.Error(ERROR_PHONE_EMPTY)
+            !vietnamPhoneRegex.matches(phoneNumber) -> ValidationResult.Error(ERROR_PHONE_INVALID)
+            else -> ValidationResult.Success
+        }
     }
 
     fun validateNonEmpty(field: String, fieldName: String): ValidationResult =

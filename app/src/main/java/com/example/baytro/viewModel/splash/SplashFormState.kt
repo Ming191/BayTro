@@ -3,16 +3,11 @@ package com.example.baytro.viewModel.splash
 import android.net.Uri
 import com.example.baytro.data.BankCode
 import com.example.baytro.data.Gender
+import com.example.baytro.data.RoleType
 import com.example.baytro.utils.ValidationResult
-
-sealed class SplashUiState {
-    object Idle : SplashUiState()
-    object TenantLogin : SplashUiState()
-    object LandlordLogin : SplashUiState()
-    object Loading : SplashUiState()
-    data class Error(val message: String) : SplashUiState()
-    object Success : SplashUiState()
-}
+data class splashFormState(
+    val role: RoleType = RoleType.entries[0],
+)
 
 data class NewLandlordUserFormState(
     val fullName: String = "",
@@ -28,4 +23,8 @@ data class NewLandlordUserFormState(
     val dateOfBirthError: ValidationResult = ValidationResult.Success,
     val bankAccountNumberError: ValidationResult = ValidationResult.Success,
     val avatarUriError: ValidationResult = ValidationResult.Success,
+
+    val phoneNumber: String = "",
+    val phoneNumberError: ValidationResult = ValidationResult.Success,
+
 )

@@ -14,6 +14,7 @@ import com.example.baytro.data.User
 import com.example.baytro.data.UserRepository
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
+import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -24,10 +25,10 @@ class NewLandlordUserVM(
     private val mediaRepository: MediaRepository
 ) : ViewModel() {
     private val _newLandlordUserFormState = MutableStateFlow(NewLandlordUserFormState())
-    val newLandlordUserFormState : StateFlow<NewLandlordUserFormState> = _newLandlordUserFormState
+    val newLandlordUserFormState: StateFlow<NewLandlordUserFormState> = _newLandlordUserFormState
 
-    private val _newLandlordUserUIState = MutableStateFlow<SplashUiState>(SplashUiState.Idle)
-    val newLandlordUserUIState: StateFlow<SplashUiState> = _newLandlordUserUIState
+    private val _newLandlordUserUIState = MutableStateFlow<UiState<User>>(UiState.Idle)
+    val newLandlordUserUIState: StateFlow<UiState<User>> = _newLandlordUserUIState
 
     fun onFullNameChange(fullName: String) {
         _newLandlordUserFormState.value = _newLandlordUserFormState.value.copy(fullName = fullName, fullNameError = ValidationResult.Success)
@@ -62,9 +63,12 @@ class NewLandlordUserVM(
     fun onAvatarClick() {
         _showPhotoSelector.value = true
     }
-
     fun onPhotoSelectorDismissed() {
         _showPhotoSelector.value = false
+    }
+
+    fun onPhoneNumberChange(phoneNumber: String) {
+        _newLandlordUserFormState.value = _newLandlordUserFormState.value.copy(phoneNumber = phoneNumber, phoneNumberError = ValidationResult.Success)
     }
 
     private fun validateInput(
@@ -74,10 +78,14 @@ class NewLandlordUserVM(
         val permanentAddressValidator = Validator.validateNonEmpty(formState.permanentAddress, "Permanent Address")
         val dateOfBirthValidator = Validator.validateNonEmpty(formState.dateOfBirth, "Date of Birth")
         val bankAccountNumberValidator = Validator.validateNonEmpty(formState.bankAccountNumber , "Bank Account Number")
+        val phoneNumberValidator = Validator.validatePhoneNumber(formState.phoneNumber)
         val isValid = fullNameValidator == ValidationResult.Success &&
                 permanentAddressValidator == ValidationResult.Success &&
                 dateOfBirthValidator == ValidationResult.Success &&
-                bankAccountNumberValidator == ValidationResult.Success
+                bankAccountNumberValidator == ValidationResult.Success &&
+                formState.avatarUri != Uri.EMPTY &&
+                phoneNumberValidator == ValidationResult.Success
+
 
         _newLandlordUserFormState.value = formState.copy(
             fullNameError = fullNameValidator,
@@ -93,45 +101,38 @@ class NewLandlordUserVM(
     }
 
     private fun onSubmit() {
-        _newLandlordUserUIState.value = SplashUiState.Loading
+        _newLandlordUserUIState.value = UiState.Loading
         val formState = _newLandlordUserFormState.value
         if (!validateInput(formState)) {
             return
         }
         viewModelScope.launch {
+            try {
+                val authUser = authRepository.getCurrentUser()!!
+                val profileImgUrl = mediaRepository.uploadUserProfileImage(
+                    userId = authUser.uid,
+                    imageUri = formState.avatarUri
+                )
+                val landlordRole = Role.Landlord(
+                    bankCode = formState.bankCode.name,
+                    bankAccountNumber = formState.bankAccountNumber,
+                )
 
-        try {
-            val userId = authRepository.getCurrentUser()!!.uid
-            val user = userRepository.getById(userId)
-            val profileImgUrl = mediaRepository.uploadUserProfileImage(
-                userId = user!!.id,
-                imageUri = formState.avatarUri
-            )
-
-            val landlordRole = Role.Landlord(
-                fullName = formState.fullName,
-                dateOfBirth = formState.dateOfBirth,
-                gender = formState.gender,
-                address = formState.permanentAddress,
-                bankCode = formState.bankCode.name,
-                bankAccountNumber = formState.bankAccountNumber,
-                profileImgUrl = profileImgUrl
-            )
-            val updatedUser = User(
-                id = user.id,
-                email = user.email,
-                roleType = RoleType.LANDLORD,
-                role = landlordRole,
-                phoneNumber = user.phoneNumber,
-                lastLogin = user.lastLogin,
-                isFirstLogin = false
-            )
-            Log.d("NewLandlordUserVM", "Updating Firestore document at users/${user.id}")
-            Log.d("NewLandlordUserVM", "Updated user: $updatedUser")
-            userRepository.update(user.id, updatedUser)
-            _newLandlordUserUIState.value = SplashUiState.Success
+                val user = User(
+                    id = authUser.uid,
+                    email = authUser.email!!,
+                    fullName = formState.fullName,
+                    dateOfBirth = formState.dateOfBirth,
+                    gender = formState.gender,
+                    address = formState.permanentAddress,
+                    phoneNumber = formState.phoneNumber,
+                    profileImgUrl = profileImgUrl,
+                    role = landlordRole
+                )
+                userRepository.addWithId(user.id, user)
+                _newLandlordUserUIState.value = UiState.Success(user)
             } catch (e: Exception) {
-                _newLandlordUserUIState.value = SplashUiState.Error(e.message ?: "An unknown error occurred")
+                _newLandlordUserUIState.value = UiState.Error(e.message ?: "An unknown error occurred")
             }
         }
     }

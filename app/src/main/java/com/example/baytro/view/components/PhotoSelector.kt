@@ -1,4 +1,4 @@
-package com.example.baytro.view.screens.splash
+package com.example.baytro.view.components
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -6,12 +6,10 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -23,12 +21,6 @@ fun PhotoSelectorView(
     onImagesSelected: (List<Uri?>) -> Unit = {},
     selectedImages: List<Uri?> = emptyList()
 ) {
-    val buttonText = if (maxSelectionCount > 1) {
-        "Select up to $maxSelectionCount photos"
-    } else {
-        "Select a photo"
-    }
-
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri -> onImagesSelected(listOf(uri)) }
@@ -51,19 +43,17 @@ fun PhotoSelectorView(
         }
     }
 
+    LaunchedEffect(Unit) {
+        launchPhotoPicker()
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Button(onClick = { launchPhotoPicker() }) {
-            Text(buttonText)
-        }
-
         ImageLayoutView(selectedImages = selectedImages)
     }
 }
-
-
 
 @Composable
 fun ImageLayoutView(selectedImages: List<Uri?>) {
@@ -72,7 +62,7 @@ fun ImageLayoutView(selectedImages: List<Uri?>) {
             AsyncImage(
                 model = uri,
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize(fraction = 0.8f),
                 contentScale = ContentScale.Fit
             )
         }

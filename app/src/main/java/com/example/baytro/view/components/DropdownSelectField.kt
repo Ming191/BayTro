@@ -1,9 +1,13 @@
 package com.example.baytro.view.components
 
+import android.R.attr.enabled
+import android.R.attr.type
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +36,7 @@ fun <T : Enum<T>> DropdownSelectField(
         modifier = modifier
     ) {
         OutlinedTextField(
-            modifier = Modifier.menuAnchor(),
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable).fillMaxWidth(),
             value = if (isLowerCased) selectedOption.name.lowercase().replaceFirstChar { it.uppercase() }
             else selectedOption.name,
             onValueChange = {},

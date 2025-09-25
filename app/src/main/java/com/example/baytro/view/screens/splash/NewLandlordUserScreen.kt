@@ -2,14 +2,12 @@ package com.example.baytro.view.screens.splash
 
 import RequiredDateTextField
 import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,19 +33,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
 import com.example.baytro.data.BankCode
 import com.example.baytro.data.Gender
 import com.example.baytro.utils.ValidationResult
-import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
+import com.example.baytro.view.components.PhotoSelectorView
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.splash.NewLandlordUserFormState
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
-import com.example.baytro.viewModel.splash.SplashUiState
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -68,18 +67,19 @@ fun NewLandlordUserScreen(
         onDateOfBirthChange = viewModel::onDateOfBirthChange,
         onBankCodeChange = viewModel::onBankCodeChange,
         onBankAccountNumberChange = viewModel::onBankAccountNumberChange,
-        onSubmitClick = viewModel::submit
+        onSubmitClick = viewModel::submit,
+        onPhoneNumberChange = viewModel::onPhoneNumberChange
     )
     val newLandlordUserUIState by viewModel.newLandlordUserUIState.collectAsState()
-    LaunchedEffect(key1 = newLandlordUserUIState) {
+
+    LaunchedEffect(newLandlordUserUIState) {
         when (val state = newLandlordUserUIState) {
-            is SplashUiState.Success -> {
+            is UiState.Success -> {
                 onComplete()
             }
             else -> Unit
         }
     }
-
     if (showPhotoSelector.value) {
         PhotoSelectorView(
             maxSelectionCount = 1,
@@ -103,13 +103,35 @@ fun NewLandlordUserScreenContent(
     onDateOfBirthChange: (String) -> Unit,
     onBankCodeChange: (BankCode) -> Unit,
     onBankAccountNumberChange: (String) -> Unit,
-    onSubmitClick: () -> Unit
+    onSubmitClick: () -> Unit,
+    onPhoneNumberChange: (String) -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Welcome, landlord!") }
+                title = { Text("Welcome, landlord!", fontWeight = FontWeight.Bold) }
             )
+        },
+        bottomBar =  {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(
+                        bottom = 32.dp,
+                        start = 16.dp,
+                        end = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Button(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    onClick = onSubmitClick,
+                ) {
+                    Text("Submit")
+                }
+            }
         }
     ) { padding ->
         LazyColumn(
@@ -166,29 +188,6 @@ fun NewLandlordUserScreenContent(
             }
 
             item {
-                RequiredTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = formState.permanentAddress,
-                    onValueChange = onAddressChange,
-                    label = "Permanent address",
-                    isError = formState.permanentAddressError is ValidationResult.Error,
-                    errorMessage = formState.permanentAddressError.let {
-                        if (it is ValidationResult.Error) it.message else null
-                    }
-                )
-            }
-
-            item {
-                DropdownSelectField(
-                    modifier = Modifier.fillMaxWidth(),
-                    label = "Gender",
-                    options = Gender.entries.toList(),
-                    selectedOption = formState.gender,
-                    onOptionSelected = { onGenderChange(it) }
-                )
-            }
-
-            item {
                 RequiredDateTextField(
                     label = "Date of Birth",
                     selectedDate = formState.dateOfBirth,
@@ -202,14 +201,39 @@ fun NewLandlordUserScreenContent(
             }
 
             item {
-                DropdownSelectField(
+                RequiredTextField(
                     modifier = Modifier.fillMaxWidth(),
-                    label = "Bank code",
-                    options = BankCode.entries.toList(),
-                    selectedOption = formState.bankCode,
-                    onOptionSelected = { onBankCodeChange(it) },
-                    isLowerCased = false
+                    value = formState.permanentAddress,
+                    onValueChange = onAddressChange,
+                    label = "Permanent address",
+                    isError = formState.permanentAddressError is ValidationResult.Error,
+                    errorMessage = formState.permanentAddressError.let {
+                        if (it is ValidationResult.Error) it.message else null
+                    }
                 )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    DropdownSelectField(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        label = "Gender",
+                        options = Gender.entries.toList(),
+                        selectedOption = formState.gender,
+                        onOptionSelected = { onGenderChange(it) }
+                    )
+                    DropdownSelectField(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        label = "Bank code",
+                        options = BankCode.entries.toList(),
+                        selectedOption = formState.bankCode,
+                        onOptionSelected = { onBankCodeChange(it) },
+                        isLowerCased = false
+                    )
+                }
             }
 
             item {
@@ -226,15 +250,35 @@ fun NewLandlordUserScreenContent(
             }
 
             item {
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    onClick = onSubmitClick,
-                ) {
-                    Text("Submit")
-                }
+                RequiredTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = formState.phoneNumber,
+                    onValueChange = onPhoneNumberChange,
+                    label = "Phone number",
+                    isError = formState.phoneNumberError is ValidationResult.Error,
+                    errorMessage = formState.phoneNumberError.let {
+                        if (it is ValidationResult.Error) it.message else null
+                    }
+                )
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun NewLandlordUserScreenPreview() {
+    NewLandlordUserScreenContent(
+        formState = NewLandlordUserFormState(),
+        avatarUri = null,
+        onAvatarClick = {},
+        onFullNameChange = {},
+        onAddressChange = {},
+        onGenderChange = {},
+        onDateOfBirthChange = {},
+        onBankCodeChange = {},
+        onBankAccountNumberChange = {},
+        onSubmitClick = {},
+        onPhoneNumberChange = {}
+    )
 }

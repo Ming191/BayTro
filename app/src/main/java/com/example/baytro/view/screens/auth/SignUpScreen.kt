@@ -98,7 +98,6 @@ fun SignUpContent(
         ) {
             Text("Create an Account", style = MaterialTheme.typography.headlineLarge)
 
-            // Email field with memoized error state
             val emailError = remember(formState.emailError) {
                 if (formState.emailError is ValidationResult.Error) formState.emailError.message else null
             }

@@ -24,11 +24,6 @@ sealed class Role() {
     @Serializable
     @SerialName("Tenant")
     data class Tenant(
-        val fullName: String,
-        val dateOfBirth: String,
-        val gender: Gender,
-        val address: String,
-        val profileImgUrl: String?,
         val occupation: String,
         val idCardNumber: String,
         val idCardImageFrontUrl: String?,
@@ -40,13 +35,8 @@ sealed class Role() {
     @Serializable
     @SerialName("Landlord")
     data class Landlord(
-        val fullName: String,
-        val dateOfBirth: String,
-        val gender: Gender,
-        val address: String,
         val bankCode: String,
         val bankAccountNumber: String,
-        val profileImgUrl: String?,
     ): Role()
 }
 
@@ -57,4 +47,11 @@ data class User (
     val email: String,
     val phoneNumber: String,
     val role: Role? = null,
-    )
+
+    val fullName: String,
+    val dateOfBirth: String,
+
+    val gender: Gender,
+    val address: String,
+    val profileImgUrl: String?,
+)
