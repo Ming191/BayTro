@@ -13,11 +13,4 @@
 .externalNativeBuild
 .cxx
 local.properties
-/.idea/copilot.data.migration.ask.xml
-/.idea/codeStyles/codeStyleConfig.xml
-/.idea/copilot.data.migration.agent.xml
-/.idea/copilot.data.migration.ask2agent.xml
-/.idea/copilot.data.migration.edit.xml
-/.kotlin/errors/errors-1758586968069.log
-/.kotlin/errors/errors-1758586977900.log
-/.idea/codeStyles/Project.xml
+.idea/
