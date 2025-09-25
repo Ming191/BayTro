@@ -47,10 +47,7 @@ sealed class Role() {
 data class User (
     @kotlinx.serialization.Transient
     @DocumentId val id: String = "",
-
     val email: String,
-    val roleType: RoleType,
-    val role: Role? = null,
     val phoneNumber: String,
-    val lastLogin: Timestamp? = null,
+    val role: Role? = null,
 )

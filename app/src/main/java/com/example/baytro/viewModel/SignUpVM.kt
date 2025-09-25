@@ -17,7 +17,6 @@ import kotlinx.coroutines.launch
 
 class SignUpVM (
     private val authRepository: AuthRepository,
-    private val userRepository: UserRepository
 ) : ViewModel() {
     private val _signUpUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
     val signUpUIState: StateFlow<AuthUIState> = _signUpUIState
@@ -48,22 +47,6 @@ class SignUpVM (
         )
     }
 
-    fun onRoleChange(roleType: RoleType) {
-        val currentState = _signUpFormState.value
-        _signUpFormState.value = currentState.copy(
-            roleType = roleType,
-            roleError = ValidationResult.Success
-        )
-    }
-
-    fun onPhoneNumberChange(phoneNumber: String) {
-        val currentState = _signUpFormState.value
-        _signUpFormState.value = currentState.copy(
-            phoneNumber = phoneNumber,
-            phoneNumberError = ValidationResult.Success
-        )
-    }
-
     private fun validateInput(
         formState: SignUpFormState
     ): Boolean {
@@ -71,22 +54,16 @@ class SignUpVM (
         val passwordValidator = Validator.validatePassword(formState.password)
         val passwordStrengthValidator = Validator.validatePasswordStrength(formState.password)
         val confirmPasswordValidator = Validator.validateConfirmPassword(formState.password, formState.confirmPassword)
-        val roleValidator = Validator.validateRole(formState.roleType)
-        val phoneValidator = Validator.validatePhoneNumber(formState.phoneNumber)
         val isValid = emailValidator == ValidationResult.Success
                 && passwordValidator == ValidationResult.Success
                 && passwordStrengthValidator == ValidationResult.Success
                 && confirmPasswordValidator == ValidationResult.Success
-                && roleValidator == ValidationResult.Success
-                && phoneValidator == ValidationResult.Success
 
         _signUpFormState.value = formState.copy(
             emailError = emailValidator,
             passwordError = passwordValidator,
             passwordStrengthError = passwordStrengthValidator,
             confirmPasswordError = confirmPasswordValidator,
-            roleError = roleValidator,
-            phoneNumberError = phoneValidator
         )
         return isValid
     }
@@ -104,20 +81,9 @@ class SignUpVM (
             var currentUser : FirebaseUser? = null
             try {
                 val formState = _signUpFormState.value
-
-                val roleType = formState.roleType ?: throw IllegalStateException("Role cannot be null")
                 authRepository.signUp(formState.email, formState.password)
                 currentUser = authRepository.getCurrentUser()
                     ?: throw IllegalStateException("Failed to get current user after sign up")
-
-                userRepository.addWithId(
-                    id = currentUser.uid,
-                    User(
-                        email = formState.email,
-                        roleType = roleType,
-                        phoneNumber = formState.phoneNumber,
-                    )
-                )
                 authRepository.sendVerificationEmail()
                 authRepository.signOut()
                 _signUpUIState.value = AuthUIState.NeedVerification("Please check your email for verification")

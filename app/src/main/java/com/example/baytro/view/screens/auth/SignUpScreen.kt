@@ -55,8 +55,6 @@ fun SignUpScreen(
         onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
         onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
-        onPhoneNumberChange = viewModel::onPhoneNumberChange,
-        onRoleChange = viewModel::onRoleChange
     )
 
     LaunchedEffect(key1 = uiState) {
@@ -91,8 +89,6 @@ fun SignUpContent(
     onConfirmPasswordChange: (String) -> Unit,
     onSignUpClicked: () -> Unit,
     onNavigateToSignIn: () -> Unit,
-    onPhoneNumberChange: (String) -> Unit,
-    onRoleChange: (RoleType) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
@@ -114,38 +110,6 @@ fun SignUpContent(
                 errorMessage = emailError,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            // Phone field with memoized error state
-            val phoneError = remember(formState.phoneNumberError) {
-                if (formState.phoneNumberError is ValidationResult.Error) formState.phoneNumberError.message else null
-            }
-            RequiredTextField (
-                value = formState.phoneNumber,
-                onValueChange = onPhoneNumberChange,
-                label = "Phone Number",
-                isError = formState.phoneNumberError is ValidationResult.Error,
-                errorMessage = phoneError,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Role selection with memoized error state
-            val roleError = remember(formState.roleError) {
-                if (formState.roleError is ValidationResult.Error) formState.roleError.message else null
-            }
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                ChoiceSelection(
-                    options = RoleType.entries,
-                    selectedOption = formState.roleType,
-                    onOptionSelected = onRoleChange,
-                    isError = formState.roleError is ValidationResult.Error,
-                    errorMessage = roleError,
-                )
-            }
-            // Password field with optimized error handling
             Column(modifier = Modifier.fillMaxWidth()) {
                 val passwordError = remember(formState.passwordError, formState.passwordStrengthError) {
                     when {
