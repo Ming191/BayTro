@@ -19,11 +19,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import com.example.baytro.view.screens.DashboardScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold (
-    contentType: ContentType,
     navigationType: NavigationType,
     navHostController: NavHostController,
     onDrawerClicked: () -> Unit,
@@ -60,8 +60,8 @@ fun AppScaffold (
                         .padding(paddingValues)
                 ) {
                     AppNavigationController(
-                        contentType = contentType,
-                        navHostController = navHostController
+                        navHostController = navHostController,
+                        startDestination = Screens.Dashboard.route
                     )
                 }
             },

@@ -18,6 +18,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
@@ -29,15 +30,12 @@ android {
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    kotlin {
+        jvmToolchain(17)
     }
 }
 
@@ -53,6 +51,10 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.ai)
+    implementation(libs.firebase.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -61,7 +63,21 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.koin.core)
-    implementation(libs.insert.koin.koin.core)
+    implementation(project.dependencies.platform("io.insert-koin:koin-bom:4.1.1"))
+    implementation(libs.io.insert.koin.koin.core)
+    implementation(libs.insert.koin.koin.android)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
+    implementation(libs.koin.compose.viewmodel.navigation)
     implementation(libs.androidx.navigation.compose)
+
+    implementation (libs.androidx.compose.material.icons.core)
+    implementation (libs.androidx.compose.material.icons.extended)
+
+    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+
+    implementation("dev.gitlive:firebase-firestore:2.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+
 }

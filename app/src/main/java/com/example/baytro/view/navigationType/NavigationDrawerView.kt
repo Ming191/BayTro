@@ -56,7 +56,7 @@ fun NavigationDrawerView(
         ) {
             Text(
                 text = "Menu",
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
             IconButton(
