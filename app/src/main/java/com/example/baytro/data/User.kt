@@ -1,7 +1,6 @@
 package com.example.baytro.data
 
 import com.google.firebase.firestore.DocumentId
-import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -55,11 +54,7 @@ sealed class Role() {
 data class User (
     @kotlinx.serialization.Transient
     @DocumentId val id: String = "",
-
     val email: String,
-    val roleType: RoleType,
-    val role: Role? = null,
     val phoneNumber: String,
-    val lastLogin: Timestamp? = null,
-    val isFirstLogin : Boolean = true
-)
+    val role: Role? = null,
+    )

@@ -16,7 +16,6 @@ import kotlinx.coroutines.launch
 
 class SignInVM(
     private val authRepository: AuthRepository,
-    private val userRepository: UserRepository
 ) : ViewModel() {
     private val _signInUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
     val signInUIState: StateFlow<AuthUIState> = _signInUIState
@@ -60,18 +59,7 @@ class SignInVM(
                 val user = authRepository.signIn(email, password)
 
                 if (authRepository.checkVerification()) {
-
-                    val currentUser = userRepository.getById(user.uid)
-                    if(currentUser!!.isFirstLogin) {
-                        _signInUIState.value = AuthUIState.FirstTimeUser(user)
-                    }
-                    else {
-                        _signInUIState.value = AuthUIState.Success(user)
-                    }
-                    userRepository.updateFields(
-                        user.uid,
-                        mapOf("lastLogin" to Timestamp.now())
-                    )
+                    _signInUIState.value = AuthUIState.Success(user)
                 } else {
                     authRepository.sendVerificationEmail()
                     authRepository.signOut()
