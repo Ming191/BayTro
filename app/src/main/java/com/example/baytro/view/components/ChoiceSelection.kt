@@ -60,7 +60,7 @@ fun<T : Enum<T>> ChoiceSelection(
                             indication = null
                         ) {
                             internalSelectedOption = option
-                            onOptionSelected(option)  // gọi callback
+                            onOptionSelected(option)
                         }
                 ) {
                     RadioButton(

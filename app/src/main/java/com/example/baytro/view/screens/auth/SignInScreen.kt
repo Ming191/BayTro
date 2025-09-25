@@ -1,7 +1,6 @@
 package com.example.baytro.view.screens.auth
 
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +13,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,19 +23,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.baytro.auth.SignInFormState // Giả sử đây là data class SignInFormState
+import com.example.baytro.auth.SignInFormState
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.viewModel.SignInVM // Tên ViewModel của bạn
+import com.example.baytro.viewModel.SignInVM
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SignInScreen(
     viewModel: SignInVM = koinViewModel(),
     onSignInSuccess: () -> Unit,
-    onNavigateToSignUp: () -> Unit
+    onNavigateToSignUp: () -> Unit,
 ) {
     val formState by viewModel.signInFormState.collectAsState()
     val loginUiState by viewModel.signInUIState.collectAsState()
