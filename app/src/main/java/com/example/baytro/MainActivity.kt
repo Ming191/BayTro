@@ -1,7 +1,6 @@
 package com.example.baytro
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,6 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.baytro.navigation.AppNavigation
 import com.example.baytro.navigation.Screens
+import com.example.baytro.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
@@ -39,13 +39,15 @@ class MainActivity : ComponentActivity() {
             Screens.SignIn.route
         }
         setContent {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                AppNavigation(
-                    startDestination = startDestination
-                )
+            AppTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    AppNavigation(
+                        startDestination = startDestination
+                    )
+                }
             }
         }
     }
