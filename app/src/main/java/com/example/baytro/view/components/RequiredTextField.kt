@@ -7,6 +7,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardOptions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -17,6 +18,7 @@ fun RequiredTextField(
     label: String,
     isError: Boolean,
     errorMessage: String?,
+    keyboardOptions: KeyboardOptions? = null,
     readOnly: Boolean = false,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
@@ -35,6 +37,7 @@ fun RequiredTextField(
                 )
             }
         },
+        keyboardOptions = keyboardOptions ?: KeyboardOptions.Default,
         readOnly = readOnly,
         trailingIcon = trailingIcon
     )

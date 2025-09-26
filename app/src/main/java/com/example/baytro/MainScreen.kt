@@ -30,7 +30,7 @@ fun MainScreen() {
                             }
                         },
                         onPropertyClicked = {
-                            navController.navigate("properties_screen")
+                            navController.navigate("buildings_screen")
                             scope.launch {
                                 drawerState.close()
                             }

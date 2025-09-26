@@ -35,7 +35,7 @@ fun NavigationDrawerView(
     onContractClicked: () -> Unit,
 ) {
     val items = listOf(
-        Screens.PropertyList,
+        Screens.BuildingList,
         Screens.TenantList
     )
     val selectedItem = remember { mutableStateOf(items[0]) }
@@ -81,11 +81,11 @@ fun NavigationDrawerView(
         )
 
         NavigationDrawerItem(
-            label = { Text(text = "Properties") },
-            selected = selectedItem.value == Screens.PropertyList,
+            label = { Text(text = "Buildings") },
+            selected = selectedItem.value == Screens.BuildingList,
             onClick = {
                 onPropertyClicked()
-                selectedItem.value = Screens.PropertyList
+                selectedItem.value = Screens.BuildingList
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )

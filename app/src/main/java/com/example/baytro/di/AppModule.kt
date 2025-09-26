@@ -2,8 +2,11 @@ package com.example.baytro.di
 
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
+import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.UserRepository
+import com.example.baytro.viewModel.AddBuildingVM
+import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
@@ -21,16 +24,18 @@ val appModule = module {
     single<FirebaseAuth> { FirebaseAuth.getInstance() }
     single<FirebaseFirestore> { Firebase.firestore }
     single<FirebaseStorage> { FirebaseStorage.getInstance() }
-
 }
 
 val authModule = module {
     single<UserRepository> { UserRepository(get()) }
+    single<BuildingRepository> { BuildingRepository(get()) }
     single<AuthRepository> { FirebaseAuthRepository(get()) }
     single<MediaRepository> { MediaRepository(get()) }
-    viewModel { SplashScreenVM(get()) }
 
+    viewModel { SplashScreenVM(get()) }
     viewModel { NewLandlordUserVM(androidContext(), get(), get(), get()) }
     viewModel { SignUpVM(get()) }
     viewModel { SignInVM(get(), get()) }
+    viewModel { AddBuildingVM(get(), get()) }
+    viewModel { BuildingListVM(get(), get()) }
 }
