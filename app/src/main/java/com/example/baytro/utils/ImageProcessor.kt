@@ -2,7 +2,6 @@ package com.example.baytro.utils
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import coil3.BitmapImage
 import coil3.ImageLoader
@@ -28,7 +27,7 @@ object ImageProcessor {
             val request = ImageRequest.Builder(context)
                 .data(uri)
                 .size(Size(maxWidth, maxWidth))
-                .allowHardware(false)
+                .allowHardware(true)
                 .build()
 
             val result = (imageLoader.execute(request) as SuccessResult).image
