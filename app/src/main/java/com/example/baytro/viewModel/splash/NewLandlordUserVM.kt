@@ -77,7 +77,6 @@ class NewLandlordUserVM(
                 permanentAddressValidator == ValidationResult.Success &&
                 dateOfBirthValidator == ValidationResult.Success &&
                 bankAccountNumberValidator == ValidationResult.Success &&
-                formState.avatarUri != Uri.EMPTY &&
                 phoneNumberValidator == ValidationResult.Success &&
                 avatarUriValidator == ValidationResult.Success
 
