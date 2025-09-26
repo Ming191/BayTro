@@ -1,18 +1,15 @@
 package com.example.baytro.view.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +19,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -30,26 +29,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
+//import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import java.io.Serializable
-
-data class Building(
-    val name: String,
-    val floor: Int,
-    val address: String,
-    val status: String,
-    val billingDate: Int,
-    val paymentStart: Int,
-    val paymentDue: Int,
-) : Serializable
+import com.example.baytro.data.Building
+import com.example.baytro.view.AuthUIState
+import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.viewModel.AddBuildingVM
+import org.koin.compose.viewmodel.koinViewModel
+import android.widget.Toast
+import androidx.compose.foundation.text.KeyboardOptions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddBuildingScreen(
-    navController: NavHostController? = null
+    navController: NavHostController? = null,
+    viewModel: AddBuildingVM = koinViewModel()
 ) {
+    val uiState by viewModel.addBuildingUIState.collectAsState()
+    val context = LocalContext.current
     var name by remember { mutableStateOf("") }
     var floor by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
@@ -73,13 +73,6 @@ fun AddBuildingScreen(
     var startErrorMsg by remember { mutableStateOf<String?>(null) }
     var dueErrorMsg by remember { mutableStateOf<String?>(null) }
 
-    var nameTouched by remember { mutableStateOf(false) }
-    var floorTouched by remember { mutableStateOf(false) }
-    var addressTouched by remember { mutableStateOf(false) }
-    var billingTouched by remember { mutableStateOf(false) }
-    var startTouched by remember { mutableStateOf(false) }
-    var dueTouched by remember { mutableStateOf(false) }
-
     val nameFocus = remember { FocusRequester() }
     val floorFocus = remember { FocusRequester() }
     val addressFocus = remember { FocusRequester() }
@@ -87,14 +80,38 @@ fun AddBuildingScreen(
     val startFocus = remember { FocusRequester() }
     val dueFocus = remember { FocusRequester() }
 
+    // Handle UI state changes
+    LaunchedEffect(key1 = uiState) {
+        when (val state = uiState) {
+            is AuthUIState.Success -> {
+                Toast.makeText(
+                    context,
+                    "Building added successfully!",
+                    Toast.LENGTH_SHORT
+                ).show()
+                navController?.popBackStack()
+            }
+            is AuthUIState.Error -> {
+                Toast.makeText(
+                    context,
+                    state.message,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            else -> Unit
+        }
+    }
+
     fun validateName(): Pair<Boolean, String?> {
         val invalid = name.isBlank()
         return invalid to if (invalid) "Building name is required" else null
     }
+
     fun validateAddress(): Pair<Boolean, String?> {
         val invalid = address.isBlank()
         return invalid to if (invalid) "Address is required" else null
     }
+
     fun validateFloor(): Pair<Boolean, String?> {
         if (floor.isBlank()) return true to "Floor is required"
         val value = floor.toIntOrNull()
@@ -102,6 +119,7 @@ fun AddBuildingScreen(
         if (value <= 0) return true to "Floor must be a positive integer"
         return false to null
     }
+
     fun validateBilling(): Pair<Boolean, String?> {
         if (billingDate.isBlank()) return true to "Billing date is required"
         val value = billingDate.toIntOrNull()
@@ -109,6 +127,7 @@ fun AddBuildingScreen(
         if (value <= 0) return true to "Billing date must be a positive integer"
         return false to null
     }
+
     fun validateStart(): Pair<Boolean, String?> {
         if (paymentStart.isBlank()) return true to "Payment start is required"
         val value = paymentStart.toIntOrNull()
@@ -116,6 +135,7 @@ fun AddBuildingScreen(
         if (value <= 0) return true to "Payment start must be a positive integer"
         return false to null
     }
+
     fun validateDue(): Pair<Boolean, String?> {
         if (paymentDue.isBlank()) return true to "Payment due is required"
         val value = paymentDue.toIntOrNull()
@@ -124,160 +144,135 @@ fun AddBuildingScreen(
         return false to null
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(color = Variables.SchemesSurface, shape = RoundedCornerShape(0.dp))
-            .padding(horizontal = 12.dp)
-    ) {
-        Spacer(modifier = Modifier.height(8.dp))
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
 
-
-        Text(text = "Building name *", style = MaterialTheme.typography.labelMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        OutlinedTextField(
-            value = name,
-            onValueChange = {
-                name = it
-                nameTouched = true
-                validateName().also { (err, msg) -> nameError = err; nameErrorMsg = msg }
-            },
-            label = { },
-            isError = nameError,
-            supportingText = { if (nameError) Text(text = nameErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(nameFocus)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "Floor *", style = MaterialTheme.typography.labelMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        OutlinedTextField(
-            value = floor,
-            onValueChange = {
-                floor = it
-                floorTouched = true
-                validateFloor().also { (err, msg) -> floorError = err; floorErrorMsg = msg }
-            },
-            label = { },
-            isError = floorError,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            supportingText = { if (floorError) Text(text = floorErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(floorFocus)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "Address *", style = MaterialTheme.typography.labelMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        OutlinedTextField(
-            value = address,
-            onValueChange = {
-                address = it
-                addressTouched = true
-                validateAddress().also { (err, msg) -> addressError = err; addressErrorMsg = msg }
-            },
-            label = { },
-            isError = addressError,
-            supportingText = { if (addressError) Text(text = addressErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(addressFocus)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "Status", style = MaterialTheme.typography.labelMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        ExposedDropdownMenuBox(expanded = statusExpanded, onExpandedChange = { statusExpanded = !statusExpanded }) {
-            OutlinedTextField(
-                value = status,
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded) },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
+            RequiredTextField(
+                value = name,
+                onValueChange = {
+                    name = it
+                    validateName().also { (err, msg) -> nameError = err; nameErrorMsg = msg }
+                },
+                label = "Building name",
+                isError = nameError,
+                errorMessage = nameErrorMsg,
+                modifier = Modifier.fillMaxWidth()
             )
-            DropdownMenu(expanded = statusExpanded, onDismissRequest = { statusExpanded = false }) {
-                listOf("Active", "Inactive").forEach { option ->
-                    DropdownMenuItem(text = { Text(option) }, onClick = {
-                        status = option
-                        statusExpanded = false
-                    })
+
+            OutlinedTextField(
+                value = floor,
+                onValueChange = { newValue ->
+                    floor = newValue
+                    validateFloor().also { (err, msg) -> floorError = err; floorErrorMsg = msg }
+                },
+                label = { Text("Floor") },
+                singleLine = true,
+                isError = floorError,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                supportingText = { if (floorError) Text(text = floorErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            RequiredTextField(
+                value = address,
+                onValueChange = {
+                    address = it
+                    validateAddress().also { (err, msg) ->
+                        addressError = err; addressErrorMsg = msg
+                    }
+                },
+                label = "Address",
+                isError = addressError,
+                errorMessage = addressErrorMsg,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            ExposedDropdownMenuBox(
+                expanded = statusExpanded,
+                onExpandedChange = { statusExpanded = !statusExpanded }) {
+                OutlinedTextField(
+                    value = status,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Status") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                DropdownMenu(
+                    expanded = statusExpanded,
+                    onDismissRequest = { statusExpanded = false }) {
+                    listOf("Active", "Inactive").forEach { option ->
+                        DropdownMenuItem(text = { Text(option) }, onClick = {
+                            status = option
+                            statusExpanded = false
+                        })
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "Billing date *", style = MaterialTheme.typography.labelMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        OutlinedTextField(
-            value = billingDate,
-            onValueChange = {
-                billingDate = it
-                billingTouched = true
-                validateBilling().also { (err, msg) -> billingError = err; billingErrorMsg = msg }
-            },
-            label = { },
-            isError = billingError,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            supportingText = { if (billingError) Text(text = billingErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(billingFocus)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Payment start *", style = MaterialTheme.typography.labelMedium)
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(
-                value = paymentStart,
-                onValueChange = {
-                    paymentStart = it
-                    startTouched = true
-                    validateStart().also { (err, msg) -> startError = err; startErrorMsg = msg }
+            OutlinedTextField(
+                value = billingDate,
+                onValueChange = { newValue ->
+                    billingDate = newValue
+                    validateBilling().also { (err, msg) ->
+                        billingError = err; billingErrorMsg = msg
+                    }
                 },
-                label = { },
-                isError = startError,
+                label = { Text("Billing date") },
+                singleLine = true,
+                isError = billingError,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                supportingText = { if (startError) Text(text = startErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(startFocus)
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Payment due *", style = MaterialTheme.typography.labelMedium)
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(
-                value = paymentDue,
-                onValueChange = {
-                    paymentDue = it
-                    dueTouched = true
-                    validateDue().also { (err, msg) -> dueError = err; dueErrorMsg = msg }
-                },
-                label = { },
-                isError = dueError,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                supportingText = { if (dueError) Text(text = dueErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(dueFocus)
-                )
-            }
-        }
+                supportingText = { if (billingError) Text(text = billingErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = paymentStart,
+                        onValueChange = { newValue ->
+                            paymentStart = newValue
+                            validateStart().also { (err, msg) ->
+                                startError = err; startErrorMsg = msg
+                            }
+                        },
+                        label = { Text("Payment start") },
+                        singleLine = true,
+                        isError = startError,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        supportingText = { if (startError) Text(text = startErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = paymentDue,
+                        onValueChange = { newValue ->
+                            paymentDue = newValue
+                            validateDue().also { (err, msg) -> dueError = err; dueErrorMsg = msg }
+                        },
+                        label = { Text("Payment due") },
+                        singleLine = true,
+                        isError = dueError,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        supportingText = { if (dueError) Text(text = dueErrorMsg ?: "", color = MaterialTheme.colorScheme.error) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
             Button(
                 onClick = {
+                    if (uiState is AuthUIState.Loading) return@Button
                     // Reset all errors before progressive check
                     nameError = false; nameErrorMsg = null
                     floorError = false; floorErrorMsg = null
@@ -299,12 +294,35 @@ fun AddBuildingScreen(
 
                     if (firstInvalid != null) {
                         when (firstInvalid.first) {
-                            "name" -> { nameError = true; nameErrorMsg = firstInvalid.second.second; nameTouched = true; nameFocus.requestFocus() }
-                            "floor" -> { floorError = true; floorErrorMsg = firstInvalid.second.second; floorTouched = true; floorFocus.requestFocus() }
-                            "address" -> { addressError = true; addressErrorMsg = firstInvalid.second.second; addressTouched = true; addressFocus.requestFocus() }
-                            "billing" -> { billingError = true; billingErrorMsg = firstInvalid.second.second; billingTouched = true; billingFocus.requestFocus() }
-                            "start" -> { startError = true; startErrorMsg = firstInvalid.second.second; startTouched = true; startFocus.requestFocus() }
-                            "due" -> { dueError = true; dueErrorMsg = firstInvalid.second.second; dueTouched = true; dueFocus.requestFocus() }
+                            "name" -> {
+                                nameError = true; nameErrorMsg =
+                                    firstInvalid.second.second;  nameFocus.requestFocus()
+                            }
+
+                            "floor" -> {
+                                floorError = true; floorErrorMsg =
+                                    firstInvalid.second.second;  floorFocus.requestFocus()
+                            }
+
+                            "address" -> {
+                                addressError = true; addressErrorMsg =
+                                    firstInvalid.second.second;  addressFocus.requestFocus()
+                            }
+
+                            "billing" -> {
+                                billingError = true; billingErrorMsg =
+                                    firstInvalid.second.second;  billingFocus.requestFocus()
+                            }
+
+                            "start" -> {
+                                startError = true; startErrorMsg =
+                                    firstInvalid.second.second;  startFocus.requestFocus()
+                            }
+
+                            "due" -> {
+                                dueError = true; dueErrorMsg =
+                                    firstInvalid.second.second; dueFocus.requestFocus()
+                            }
                         }
                     }
 
@@ -323,16 +341,19 @@ fun AddBuildingScreen(
                             paymentStart = paymentStartInt,
                             paymentDue = paymentDueInt,
                         )
-                        navController?.previousBackStackEntry?.savedStateHandle?.set("new_building", building)
-                        navController?.popBackStack()
+                        viewModel.addBuilding(building)
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(8.dp)
+                modifier = Modifier.fillMaxWidth().requiredHeight(50.dp),
+                enabled = uiState !is AuthUIState.Loading
             ) {
-                Text("Confirm")
+                if (uiState is AuthUIState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.padding(8.dp)
+                    )
+                } else {
+                    Text("Confirm")
+                }
             }
         }
     }

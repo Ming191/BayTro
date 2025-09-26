@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -18,7 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import com.example.baytro.data.Building
 import com.example.baytro.navigation.Screens
+import com.example.baytro.viewModel.BuildingListVM
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -34,34 +39,22 @@ fun BuildingListScreen(
     navController: NavHostController? = null,
     onViewBuilding: () -> Unit = {},
     onEditBuilding: () -> Unit = {},
-    onAddBuilding: () -> Unit = {}
+    onAddBuilding: () -> Unit = {},
+    viewModel: BuildingListVM = koinViewModel()
 ) {
     val controller = navController ?: rememberNavController()
-    val buildings = remember { mutableStateListOf<Building>() }
-    val savedStateHandle = controller.currentBackStackEntryAsState().value?.savedStateHandle
-    LaunchedEffect(savedStateHandle?.get<Building>("new_building")) {
-        savedStateHandle?.get<Building>("new_building")?.let { newItem ->
-            buildings.add(0, newItem)
-            savedStateHandle.remove<Building>("new_building")
-        }
+    val buildings by viewModel.buildings.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    
+    // Load buildings when screen is first displayed
+    LaunchedEffect(Unit) {
+        viewModel.loadBuildings()
     }
-    Box(
-        modifier = Modifier
-            .border(
-                width = 8.dp,
-                color = Variables.SchemesOutlineVariant,
-                shape = RectangleShape
-            )
-            .padding(8.dp)
-            .width(412.dp)
-            .height(1055.dp)
-            .background(color = Variables.SchemesSurface, shape = RoundedCornerShape(28.dp))
+    Column(
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.Start,
+        modifier = Modifier.fillMaxSize()
     ) {
-        Column(
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start,
-            modifier = Modifier.fillMaxSize()
-        ) {
 
 
             // Search bar
@@ -83,55 +76,63 @@ fun BuildingListScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            buildings.forEach { b ->
-                Card(
-                    modifier = Modifier
-                        .width(380.dp)
-                        .height(369.dp)
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(16.dp)
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
+                    CircularProgressIndicator()
+                }
+            } else {
+                buildings.forEach { b ->
+                    Card(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp)
+                            .width(380.dp)
+                            .height(369.dp)
+                            .padding(8.dp),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text(text = b.name, style = MaterialTheme.typography.titleMedium)
-                        Text(text = b.address, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Rooms: 0/0")
-                        Text(text = "Revenue: 0")
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp)
                         ) {
-                            OutlinedButton(onClick = onViewBuilding) {
-                                Text("View building")
-                            }
-                            IconButton(onClick = onEditBuilding) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit")
+                            Text(text = b.name, style = MaterialTheme.typography.titleMedium)
+                            Text(text = b.address, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "Rooms: 0/0")
+                            Text(text = "Revenue: 0")
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedButton(onClick = onViewBuilding) {
+                                    Text("View building")
+                                }
+                                IconButton(onClick = onEditBuilding) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                }
                             }
                         }
                     }
                 }
             }
-        }
+    }
 
-        // add building
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            FloatingActionButton(onClick = {
-                controller.navigate(Screens.BuildingAdd.route)
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "Add building")
-            }
+    // add building
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.BottomEnd
+    ) {
+        FloatingActionButton(onClick = {
+            controller.navigate(Screens.BuildingAdd.route)
+        }) {
+            Icon(Icons.Default.Add, contentDescription = "Add building")
         }
     }
 }

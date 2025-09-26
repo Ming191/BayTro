@@ -2,7 +2,10 @@ package com.example.baytro.di
 
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
+import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.UserRepository
+import com.example.baytro.viewModel.AddBuildingVM
+import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.SignInVM
 import com.example.baytro.viewModel.SignUpVM
 import com.google.firebase.auth.FirebaseAuth
@@ -19,7 +22,10 @@ val appModule = module {
 
 val authModule = module {
     single<UserRepository> { UserRepository(get()) }
+    single<BuildingRepository> { BuildingRepository(get()) }
     single<AuthRepository> { FirebaseAuthRepository(get()) }
     viewModel { SignUpVM(get(), get()) }
     viewModel { SignInVM(get(), get()) }
+    viewModel { AddBuildingVM(get(), get()) }
+    viewModel { BuildingListVM(get(), get()) }
 }
