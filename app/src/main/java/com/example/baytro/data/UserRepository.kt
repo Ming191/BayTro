@@ -42,4 +42,13 @@ class UserRepository(
     override suspend fun updateFields(id: String, fields: Map<String, Any?>) {
         collection.document(id).update(fields)
     }
+
+    suspend fun updateUserProfileImageUrl(userId: String, imageUrl: String) {
+        try {
+            val userDocRef = collection.document(userId)
+            userDocRef.update("profileImgUrl" to imageUrl)
+        } catch (e: Exception) {
+            throw Exception("Failed to update user profile in database.", e)
+        }
+    }
 }

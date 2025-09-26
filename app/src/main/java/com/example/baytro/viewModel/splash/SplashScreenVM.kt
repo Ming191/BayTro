@@ -3,10 +3,7 @@ package com.example.baytro.viewModel.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
-import com.example.baytro.auth.FirebaseAuthRepository
-import com.example.baytro.data.BankCode
 import com.example.baytro.data.RoleType
-import com.example.baytro.data.UserRepository
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,8 +17,8 @@ class SplashScreenVM(
     private val _splashUiState = MutableStateFlow<UiState<RoleType>>(UiState.Idle)
     val splashUiState: StateFlow<UiState<RoleType>> = _splashUiState
 
-    private val _splashFormState = MutableStateFlow(splashFormState())
-    val splashFormState: StateFlow<splashFormState> = _splashFormState
+    private val _splashFormState = MutableStateFlow(SplashFormState())
+    val splashFormState: StateFlow<SplashFormState> = _splashFormState
 
     fun onComplete() {
         viewModelScope.launch {

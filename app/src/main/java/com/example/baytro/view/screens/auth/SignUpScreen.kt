@@ -26,14 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.baytro.auth.SignUpFormState
-import com.example.baytro.data.RoleType
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
-import com.example.baytro.view.components.ChoiceSelection
 import com.example.baytro.view.components.PasswordStrengthIndicator
 import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.viewModel.SignUpVM
+import com.example.baytro.viewModel.auth.SignUpVM
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

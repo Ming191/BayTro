@@ -83,5 +83,8 @@ dependencies {
 
     implementation("dev.gitlive:firebase-firestore:2.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-
+    // Coroutines for Firebase
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
+    // https://mvnrepository.com/artifact/com.github.yalantis/ucrop
+    implementation("com.github.yalantis:ucrop:2.2.6")
 }

@@ -1,7 +1,5 @@
 package com.example.baytro.utils
 
-import com.example.baytro.data.RoleType
-
 sealed class ValidationResult {
     object Success : ValidationResult()
     data class Error(val message: String) : ValidationResult()
@@ -44,10 +42,6 @@ object Validator {
         password != confirmPassword -> ValidationResult.Error(ERROR_PASSWORD_MISMATCH)
         else -> ValidationResult.Success
     }
-
-    fun validateRole(role: RoleType?): ValidationResult =
-        if (role == null) ValidationResult.Error(ERROR_ROLE_INVALID)
-        else ValidationResult.Success
 
     fun validatePhoneNumber(phoneNumber: String): ValidationResult {
         val vietnamPhoneRegex = Regex("^(0[3|5|7|8|9][0-9]{8}|\\+84[3|5|7|8|9][0-9]{8})\$")

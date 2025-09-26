@@ -5,7 +5,7 @@ import com.example.baytro.data.BankCode
 import com.example.baytro.data.Gender
 import com.example.baytro.data.RoleType
 import com.example.baytro.utils.ValidationResult
-data class splashFormState(
+data class SplashFormState(
     val role: RoleType = RoleType.entries[0],
 )
 

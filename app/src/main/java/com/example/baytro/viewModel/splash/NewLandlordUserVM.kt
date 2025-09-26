@@ -1,5 +1,6 @@
 package com.example.baytro.viewModel.splash
 
+import android.app.Application
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -9,9 +10,9 @@ import com.example.baytro.data.BankCode
 import com.example.baytro.data.Gender
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.Role
-import com.example.baytro.data.RoleType
 import com.example.baytro.data.User
 import com.example.baytro.data.UserRepository
+import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
 import com.example.baytro.view.screens.UiState
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class NewLandlordUserVM(
+    private val application: Application,
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val mediaRepository: MediaRepository
@@ -58,15 +60,6 @@ class NewLandlordUserVM(
         _newLandlordUserFormState.value = _newLandlordUserFormState.value.copy(avatarUri = avatarUri, avatarUriError = ValidationResult.Success)
     }
 
-    private val _showPhotoSelector = MutableStateFlow(false)
-    val showPhotoSelector: StateFlow<Boolean> = _showPhotoSelector
-    fun onAvatarClick() {
-        _showPhotoSelector.value = true
-    }
-    fun onPhotoSelectorDismissed() {
-        _showPhotoSelector.value = false
-    }
-
     fun onPhoneNumberChange(phoneNumber: String) {
         _newLandlordUserFormState.value = _newLandlordUserFormState.value.copy(phoneNumber = phoneNumber, phoneNumberError = ValidationResult.Success)
     }
@@ -79,20 +72,25 @@ class NewLandlordUserVM(
         val dateOfBirthValidator = Validator.validateNonEmpty(formState.dateOfBirth, "Date of Birth")
         val bankAccountNumberValidator = Validator.validateNonEmpty(formState.bankAccountNumber , "Bank Account Number")
         val phoneNumberValidator = Validator.validatePhoneNumber(formState.phoneNumber)
+        val avatarUriValidator = if (formState.avatarUri == Uri.EMPTY) ValidationResult.Error("Please select an avatar") else ValidationResult.Success
         val isValid = fullNameValidator == ValidationResult.Success &&
                 permanentAddressValidator == ValidationResult.Success &&
                 dateOfBirthValidator == ValidationResult.Success &&
                 bankAccountNumberValidator == ValidationResult.Success &&
                 formState.avatarUri != Uri.EMPTY &&
-                phoneNumberValidator == ValidationResult.Success
+                phoneNumberValidator == ValidationResult.Success &&
+                avatarUriValidator == ValidationResult.Success
+
 
 
         _newLandlordUserFormState.value = formState.copy(
             fullNameError = fullNameValidator,
             permanentAddressError = permanentAddressValidator,
             dateOfBirthError = dateOfBirthValidator,
-            bankAccountNumberError = bankAccountNumberValidator
-        )
+            bankAccountNumberError = bankAccountNumberValidator,
+            phoneNumberError = phoneNumberValidator,
+            avatarUriError = avatarUriValidator
+            )
         return isValid
     }
 
@@ -100,19 +98,53 @@ class NewLandlordUserVM(
         onSubmit()
     }
 
+    /**
+     * Handles the submission of the new landlord user form.
+     * It validates the input fields, and if valid, proceeds to:
+     * 1. Get the current authenticated user.
+     * 2. Compress the selected avatar image.
+     * 3. Upload the compressed image to get a profile image URL.
+     * 4. Create a [User] object with the landlord role and form data.
+     * 5. Save the new user to the repository.
+     *
+     * The UI state is updated to [UiState.Loading] during the process,
+     * then to [UiState.Success] with the created [User] on success,
+     * or [UiState.Error] if any step fails or validation is unsuccessful.
+     */
     private fun onSubmit() {
         _newLandlordUserUIState.value = UiState.Loading
         val formState = _newLandlordUserFormState.value
+        Log.d("NewLandlordUserVM", "Submit called with formState: $formState")
+
         if (!validateInput(formState)) {
+            Log.w("NewLandlordUserVM", "Validation failed")
+            _newLandlordUserUIState.value = UiState.Error("Please fix the errors in the form.")
             return
         }
+
         viewModelScope.launch {
+            _newLandlordUserUIState.value = UiState.Loading
             try {
-                val authUser = authRepository.getCurrentUser()!!
+                Log.d("NewLandlordUserVM", "Fetching auth user...")
+                val authUser = authRepository.getCurrentUser()
+                    ?: throw IllegalStateException("User is not authenticated. Please log in again.")
+                Log.d("NewLandlordUserVM", "Auth user found: ${authUser.uid}")
+
+                Log.d("NewLandlordUserVM", "Compressing image: ${formState.avatarUri}")
+                val compressedFile = ImageProcessor.compressImageWithCoil(
+                    context = application,
+                    uri = formState.avatarUri
+                )
+                val compressedFileUri = Uri.fromFile(compressedFile)
+                Log.d("NewLandlordUserVM", "Compressed image saved at: $compressedFileUri")
+
+                Log.d("NewLandlordUserVM", "Uploading profile image...")
                 val profileImgUrl = mediaRepository.uploadUserProfileImage(
                     userId = authUser.uid,
-                    imageUri = formState.avatarUri
+                    imageUri = compressedFileUri
                 )
+                Log.d("NewLandlordUserVM", "Profile image uploaded: $profileImgUrl")
+
                 val landlordRole = Role.Landlord(
                     bankCode = formState.bankCode.name,
                     bankAccountNumber = formState.bankAccountNumber,
@@ -129,10 +161,16 @@ class NewLandlordUserVM(
                     profileImgUrl = profileImgUrl,
                     role = landlordRole
                 )
+                Log.d("NewLandlordUserVM", "Saving user: $user")
+
                 userRepository.addWithId(user.id, user)
+                Log.d("NewLandlordUserVM", "User saved successfully")
+
                 _newLandlordUserUIState.value = UiState.Success(user)
             } catch (e: Exception) {
-                _newLandlordUserUIState.value = UiState.Error(e.message ?: "An unknown error occurred")
+                Log.e("NewLandlordUserVM", "Submit failed", e)
+                _newLandlordUserUIState.value =
+                    UiState.Error(e.message ?: "An unknown error occurred")
             }
         }
     }

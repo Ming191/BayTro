@@ -1,12 +1,9 @@
-package com.example.baytro.viewModel
+package com.example.baytro.viewModel.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.SignUpFormState
-import com.example.baytro.data.RoleType
-import com.example.baytro.data.User
-import com.example.baytro.data.UserRepository
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
 import com.example.baytro.view.AuthUIState

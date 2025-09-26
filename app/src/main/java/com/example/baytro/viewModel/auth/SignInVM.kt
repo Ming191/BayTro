@@ -1,4 +1,4 @@
-package com.example.baytro.viewModel
+package com.example.baytro.viewModel.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,10 +9,10 @@ import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
 import com.example.baytro.view.AuthUIState
 import com.google.firebase.auth.FirebaseAuthException
-import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.net.UnknownHostException
 
 class SignInVM(
     private val authRepository: AuthRepository,
@@ -78,7 +78,7 @@ class SignInVM(
                         "ERROR_USER_DISABLED" -> "Your account has been disabled."
                         else -> "Sign in failed. Please try again."
                     }
-                    is java.net.UnknownHostException -> "No network connection."
+                    is UnknownHostException -> "No network connection."
                     else -> e.message
                 }
                 _signInUIState.value = AuthUIState.Error(errorMessage ?: "An unknown error occurred")

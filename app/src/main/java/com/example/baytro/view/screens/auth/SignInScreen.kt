@@ -28,7 +28,7 @@ import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.viewModel.SignInVM
+import com.example.baytro.viewModel.auth.SignInVM
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

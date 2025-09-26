@@ -22,14 +22,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.RoleType
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.Logo
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.splash.SplashScreenVM
-import com.example.baytro.viewModel.splash.splashFormState
+import com.example.baytro.viewModel.splash.SplashFormState
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -67,7 +66,7 @@ fun SplashScreen(
 @Composable
 fun SplashScreenContent(
     onSplashCompleted: () -> Unit,
-    formState : splashFormState,
+    formState : SplashFormState,
     onRoleChange: (RoleType) -> Unit,
 ) {
     Box(
