@@ -13,6 +13,7 @@ import com.google.firebase.storage.FirebaseStorage
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import dev.gitlive.firebase.firestore.firestore
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -28,7 +29,8 @@ val authModule = module {
     single<AuthRepository> { FirebaseAuthRepository(get()) }
     single<MediaRepository> { MediaRepository(get()) }
     viewModel { SplashScreenVM(get()) }
-    viewModel { NewLandlordUserVM(get(),get(),get(), get()) }
+
+    viewModel { NewLandlordUserVM(androidContext(), get(), get(), get()) }
     viewModel { SignUpVM(get()) }
     viewModel { SignInVM(get(), get()) }
 }

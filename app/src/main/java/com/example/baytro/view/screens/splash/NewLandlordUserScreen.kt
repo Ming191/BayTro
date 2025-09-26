@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
 import com.example.baytro.data.BankCode
@@ -166,7 +167,7 @@ fun NewLandlordUserScreenContent(
                 .padding(padding)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             // Avatar
             item {
@@ -198,7 +199,10 @@ fun NewLandlordUserScreenContent(
             }
 
             // Personal info
-            item { DividerWithSubhead("Personal information") }
+            item { DividerWithSubhead(
+                "Personal information",
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) }
 
             item {
                 RequiredTextField(
@@ -229,6 +233,20 @@ fun NewLandlordUserScreenContent(
             item {
                 RequiredTextField(
                     modifier = Modifier.fillMaxWidth(),
+                    value = formState.phoneNumber,
+                    onValueChange = onPhoneNumberChange,
+                    label = "Phone number",
+                    isError = formState.phoneNumberError is ValidationResult.Error,
+                    errorMessage = formState.phoneNumberError.let {
+                        if (it is ValidationResult.Error) it.message else null
+                    }
+                )
+            }
+
+            item {
+                RequiredTextField(
+                    modifier = Modifier
+                        .fillMaxWidth(),
                     value = formState.permanentAddress,
                     onValueChange = onAddressChange,
                     label = "Permanent address",
@@ -241,7 +259,9 @@ fun NewLandlordUserScreenContent(
 
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     DropdownSelectField(
@@ -274,20 +294,26 @@ fun NewLandlordUserScreenContent(
                     }
                 )
             }
-
-            item {
-                RequiredTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = formState.phoneNumber,
-                    onValueChange = onPhoneNumberChange,
-                    label = "Phone number",
-                    isError = formState.phoneNumberError is ValidationResult.Error,
-                    errorMessage = formState.phoneNumberError.let {
-                        if (it is ValidationResult.Error) it.message else null
-                    }
-                )
-            }
         }
     }
+}
+
+@Preview
+@Composable
+fun PreviewNewLandlordUserScreen() {
+    NewLandlordUserScreenContent(
+        formState = NewLandlordUserFormState(),
+        avatarUri = null,
+        onAvatarClick = {},
+        onFullNameChange = {},
+        onAddressChange = {},
+        onGenderChange = {},
+        onDateOfBirthChange = {},
+        onBankCodeChange = {},
+        onBankAccountNumberChange = {},
+        onPhoneNumberChange = {},
+        onSubmitClick = {},
+        newLandlordUserUIState = UiState.Idle
+    )
 }
 

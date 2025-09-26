@@ -1,6 +1,6 @@
 package com.example.baytro.viewModel.splash
 
-import android.app.Application
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class NewLandlordUserVM(
-    private val application: Application,
+    private val context: Context,
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val mediaRepository: MediaRepository
@@ -132,7 +132,7 @@ class NewLandlordUserVM(
 
                 Log.d("NewLandlordUserVM", "Compressing image: ${formState.avatarUri}")
                 val compressedFile = ImageProcessor.compressImageWithCoil(
-                    context = application,
+                    context = context,
                     uri = formState.avatarUri
                 )
                 val compressedFileUri = Uri.fromFile(compressedFile)
