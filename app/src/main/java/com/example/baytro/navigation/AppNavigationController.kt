@@ -1,7 +1,6 @@
 package com.example.baytro.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,6 +14,8 @@ import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
+import com.example.baytro.view.screens.splash.NewLandlordUserScreen
+import com.example.baytro.view.screens.splash.SplashScreen
 
 @Composable
 fun AppNavigationController(
@@ -69,6 +70,13 @@ fun AppNavigationController(
             Screens.SignIn.route
         ) {
             SignInScreen(
+                onFirstTimeUser = {
+                    navHostController.navigate(Screens.SplashScreen.route) {
+                        popUpTo(0) {
+                            inclusive = false
+                        }
+                    }
+                },
                 onSignInSuccess = {
                     navHostController.navigate(Screens.MainScreen.route) {
                         popUpTo(0) {
@@ -91,6 +99,31 @@ fun AppNavigationController(
             SignUpScreen(
                 onNavigateToSignIn = {
                     navHostController.popBackStack()
+                }
+            )
+        }
+        composable (
+            Screens.SplashScreen.route
+        ) {
+            SplashScreen(
+                navigateToLandlordLogin = {
+                    navHostController.navigate(Screens.NewLandlordUser.route) {
+                        popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
+
+                    }
+                },
+                navigateToTenantLogin = {},
+            )
+        }
+
+        composable(
+            Screens.NewLandlordUser.route
+        ) {
+            NewLandlordUserScreen(
+                onComplete = {
+                    navHostController.navigate(Screens.MainScreen.route) {
+                        popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
+                    }
                 }
             )
         }

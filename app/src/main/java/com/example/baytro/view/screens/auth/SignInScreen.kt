@@ -28,7 +28,7 @@ import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.viewModel.SignInVM
+import com.example.baytro.viewModel.auth.SignInVM
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -36,6 +36,7 @@ fun SignInScreen(
     viewModel: SignInVM = koinViewModel(),
     onSignInSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit,
+    onFirstTimeUser: () -> Unit
 ) {
     val formState by viewModel.signInFormState.collectAsState()
     val loginUiState by viewModel.signInUIState.collectAsState()
@@ -53,6 +54,9 @@ fun SignInScreen(
         when (val state = loginUiState) {
             is AuthUIState.Success -> {
                 onSignInSuccess()
+            }
+            is AuthUIState.FirstTimeUser -> {
+                onFirstTimeUser()
             }
             is AuthUIState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
