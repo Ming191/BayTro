@@ -1,7 +1,5 @@
 package com.example.baytro.utils
 
-import com.example.baytro.data.RoleType
-
 sealed class ValidationResult {
     object Success : ValidationResult()
     data class Error(val message: String) : ValidationResult()
@@ -45,13 +43,17 @@ object Validator {
         else -> ValidationResult.Success
     }
 
-    fun validateRole(role: RoleType?): ValidationResult =
-        if (role == null) ValidationResult.Error(ERROR_ROLE_INVALID)
-        else ValidationResult.Success
+    fun validatePhoneNumber(phoneNumber: String): ValidationResult {
+        val vietnamPhoneRegex = Regex("^(0[3|5|7|8|9][0-9]{8}|\\+84[3|5|7|8|9][0-9]{8})\$")
 
-    fun validatePhoneNumber(phoneNumber: String): ValidationResult = when {
-        phoneNumber.isBlank() -> ValidationResult.Error(ERROR_PHONE_EMPTY)
-        !android.util.Patterns.PHONE.matcher(phoneNumber).matches() -> ValidationResult.Error(ERROR_PHONE_INVALID)
-        else -> ValidationResult.Success
+        return when {
+            phoneNumber.isBlank() -> ValidationResult.Error(ERROR_PHONE_EMPTY)
+            !vietnamPhoneRegex.matches(phoneNumber) -> ValidationResult.Error(ERROR_PHONE_INVALID)
+            else -> ValidationResult.Success
+        }
     }
+
+    fun validateNonEmpty(field: String, fieldName: String): ValidationResult =
+        if (field.isBlank()) ValidationResult.Error("Please enter your $fieldName.")
+        else ValidationResult.Success
 }

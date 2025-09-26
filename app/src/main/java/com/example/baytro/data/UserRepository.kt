@@ -2,6 +2,7 @@ package com.example.baytro.data
 
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
+
 class UserRepository(
     db: FirebaseFirestore
 ) : Repository<User> {
@@ -14,7 +15,12 @@ class UserRepository(
 
     override suspend fun getById(id: String): User? {
         val snapshot = collection.document(id).get()
-        return if (snapshot.exists) snapshot.data<User>() else null
+        return if (snapshot.exists) {
+            val user = snapshot.data<User>()
+            user.copy(id = snapshot.id)
+        } else {
+            null
+        }
     }
 
     override suspend fun add(item: User): String {
@@ -35,5 +41,14 @@ class UserRepository(
     }
     override suspend fun updateFields(id: String, fields: Map<String, Any?>) {
         collection.document(id).update(fields)
+    }
+
+    suspend fun updateUserProfileImageUrl(userId: String, imageUrl: String) {
+        try {
+            val userDocRef = collection.document(userId)
+            userDocRef.update("profileImgUrl" to imageUrl)
+        } catch (e: Exception) {
+            throw Exception("Failed to update user profile in database.", e)
+        }
     }
 }

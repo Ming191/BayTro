@@ -15,12 +15,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 @Composable
-@Preview
 fun DividerWithSubhead(
     subhead: String = "Subhead",
+        modifier: Modifier = Modifier
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier
     ) {
         HorizontalDivider(thickness = 2.dp)
         Text(
@@ -28,20 +29,5 @@ fun DividerWithSubhead(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-@Preview
-@Composable
-fun DividerWithSubheadPreview(
-    subhead: String = "Subhead",
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        DividerWithSubhead(subhead = subhead)
     }
 }

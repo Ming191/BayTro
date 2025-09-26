@@ -21,10 +21,4 @@ data class SignUpFormState(
 
     val confirmPassword: String = "",
     val confirmPasswordError: ValidationResult = ValidationResult.Success,
-
-    val roleType: RoleType? = null,
-    val roleError: ValidationResult = ValidationResult.Success,
-
-    val phoneNumber: String = "",
-    val phoneNumberError: ValidationResult = ValidationResult.Success,
 )

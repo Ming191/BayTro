@@ -26,14 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.baytro.auth.SignUpFormState
-import com.example.baytro.data.RoleType
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
-import com.example.baytro.view.components.ChoiceSelection
 import com.example.baytro.view.components.PasswordStrengthIndicator
 import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.viewModel.SignUpVM
+import com.example.baytro.viewModel.auth.SignUpVM
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -55,8 +53,6 @@ fun SignUpScreen(
         onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
         onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
-        onPhoneNumberChange = viewModel::onPhoneNumberChange,
-        onRoleChange = viewModel::onRoleChange
     )
 
     LaunchedEffect(key1 = uiState) {
@@ -91,8 +87,6 @@ fun SignUpContent(
     onConfirmPasswordChange: (String) -> Unit,
     onSignUpClicked: () -> Unit,
     onNavigateToSignIn: () -> Unit,
-    onPhoneNumberChange: (String) -> Unit,
-    onRoleChange: (RoleType) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
@@ -102,7 +96,6 @@ fun SignUpContent(
         ) {
             Text("Create an Account", style = MaterialTheme.typography.headlineLarge)
 
-            // Email field with memoized error state
             val emailError = remember(formState.emailError) {
                 if (formState.emailError is ValidationResult.Error) formState.emailError.message else null
             }
@@ -114,38 +107,6 @@ fun SignUpContent(
                 errorMessage = emailError,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            // Phone field with memoized error state
-            val phoneError = remember(formState.phoneNumberError) {
-                if (formState.phoneNumberError is ValidationResult.Error) formState.phoneNumberError.message else null
-            }
-            RequiredTextField (
-                value = formState.phoneNumber,
-                onValueChange = onPhoneNumberChange,
-                label = "Phone Number",
-                isError = formState.phoneNumberError is ValidationResult.Error,
-                errorMessage = phoneError,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Role selection with memoized error state
-            val roleError = remember(formState.roleError) {
-                if (formState.roleError is ValidationResult.Error) formState.roleError.message else null
-            }
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                ChoiceSelection(
-                    options = RoleType.entries,
-                    selectedOption = formState.roleType,
-                    onOptionSelected = onRoleChange,
-                    isError = formState.roleError is ValidationResult.Error,
-                    errorMessage = roleError,
-                )
-            }
-            // Password field with optimized error handling
             Column(modifier = Modifier.fillMaxWidth()) {
                 val passwordError = remember(formState.passwordError, formState.passwordStrengthError) {
                     when {

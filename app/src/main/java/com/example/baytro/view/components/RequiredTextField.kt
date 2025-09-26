@@ -16,7 +16,9 @@ fun RequiredTextField(
     onValueChange: (String) -> Unit,
     label: String,
     isError: Boolean,
-    errorMessage: String?
+    errorMessage: String?,
+    readOnly: Boolean = false,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     OutlinedTextField(
         modifier = modifier,
@@ -32,6 +34,8 @@ fun RequiredTextField(
                     color = MaterialTheme.colorScheme.error
                 )
             }
-        }
+        },
+        readOnly = readOnly,
+        trailingIcon = trailingIcon
     )
 }
