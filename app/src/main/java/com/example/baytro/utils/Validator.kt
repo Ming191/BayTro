@@ -1,5 +1,8 @@
 package com.example.baytro.utils
 
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
+
 sealed class ValidationResult {
     object Success : ValidationResult()
     data class Error(val message: String) : ValidationResult()
@@ -56,4 +59,32 @@ object Validator {
     fun validateNonEmpty(field: String, fieldName: String): ValidationResult =
         if (field.isBlank()) ValidationResult.Error("Please enter your $fieldName.")
         else ValidationResult.Success
+
+    fun validateInteger(field: String, fieldName: String) : ValidationResult =
+        if (field.isBlank()) ValidationResult.Error("Please enter your $fieldName.")
+        else {
+            val intValue = field.toIntOrNull()
+            if (intValue == null) {
+                ValidationResult.Error("$fieldName must be a valid integer.")
+            } else if (intValue < 0) {
+                ValidationResult.Error("$fieldName must be a non-negative integer.")
+            } else {
+                ValidationResult.Success
+            }
+        }
+
+    fun validatePhotosURL(photosURL: List<String>): ValidationResult =
+        if (photosURL.isEmpty()) ValidationResult.Error("Please add at least one photo.")
+        else ValidationResult.Success
+
+    fun validateStartEndDate(startDate: String, endDate: String): ValidationResult {
+        return try {
+            val start = LocalDate.parse(startDate)
+            val end = LocalDate.parse(endDate)
+            if (start.isBefore(end)) ValidationResult.Success
+            else ValidationResult.Error("Start date must be before end date.")
+        } catch (e: DateTimeParseException) {
+            ValidationResult.Error("Invalid date format.")
+        }
+    }
 }

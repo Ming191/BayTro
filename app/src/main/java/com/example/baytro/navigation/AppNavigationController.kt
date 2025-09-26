@@ -14,6 +14,7 @@ import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
+import com.example.baytro.view.screens.contract.AddContractScreen
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
 
@@ -126,6 +127,12 @@ fun AppNavigationController(
                     }
                 }
             )
+        }
+
+        composable (
+            Screens.AddContract.route
+        ) {
+            AddContractScreen()
         }
     }
 }
