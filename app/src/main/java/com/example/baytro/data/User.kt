@@ -10,7 +10,7 @@ enum class Gender {
 }
 
 @Serializable
-enum class BankCode{
+enum class BankCode {
     MB, VCB, BIDV
 }
 
