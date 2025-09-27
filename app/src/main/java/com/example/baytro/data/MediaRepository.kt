@@ -13,16 +13,23 @@ class MediaRepository (
     private val storage: FirebaseStorage
 ) {
     /**
-     * Uploads a user's profile image to Firebase Storage.
+     * Uploads a user image to Firebase Storage and returns the download URL.
      *
      * @param userId The ID of the user.
      * @param imageUri The URI of the image to upload.
+     * @param subfolder The subfolder within the user's folder to store the image.
+     * @param imageName The name to assign to the uploaded image file (without extension).
      * @return The download URL of the uploaded image.
      * @throws Exception if the upload fails.
      */
-    suspend fun uploadUserProfileImage(userId: String, imageUri: Uri): String {
+    suspend fun uploadUserImage(
+        userId: String,
+        imageUri: Uri,
+        subfolder: String,
+        imageName: String): String
+    {
         return try {
-            val fileName = "users/$userId/profile.jpg"
+            val fileName = "users/$userId/$subfolder/$imageName.jpg"
             val storageRef = storage.reference.child(fileName)
             storageRef.putFile(imageUri).await()
             storageRef.downloadUrl.await().toString()
