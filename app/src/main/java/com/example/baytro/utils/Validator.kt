@@ -6,6 +6,8 @@ import java.time.format.DateTimeParseException
 sealed class ValidationResult {
     object Success : ValidationResult()
     data class Error(val message: String) : ValidationResult()
+    val isSuccess: Boolean
+        get() = this is Success
 }
 
 object Validator {
@@ -18,7 +20,6 @@ object Validator {
     private const val ERROR_PASSWORD_LOWERCASE = "Password must contain at least one lowercase letter."
     private const val ERROR_PASSWORD_DIGIT = "Password must contain at least one digit."
     private const val ERROR_CONFIRM_PASSWORD_EMPTY = "Please enter the confirmation password."
-    private const val ERROR_ROLE_INVALID = "Please select a valid role."
     private const val ERROR_PHONE_EMPTY = "Please enter your phone number."
     private const val ERROR_PHONE_INVALID = "Invalid phone number."
 
@@ -73,9 +74,12 @@ object Validator {
             }
         }
 
-    fun validatePhotosURL(photosURL: List<String>): ValidationResult =
-        if (photosURL.isEmpty()) ValidationResult.Error("Please add at least one photo.")
-        else ValidationResult.Success
+    fun validatePhotosURL(photosURL: List<String>, maxPhoto: Int = 5): ValidationResult =
+        when {
+            photosURL.isEmpty() -> ValidationResult.Error("Please add at least one photo.")
+            photosURL.size > maxPhoto -> ValidationResult.Error("You can add up to $maxPhoto photos only.")
+            else -> ValidationResult.Success
+        }
 
     fun validateStartEndDate(startDate: String, endDate: String): ValidationResult {
         return try {

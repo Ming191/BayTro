@@ -1,27 +1,30 @@
 package com.example.baytro.view.screens.contract
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.baytro.data.Building
+import com.example.baytro.data.Room
 import com.example.baytro.data.contract.Contract
 import com.example.baytro.view.components.DropdownSelectField
-import com.example.baytro.view.components.RequiredDateTextField
-import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.contract.AddContractFormState
 import com.example.baytro.viewModel.contract.AddContractVM
 import org.koin.compose.viewmodel.koinViewModel
-
-enum class Tenant { Tenant1, Tenant2, Tenant3 }
-enum class Property { Property1, Property2, Property3 }
 
 @Composable
 fun AddContractScreen(
@@ -31,64 +34,75 @@ fun AddContractScreen(
     val formState by viewModel.addContractFormState.collectAsState()
 
     AddContractContent(
-        uiState = uiState,
         formState = formState,
-        onSubmit = viewModel::onSubmit,
-        onTenantChange = viewModel::onSelectTenant,
-        onPropertyChange = viewModel::onSelectProperty,
+        onBuildingSelected = viewModel::onBuildingChange,
+        onRoomSelected = viewModel::onRoomChange
     )
+
+    when (uiState) {
+        is UiState.Error -> {
+            val message = (uiState as UiState.Error).message
+            AlertDialog(
+                onDismissRequest = { viewModel.clearError() },
+                title = { Text("Notice") },
+                text = { Text(message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearError() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        is UiState.Loading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        is UiState.Success -> Unit
+        UiState.Idle -> Unit
+    }
 }
 
 @Composable
 fun AddContractContent(
-    uiState : UiState<Contract>,
     formState: AddContractFormState,
-    onSubmit: () -> Unit,
-    onTenantChange: (Tenant) -> Unit,
-    onPropertyChange: (Property) -> Unit,
+    onBuildingSelected: (Building) -> Unit,
+    onRoomSelected: (Room) -> Unit
 ) {
-    LazyColumn (
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+    LazyColumn {
         item {
             DropdownSelectField(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                label = "Select Tenant",
-                options = Tenant.entries.toList(),
-                selectedOption = formState.tenantId,
-                onOptionSelected = onTenantChange
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                label = "Select building",
+                options = formState.availableBuildings,
+                selectedOption = formState.selectedBuilding,
+                onOptionSelected = onBuildingSelected,
+                optionToString = { it.name }
             )
         }
 
         item {
             DropdownSelectField(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                label = "Select Property",
-                options = Property.entries.toList(),
-                selectedOption = formState.propertyId,
-                onOptionSelected = onPropertyChange
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                label = "Select room",
+                options = formState.availableRooms,
+                selectedOption = formState.selectedRoom,
+                onOptionSelected = onRoomSelected,
+                optionToString = { it.roomNumber },
+                enabled = formState.availableRooms.isNotEmpty()
             )
-        }
-        item {
-            SubmitButton(
-                text = "Submit",
-                isLoading = uiState is UiState.Loading,
-                onClick = onSubmit
-            )
+            if ( formState.availableRooms.isEmpty() ) {
+                Text(
+                    text = "No rooms found for this building. Please add a room first.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AddContractScreenPreview() {
-    AddContractContent(
-        uiState = UiState.Idle,
-        formState = AddContractFormState(),
-        onSubmit = {},
-        onTenantChange = {},
-        onPropertyChange = {},
-    )
 }

@@ -1,10 +1,7 @@
 package com.example.baytro.data.contract
 
-import com.example.baytro.view.screens.contract.Property
-import com.example.baytro.view.screens.contract.Tenant
 import com.google.firebase.firestore.DocumentId
 import kotlinx.serialization.Serializable
-import java.net.URL
 
 @Serializable
 enum class Status {

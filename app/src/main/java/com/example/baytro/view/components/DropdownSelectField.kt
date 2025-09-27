@@ -17,42 +17,43 @@ import androidx.compose.ui.Modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun <T : Enum<T>> DropdownSelectField(
+fun <T> DropdownSelectField(
     modifier: Modifier = Modifier,
     label: String,
     options: List<T>,
-    selectedOption: T,
+    selectedOption: T?,
     onOptionSelected: (T) -> Unit,
-    isLowerCased: Boolean = true
+    optionToString: (T) -> String = { it.toString() },
+    enabled : Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val displayText = selectedOption?.let { optionToString(it) } ?: ""
 
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier
+        onExpandedChange = { if (enabled) expanded = !expanded },
+        modifier = modifier,
     ) {
         OutlinedTextField(
             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable).fillMaxWidth(),
-            value = if (isLowerCased) selectedOption.name.lowercase().replaceFirstChar { it.uppercase() }
-            else selectedOption.name,
+            value = displayText,
             onValueChange = {},
             label = { Text(label) },
             readOnly = true,
             singleLine = true,
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-            }
+            },
+            enabled = enabled
         )
 
         ExposedDropdownMenu(
-            expanded = expanded,
+            expanded = expanded && enabled,
             onDismissRequest = { expanded = false }
         ) {
             options.forEach { option ->
-                val optionName = if (isLowerCased) option.name.lowercase().replaceFirstChar { it.uppercase() } else option.name
                 DropdownMenuItem(
-                    text = { Text(text = optionName) },
+                    text = { Text(text = optionToString(option)) },
                     onClick = {
                         onOptionSelected(option)
                         expanded = false
