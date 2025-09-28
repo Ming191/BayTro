@@ -5,15 +5,18 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.baytro.MainScreen
+import com.example.baytro.view.screens.AddBuildingScreen
 import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.BuildingListScreen
-import com.example.baytro.view.screens.AddBuildingScreen
 import com.example.baytro.view.screens.ContractListScreen
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
+import com.example.baytro.view.screens.room.AddRoomScreen
+import com.example.baytro.view.screens.room.EditRoomScreen
+import com.example.baytro.view.screens.room.RoomListScreen
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
 
@@ -60,6 +63,21 @@ fun AppNavigationController(
             Screens.ContractList.route
         ) {
             ContractListScreen()
+        }
+        composable(
+            Screens.RoomList.route
+        ) {
+            RoomListScreen()
+        }
+        composable(
+            Screens.EditRoom.route
+        ) {
+            EditRoomScreen()
+        }
+        composable(
+            Screens.AddRoom.route
+        ) {
+            AddRoomScreen(navHostController)
         }
         composable (
             Screens.MainScreen.route

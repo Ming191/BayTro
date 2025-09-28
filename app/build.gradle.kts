@@ -55,7 +55,7 @@ dependencies {
 
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation("com.google.firebase:firebase-storage")
-
+    implementation("com.google.android.gms:play-services-base:18.2.0")
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)

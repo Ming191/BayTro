@@ -64,6 +64,12 @@ fun MainScreen() {
                             scope.launch {
                                 drawerState.close()
                             }
+                        },
+                        onRoomListClicked = {
+                            navController.navigate("room_screen")
+                            scope.launch {
+                                drawerState.close()
+                            }
                         }
                     )
                 }

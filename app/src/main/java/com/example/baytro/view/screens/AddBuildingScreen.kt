@@ -340,6 +340,7 @@ fun AddBuildingScreen(
                             billingDate = billingDateInt,
                             paymentStart = paymentStartInt,
                             paymentDue = paymentDueInt,
+                            userId = "hgcy"
                         )
                         viewModel.addBuilding(building)
                     }
