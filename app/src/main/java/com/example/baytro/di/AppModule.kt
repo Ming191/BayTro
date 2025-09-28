@@ -2,15 +2,20 @@ package com.example.baytro.di
 
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
-import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.UserRepository
+import com.example.baytro.data.building.BuildingRepository
+import com.example.baytro.data.contract.ContractRepository
+import com.example.baytro.data.room.RoomRepository
+import com.example.baytro.service.FptAiService
 import com.example.baytro.viewModel.AddBuildingVM
 import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
+import com.example.baytro.viewModel.contract.AddContractVM
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.SplashScreenVM
+import com.example.baytro.viewModel.splash.UploadIdCardVM
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import dev.gitlive.firebase.Firebase
@@ -57,5 +62,6 @@ val authModule = module {
     viewModel { SignInVM(get(), get()) }
     viewModel { AddBuildingVM(get(), get()) }
     viewModel { BuildingListVM(get(), get()) }
-    viewModel { AddContractVM(androidContext(),get(), get(), get(), get(), get()) }
+    viewModel { AddContractVM(androidContext(), get(), get(), get(), get(), get()) }
+    viewModel { UploadIdCardVM(androidContext(), get(), get(), get()) }
 }

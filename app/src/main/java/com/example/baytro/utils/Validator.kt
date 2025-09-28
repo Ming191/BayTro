@@ -11,6 +11,11 @@ sealed class ValidationResult {
         get() = this is Success
 }
 
+fun ValidationResult.isError(): Boolean = this is ValidationResult.Error
+
+val ValidationResult.errorMessage: String?
+    get() = (this as? ValidationResult.Error)?.message
+
 object Validator {
     private const val ERROR_EMAIL_EMPTY = "Please enter your email."
     private const val ERROR_EMAIL_INVALID = "Invalid email address."

@@ -17,6 +17,7 @@ import com.example.baytro.view.screens.auth.SignUpScreen
 import com.example.baytro.view.screens.contract.AddContractScreen
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
+import com.example.baytro.view.screens.splash.UploadIdCardScreen
 
 @Composable
 fun AppNavigationController(
@@ -133,6 +134,12 @@ fun AppNavigationController(
             Screens.AddContract.route
         ) {
             AddContractScreen()
+        }
+
+        composable (
+            Screens.UploadIdCard.route
+        ) {
+            UploadIdCardScreen()
         }
     }
 }
