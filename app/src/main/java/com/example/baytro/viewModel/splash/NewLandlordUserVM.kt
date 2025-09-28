@@ -137,9 +137,11 @@ class NewLandlordUserVM(
                 Log.d("NewLandlordUserVM", "Compressed image saved at: $compressedFileUri")
 
                 Log.d("NewLandlordUserVM", "Uploading profile image...")
-                val profileImgUrl = mediaRepository.uploadUserProfileImage(
+                val profileImgUrl = mediaRepository.uploadUserImage(
                     userId = authUser.uid,
-                    imageUri = compressedFileUri
+                    imageUri = compressedFileUri,
+                    subfolder = "profile",
+                    imageName = "profile"
                 )
                 Log.d("NewLandlordUserVM", "Profile image uploaded: $profileImgUrl")
 

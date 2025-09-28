@@ -3,7 +3,6 @@ package com.example.baytro.data
 import android.net.Uri
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
-import java.io.File
 
 class MediaRepository (
     private val storage: FirebaseStorage
