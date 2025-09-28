@@ -15,7 +15,7 @@ data class Contract(
     @kotlinx.serialization.Transient
     @DocumentId
     val id: String = "",
-    val tenantId: String,
+    val tenantId: List<String>,
     val roomId: String,
     val startDate: String,
     val endDate: String,

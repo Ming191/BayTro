@@ -1,10 +1,11 @@
 package com.example.baytro.data.room
 
+import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 class RoomRepository(
     db: FirebaseFirestore
-) : com.example.baytro.data.Repository<Room> {
+) : Repository<Room> {
     private val collection = db.collection("rooms")
 
     override suspend fun getAll(): List<Room> {

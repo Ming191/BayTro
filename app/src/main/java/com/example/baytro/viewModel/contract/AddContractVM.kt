@@ -219,7 +219,6 @@ class AddContractVM (
             _addContractUiState.value = UiState.Error("No authenticated user. Please log in again.")
             return
         }
-        val userId = currentUser.uid
         val selectedRoom = formState.selectedRoom
         if (selectedRoom == null) {
             Log.w(TAG, "onSubmit: no room selected; aborting submit")
@@ -231,17 +230,16 @@ class AddContractVM (
         viewModelScope.launch {
             _addContractUiState.value = UiState.Loading
             try {
-                // Create contract first without photos
                 val newContract = Contract(
                     id = "",
-                    tenantId = userId,
+                    tenantId = listOf(""), //TODO: Set tenant ID when tenant management is implemented
                     roomId = selectedRoom.id,
                     startDate = formState.startDate,
                     endDate = formState.endDate,
                     rentalFee = formState.rentalFee.toInt(),
                     deposit = formState.deposit.toInt(),
                     status = formState.status,
-                    photosURL = emptyList(), // Empty initially
+                    photosURL = emptyList(),
                 )
 
                 Log.d(TAG, "onSubmit: creating contract without photos")
