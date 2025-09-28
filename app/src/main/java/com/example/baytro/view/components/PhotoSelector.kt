@@ -32,7 +32,12 @@ import java.io.File
 fun PhotoSelectorView(
     maxSelectionCount: Int = 1,
     onImagesSelected: (List<Uri>) -> Unit = {},
-    selectedImages: List<Uri> = emptyList()
+    selectedImages: List<Uri> = emptyList(),
+    aspectRatioX: Float = 3f,
+    aspectRatioY: Float = 4f,
+    maxResultWidth: Int = 1080,
+    maxResultHeight: Int = 1440,
+    launchKey: Int = 0
 ) {
     val context = LocalContext.current
     var pendingCropUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
@@ -108,8 +113,8 @@ fun PhotoSelectorView(
             }
 
             val uCropIntent = UCrop.of(pendingCropUris[currentCropIndex], destinationUri)
-                .withAspectRatio(3f, 4f)
-                .withMaxResultSize(1080, 1440)
+                .withAspectRatio(aspectRatioX, aspectRatioY)
+                .withMaxResultSize(maxResultWidth, maxResultHeight)
                 .withOptions(options)
                 .getIntent(context)
             cropLauncher.launch(uCropIntent)
@@ -128,8 +133,10 @@ fun PhotoSelectorView(
         }
     }
 
-    LaunchedEffect(Unit) {
-        launchPhotoPicker()
+    LaunchedEffect(launchKey) {
+        if (launchKey > 0) {
+            launchPhotoPicker()
+        }
     }
 
     ImageLayoutView(selectedImages = selectedImages)

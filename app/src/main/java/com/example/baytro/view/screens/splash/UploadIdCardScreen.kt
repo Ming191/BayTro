@@ -105,10 +105,10 @@ fun UploadIdCardScreen(
                 orientation = CarouselOrientation.Vertical,
                 imageWidth = 400.dp,
                 imageHeight = 250.dp,
-                aspectRatioX = 4f, // Landscape for ID cards
-                aspectRatioY = 3f,
-                maxResultWidth = 1440, // Swapped for landscape
-                maxResultHeight = 1080
+                aspectRatioX = 4f,
+                aspectRatioY = 2.5f,
+                maxResultWidth = 1440,
+                maxResultHeight = 1080,
             )
 
             Spacer(modifier = Modifier.weight(1f))

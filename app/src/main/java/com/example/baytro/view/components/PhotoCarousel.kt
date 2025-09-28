@@ -24,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,6 +55,7 @@ fun PhotoCarousel(
 ) {
     var showPicker by remember { mutableStateOf(false) }
     var selectedPhotoForDetail by remember { mutableStateOf<Uri?>(null) }
+    var pickerLaunchKey by remember { mutableIntStateOf(0) }
 
     if (showPicker) {
         PhotoSelectorView(
@@ -68,7 +70,8 @@ fun PhotoCarousel(
             aspectRatioX = aspectRatioX,
             aspectRatioY = aspectRatioY,
             maxResultWidth = maxResultWidth,
-            maxResultHeight = maxResultHeight
+            maxResultHeight = maxResultHeight,
+            launchKey = pickerLaunchKey
         )
     }
 
@@ -135,7 +138,10 @@ fun PhotoCarousel(
                     Surface(
                         modifier = Modifier
                             .size(imageWidth, imageHeight)
-                            .clickable { showPicker = true },
+                            .clickable {
+                                pickerLaunchKey++
+                                showPicker = true
+                            },
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         tonalElevation = 2.dp,
                         shape = RoundedCornerShape(8.dp)
@@ -210,7 +216,10 @@ fun PhotoCarousel(
                     Surface(
                         modifier = Modifier
                             .size(imageWidth, imageHeight)
-                            .clickable { showPicker = true },
+                            .clickable {
+                                pickerLaunchKey++
+                                showPicker = true
+                            },
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         tonalElevation = 2.dp,
                         shape = RoundedCornerShape(8.dp)
