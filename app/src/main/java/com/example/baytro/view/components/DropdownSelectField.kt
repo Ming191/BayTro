@@ -31,8 +31,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+
+@Preview(showBackground = true)
+@Composable
+fun DropdownSelectFieldPreview() {
+    val options = listOf("Option 1", "Option 2", "Option 3", "Option 4", "Option 5")
+    var selectedOption by remember { mutableStateOf<String?>(null) }
+
+    DropdownSelectField(
+        label = "Select an Option",
+        options = options,
+        selectedOption = selectedOption,
+        onOptionSelected = { selectedOption = it },
+        modifier = Modifier.padding(16.dp)
+    )
+}
 
 @Composable
 fun <T> DropdownSelectField(
