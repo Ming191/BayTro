@@ -12,6 +12,7 @@ import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.PropertyListScreen
 import com.example.baytro.view.screens.TenantListScreen
+import com.example.baytro.view.screens.ServiceListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
 
@@ -53,6 +54,11 @@ fun AppNavigationController(
             Screens.ContractList.route
         ) {
             ContractListScreen()
+        }
+        composable(
+            Screens.ServiceList.route
+        ) {
+            ServiceListScreen()
         }
         composable (
             Screens.MainScreen.route

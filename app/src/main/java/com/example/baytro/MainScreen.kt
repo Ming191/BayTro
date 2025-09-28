@@ -64,6 +64,12 @@ fun MainScreen() {
                             scope.launch {
                                 drawerState.close()
                             }
+                        },
+                        onServiceClicked = {
+                            navController.navigate("services_screen")
+                            scope.launch {
+                                drawerState.close()
+                            }
                         }
                     )
                 }

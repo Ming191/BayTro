@@ -75,8 +75,6 @@ fun SignInContent(
     onSignInClicked: () -> Unit,
     onNavigateToSignUp: () -> Unit
 ) {
-
-
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

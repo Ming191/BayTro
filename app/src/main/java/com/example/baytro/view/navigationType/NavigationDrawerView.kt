@@ -33,6 +33,7 @@ fun NavigationDrawerView(
     onMaintenanceClicked: () -> Unit,
     onBillClicked: () -> Unit,
     onContractClicked: () -> Unit,
+    onServiceClicked: () -> Unit
 ) {
     val items = listOf(
         Screens.PropertyList,
@@ -79,7 +80,6 @@ fun NavigationDrawerView(
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
-
         NavigationDrawerItem(
             label = { Text(text = "Properties") },
             selected = selectedItem.value == Screens.PropertyList,
@@ -89,7 +89,6 @@ fun NavigationDrawerView(
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
-
         NavigationDrawerItem(
             label = { Text(text = "Tenants") },
             selected = selectedItem.value == Screens.TenantList,
@@ -123,6 +122,15 @@ fun NavigationDrawerView(
             onClick = {
                 onContractClicked()
                 selectedItem.value = Screens.ContractList
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+        )
+        NavigationDrawerItem(
+            label = { Text(text = "Services") },
+            selected = selectedItem.value == Screens.ServiceList,
+            onClick = {
+                onServiceClicked()
+                selectedItem.value = Screens.ServiceList
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
