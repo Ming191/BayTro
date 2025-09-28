@@ -1,10 +1,10 @@
-package com.example.baytro.data
+package com.example.baytro.data.room
 
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 class RoomRepository(
     db: FirebaseFirestore
-) : Repository<Room> {
+) : com.example.baytro.data.Repository<Room> {
     private val collection = db.collection("rooms")
 
     override suspend fun getAll(): List<Room> {
@@ -46,7 +46,8 @@ class RoomRepository(
         val snapshot = collection.where { "buildingId" equalTo buildingId }.get()
         return snapshot.documents.mapNotNull { doc ->
             try {
-                doc.data<Room>()
+                val room = doc.data<Room>()
+                room.copy(id = doc.id)
             } catch (e: Exception) {
                 null
             }

@@ -1,7 +1,8 @@
 package com.example.baytro.viewModel.contract
 
-import com.example.baytro.data.Building
-import com.example.baytro.data.Room
+import android.net.Uri
+import com.example.baytro.data.building.Building
+import com.example.baytro.data.room.Room
 import com.example.baytro.data.contract.Status
 import com.example.baytro.utils.ValidationResult
 
@@ -17,6 +18,7 @@ data class AddContractFormState(
     val photosURL: List<String> = emptyList(),
     val availableBuildings: List<Building> = emptyList(),
     val availableRooms: List<Room> = emptyList(),
+    val selectedPhotos: List<Uri> = emptyList(),
 
     val buildingIdError: ValidationResult = ValidationResult.Success,
     val roomIdError: ValidationResult = ValidationResult.Success,
@@ -24,7 +26,5 @@ data class AddContractFormState(
     val endDateError: ValidationResult = ValidationResult.Success,
     val rentalFeeError: ValidationResult = ValidationResult.Success,
     val depositError: ValidationResult = ValidationResult.Success,
-    val statusError: ValidationResult = ValidationResult.Success,
-    val photosURLError: ValidationResult = ValidationResult.Success,
-    val startEndDateError: ValidationResult = ValidationResult.Success,
+    val photosError: ValidationResult = ValidationResult.Success,
 )

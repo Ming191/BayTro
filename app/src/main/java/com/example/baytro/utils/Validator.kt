@@ -2,6 +2,7 @@ package com.example.baytro.utils
 
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import java.time.format.DateTimeFormatter
 
 sealed class ValidationResult {
     object Success : ValidationResult()
@@ -74,21 +75,19 @@ object Validator {
             }
         }
 
-    fun validatePhotosURL(photosURL: List<String>, maxPhoto: Int = 5): ValidationResult =
-        when {
-            photosURL.isEmpty() -> ValidationResult.Error("Please add at least one photo.")
-            photosURL.size > maxPhoto -> ValidationResult.Error("You can add up to $maxPhoto photos only.")
-            else -> ValidationResult.Success
-        }
-
     fun validateStartEndDate(startDate: String, endDate: String): ValidationResult {
         return try {
-            val start = LocalDate.parse(startDate)
-            val end = LocalDate.parse(endDate)
+            val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+            val start = LocalDate.parse(startDate, formatter)
+            val end = LocalDate.parse(endDate, formatter)
             if (start.isBefore(end)) ValidationResult.Success
             else ValidationResult.Error("Start date must be before end date.")
         } catch (e: DateTimeParseException) {
-            ValidationResult.Error("Invalid date format.")
+            ValidationResult.Error("Invalid date format. Please use dd/MM/yyyy format.")
         }
     }
+
+    fun validatePhotosSelected(photos: List<Any>): ValidationResult =
+        if (photos.isEmpty()) ValidationResult.Error("Please select at least one photo.")
+        else ValidationResult.Success
 }

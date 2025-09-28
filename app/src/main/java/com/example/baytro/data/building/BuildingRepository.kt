@@ -1,5 +1,6 @@
-package com.example.baytro.data
+package com.example.baytro.data.building
 
+import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 class BuildingRepository(

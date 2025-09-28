@@ -12,13 +12,13 @@ enum class Status {
 
 @Serializable
 data class Contract(
-    @Transient
+    @kotlinx.serialization.Transient
     @DocumentId
-    val id: String,
+    val id: String = "",
     val tenantId: String,
     val roomId: String,
-    val startDate: Int,
-    val endDate: Int,
+    val startDate: String,
+    val endDate: String,
     val rentalFee: Int,
     val deposit: Int,
     val status: Status,
