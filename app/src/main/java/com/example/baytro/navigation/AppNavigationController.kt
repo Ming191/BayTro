@@ -67,7 +67,7 @@ fun AppNavigationController(
         composable(
             Screens.RoomList.route
         ) {
-            RoomListScreen()
+            RoomListScreen(navController = navHostController)
         }
         composable(
             Screens.EditRoom.route

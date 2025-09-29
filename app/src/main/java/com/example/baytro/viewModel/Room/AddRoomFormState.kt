@@ -1,10 +1,12 @@
 package com.example.baytro.viewModel.Room
 
+import com.example.baytro.data.Furniture
+
 data class AddRoomFormState (
     val buildingName : String = "",
-    val roomNumber: Int = -1,
-    val floor : Int = -1,
-    val size :Int = -1,
-    val rentalFee : Int = -1,
-    val interior : Boolean = false
+    val roomNumber: String = "",
+    val floor : String = "",
+    val size : String = "",
+    val rentalFee : String = "",
+    val interior : Furniture = Furniture.Furnished,
 )

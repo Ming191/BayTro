@@ -66,35 +66,6 @@ import com.example.baytro.view.components.DividerWithSubhead
 
 data class Floor(val number: Int, val rooms: List<String>)
 @Composable
-fun AppBarComponent() {
-    Row(
-        modifier = Modifier
-            .padding(0.dp)
-            .width(412.dp)
-            .height(64.dp)
-            .padding(start = 8.dp, top = 16.dp, end = 8.dp, bottom = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth().height(56.dp)
-        ) {
-            // Icon bên trái
-            Icon(
-                imageVector = Icons.Outlined.ArrowBack,
-                contentDescription = "Back icon",
-                modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp)
-            )
-            Text(
-                text = "Maple apartment",
-                modifier = Modifier.align(Alignment.Center),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
 fun TabRowComponent(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
     Box(
         Modifier
@@ -314,7 +285,7 @@ fun ViewBuildingDetails(navController : NavHostController) {
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
             verticalAlignment = Alignment.Top,
         ) {
-            ButtonComponent(text = "Edit", onButtonClick = { navController.navigate("editRoom_screen")})
+            ButtonComponent(text = "Edit", onButtonClick = { navController.navigate(Screens.EditRoom.route)})
             Spacer(Modifier.width(8.dp))
             ButtonComponent (text = "Delete", onButtonClick = {})
         }
@@ -322,9 +293,10 @@ fun ViewBuildingDetails(navController : NavHostController) {
 }
 
 @Composable
-fun RoomListScreen() {
+fun RoomListScreen(
+    navController: NavHostController
+) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val navController = rememberNavController()
     val floors = remember {
         listOf(
             Floor(1, List(10) { "${101   + it}" }), // Tầng 1: 10 phòng
@@ -333,7 +305,6 @@ fun RoomListScreen() {
         )
     }
     Column() {
-        AppBarComponent()
         TabRowComponent(
             selectedTabIndex = selectedTabIndex,
             onTabSelected = { selectedTabIndex = it }

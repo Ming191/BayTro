@@ -49,21 +49,23 @@ fun AppScaffold (
 				Screens.ContractList.route -> "Contracts"
 				Screens.MaintenanceRequestList.route -> "Maintenance"
 				Screens.Dashboard.route -> "BayTro"
+                Screens.RoomList.route -> "Rooms"
 				else -> "BayTro"
 			}
 			CenterAlignedTopAppBar(
 				title = { Text(titleText) },
-				navigationIcon = {
-					if (currentRoute == Screens.BuildingAdd.route) {
-						IconButton(onClick = { navHostController.popBackStack() }) {
-							Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-						}
-					} else {
-						IconButton(onClick = onDrawerClicked) {
-							Icon(Icons.Default.Menu, contentDescription = "Menu")
-						}
-					}
-				},
+                navigationIcon = {
+                    val canBack = navHostController.previousBackStackEntry != null
+                    if (canBack) {
+                        IconButton(onClick = { navHostController.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    } else {
+                        IconButton(onClick = onDrawerClicked) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    }
+                },
                     colors = TopAppBarDefaults.mediumTopAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary,

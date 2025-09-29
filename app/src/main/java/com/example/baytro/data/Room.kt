@@ -7,6 +7,11 @@ enum class Status {
     AVAILABLE, RENTED, UNDER_MAINTENANCE
 }
 
+enum class Furniture {
+    Furnished,
+    Unfurnished,
+}
+
 @Serializable
 data class Room (
     @Transient
@@ -17,6 +22,6 @@ data class Room (
     val size : Int,
     val status: Status,
     val rentalFee : Int,
-    val interior : Boolean,
+    val interior : Furniture,
     val note : String = ""
 )
