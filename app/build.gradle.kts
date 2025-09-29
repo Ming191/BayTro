@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     testImplementation(libs.junit)
+    testImplementation(libs.junit.jupiter)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -109,16 +110,8 @@ dependencies {
 
     // Ktor core
     implementation("io.ktor:ktor-client-core:3.3.0")
-
-    // Engine cho Android
     implementation("io.ktor:ktor-client-android:3.3.0")
-
-    // Multipart form-data support
     implementation("io.ktor:ktor-client-content-negotiation:3.3.0")
-
-    // Nếu muốn parse JSON trả về
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.0")
-
-    // (Optional) logging để debug request/response
     implementation("io.ktor:ktor-client-logging:3.3.0")
 }

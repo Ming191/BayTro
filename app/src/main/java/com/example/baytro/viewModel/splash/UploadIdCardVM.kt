@@ -6,15 +6,16 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
-import com.example.baytro.data.MediaRepository
-import com.example.baytro.data.UserRepository
-import com.example.baytro.data.User
-import com.example.baytro.data.Role
 import com.example.baytro.data.Gender
+import com.example.baytro.data.IdCardInfo
+import com.example.baytro.data.IdCardInfoWithImages
+import com.example.baytro.data.MediaRepository
+import com.example.baytro.service.FptAiService
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.utils.ValidationResult
-import com.example.baytro.utils.Validator
 import com.example.baytro.view.screens.UiState
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -22,15 +23,15 @@ import kotlinx.coroutines.launch
 class UploadIdCardVM(
     private val context: Context,
     private val mediaRepo: MediaRepository,
-    private val userRepo: UserRepository,
-    private val auth: AuthRepository
+    private val auth: AuthRepository,
+    private val fptAiService: FptAiService
 ) : ViewModel() {
     companion object {
         private const val TAG = "UploadIdCardVM"
     }
 
-    private val _uploadIdCardUiState = MutableStateFlow<UiState<String>>(UiState.Idle)
-    val uploadIdCardUiState: StateFlow<UiState<String>> = _uploadIdCardUiState
+    private val _uploadIdCardUiState = MutableStateFlow<UiState<IdCardInfoWithImages>>(UiState.Idle)
+    val uploadIdCardUiState: StateFlow<UiState<IdCardInfoWithImages>> = _uploadIdCardUiState
 
     private val _uploadIdCardFormState = MutableStateFlow(UploadIdCardFormState())
     val uploadIdCardFormState: StateFlow<UploadIdCardFormState> = _uploadIdCardFormState
@@ -51,26 +52,22 @@ class UploadIdCardVM(
     private fun validateInput(): Boolean {
         Log.d(TAG, "validateInput: start")
         val formState = _uploadIdCardFormState.value
-        val photosValidator = if (formState.selectedPhotos.isEmpty()) {
-            ValidationResult.Error("Please upload at least one ID card photo")
-        } else if (formState.selectedPhotos.size != 2) {
-            ValidationResult.Error("Please upload both front and back of your ID card")
-        } else {
-            ValidationResult.Success
+
+        val photosValidator = when {
+            formState.selectedPhotos.isEmpty() || formState.selectedPhotos.size < 2-> ValidationResult.Error("Please upload at both front and back side photos of your ID card")
+            else -> ValidationResult.Success
         }
 
-        val isValid = photosValidator == ValidationResult.Success
+        _uploadIdCardFormState.value = formState.copy(photosError = photosValidator)
 
-        if (!isValid) {
-            Log.w(TAG, "validateInput: validation failed -> photos=$photosValidator")
-        }
-
-        Log.d(TAG, "validateInput: result isValid=$isValid")
-        _uploadIdCardFormState.value = formState.copy(
-            photosError = photosValidator
-        )
-        return isValid
+        Log.d(TAG, "validateInput: result isValid=${photosValidator is ValidationResult.Success}")
+        return photosValidator is ValidationResult.Success
     }
+
+    private data class OcrProcessingResult(
+        val photoUrl: String,
+        val idCardInfo: IdCardInfo?
+    )
 
     fun onSubmit() {
         Log.d(TAG, "onSubmit: start")
@@ -80,72 +77,86 @@ class UploadIdCardVM(
         }
 
         val formState = _uploadIdCardFormState.value
-        val currentUser = auth.getCurrentUser()
-        if (currentUser == null) {
-            Log.w(TAG, "onSubmit: no authenticated user; aborting submit")
-            _uploadIdCardUiState.value = UiState.Error("No authenticated user. Please log in again.")
-            return
-        }
+        val currentUser = auth.getCurrentUser()!!
 
-        Log.d(TAG, "onSubmit: uploading ID card with ${formState.selectedPhotos.size} photos")
+        Log.d(TAG, "onSubmit: processing ID card with OCR for ${formState.selectedPhotos.size} photos")
         viewModelScope.launch {
             _uploadIdCardUiState.value = UiState.Loading
             try {
-                val userId = currentUser.uid
-                val photoUrls = mutableListOf<String>()
-
-                // Upload and compress photos
-                formState.selectedPhotos.forEachIndexed { index, photoUri ->
-                    Log.d(TAG, "onSubmit: processing ID card photo $index")
-                    val compressedFile = ImageProcessor.compressImageWithCoil(
-                        context = context,
-                        uri = photoUri,
-                        maxWidth = 1440,
-                        quality = 90
-                    )
-
-                    val photoUrl = mediaRepo.uploadIdCardPhoto(
-                        userId = userId,
-                        photoIndex = index,
-                        imageFile = compressedFile
-                    )
-                    photoUrls.add(photoUrl)
-                    Log.d(TAG, "onSubmit: uploaded ID card photo $index -> $photoUrl")
+                val processingJobs = formState.selectedPhotos.mapIndexed { index, photoUri ->
+                    async { processPhoto(currentUser.uid, photoUri, index) }
                 }
 
-                // Create tenant user with ID card photos
-                val tenantRole = Role.Tenant(
-                    occupation = "Not specified", // TODO: Can be added to form later
-                    idCardNumber = "Not specified", // TODO: Can be added to form later
-                    idCardImageFrontUrl = if (photoUrls.isNotEmpty()) photoUrls[0] else null,
-                    idCardImageBackUrl = if (photoUrls.size > 1) photoUrls[1] else null,
-                    idCardIssueDate = "Not specified", // TODO: Can be added to form later
-                    emergencyContact = "Not specified" // TODO: Can be added to form later
-                )
+                val (frontResult, backResult) = processingJobs.awaitAll().let {
+                    Pair(it.getOrNull(0), it.getOrNull(1))
+                }
 
-                val newTenantUser = User(
-                    id = userId,
-                    email = currentUser.email ?: "",
-                    phoneNumber = "Not specified", // TODO: Can be added to form later
-                    role = tenantRole,
-                    fullName = "Not specified", // TODO: Can be added to form later
-                    dateOfBirth = "Not specified", // TODO: Can be added to form later
-                    gender = Gender.OTHER, // TODO: Can be added to form later
-                    address = "Not specified", // TODO: Can be added to form later
-                    profileImgUrl = null
-                )
+                Log.d(TAG, "onSubmit: combining front and back side information")
+                val combinedIdCardInfo = combineIdCardInfo(frontResult?.idCardInfo, backResult?.idCardInfo)
 
-                Log.d(TAG, "onSubmit: creating tenant user with ID: $userId")
-                userRepo.addWithId(userId, newTenantUser)
-                Log.d(TAG, "onSubmit: tenant user created successfully")
-
-                Log.d(TAG, "onSubmit: ID card upload and tenant creation completed successfully")
-                _uploadIdCardUiState.value = UiState.Success("Tenant user created successfully with ID card")
-
+                if (combinedIdCardInfo != null) {
+                    Log.d(TAG, "onSubmit: OCR processing completed successfully, combined info: $combinedIdCardInfo")
+                    val enhancedIdCardInfo = IdCardInfoWithImages(
+                        idCardInfo = combinedIdCardInfo,
+                        frontImageUrl = frontResult?.photoUrl,
+                        backImageUrl = backResult?.photoUrl
+                    )
+                    _uploadIdCardUiState.value = UiState.Success(enhancedIdCardInfo)
+                } else {
+                    Log.w(TAG, "onSubmit: No valid ID card information extracted from either photo")
+                    _uploadIdCardUiState.value = UiState.Error("Could not extract ID card information. Please ensure images are clear and try again.")
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "onSubmit: error uploading ID card and creating tenant user", e)
-                _uploadIdCardUiState.value = UiState.Error(e.message ?: "An unknown error occurred while uploading ID card and creating tenant user")
+                Log.e(TAG, "onSubmit: error processing ID card", e)
+                _uploadIdCardUiState.value = UiState.Error(e.message ?: "An unknown error occurred while processing ID card")
             }
         }
+    }
+
+    private suspend fun processPhoto(userId: String, photoUri: Uri, index: Int): OcrProcessingResult {
+        Log.d(TAG, "processPhoto: processing ID card photo $index: $photoUri")
+
+        val compressedFile = ImageProcessor.compressImageWithCoil(context, photoUri, maxWidth = 1440, quality = 90)
+        Log.d(TAG, "processPhoto: compressed photo $index, file size: ${compressedFile.length()} bytes")
+
+        val photoUrl = mediaRepo.uploadUserImage(
+            userId = userId,
+            imageUri = Uri.fromFile(compressedFile),
+            subfolder = "idcards",
+            imageName = if (index == 0) "front" else "back"
+        )
+        Log.d(TAG, "processPhoto: uploaded ID card photo $index -> $photoUrl")
+
+        val ocrResult = fptAiService.extractIdCardInfo(photoUrl, context.cacheDir)
+
+        return ocrResult.fold(
+            onSuccess = { idCardInfo ->
+                Log.d(TAG, "processPhoto: OCR success for photo $index")
+                OcrProcessingResult(photoUrl, idCardInfo)
+            },
+            onFailure = { error ->
+                Log.w(TAG, "processPhoto: OCR failed for photo $index: ${error.message}")
+                OcrProcessingResult(photoUrl, null)
+            }
+        )
+    }
+
+    private fun combineIdCardInfo(frontSide: IdCardInfo?, backSide: IdCardInfo?): IdCardInfo? {
+        Log.d(TAG, "combineIdCardInfo: combining info - front: $frontSide, back: $backSide")
+
+        if (frontSide == null || backSide == null) return null
+
+
+        val combined = IdCardInfo(
+            fullName = frontSide.fullName.ifEmpty { "" },
+            idCardNumber = frontSide.idCardNumber.ifEmpty {""},
+            dateOfBirth = frontSide.dateOfBirth.ifEmpty { "" },
+            gender = frontSide.gender,
+            permanentAddress = frontSide.permanentAddress.ifEmpty {""},
+            idCardIssueDate = backSide.idCardIssueDate.ifEmpty { "" }
+        )
+
+        Log.d(TAG, "combineIdCardInfo: final combined result: $combined")
+        return combined
     }
 }

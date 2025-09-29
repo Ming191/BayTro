@@ -54,6 +54,7 @@ fun SplashScreen(
                     RoleType.LANDLORD -> navigateToLandlordLogin()
                     RoleType.TENANT -> navigateToTenantLogin()
                 }
+                viewModel.clearError()
             }
             is UiState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()

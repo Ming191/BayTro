@@ -16,6 +16,7 @@ import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
 import com.example.baytro.view.screens.contract.AddContractScreen
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
+import com.example.baytro.view.screens.splash.NewTenantUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
 import com.example.baytro.view.screens.splash.UploadIdCardScreen
 
@@ -114,7 +115,11 @@ fun AppNavigationController(
 
                     }
                 },
-                navigateToTenantLogin = {},
+                navigateToTenantLogin = {
+                    navHostController.navigate(Screens.UploadIdCard.route) {
+                        popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
+                    }
+                },
             )
         }
 
@@ -139,7 +144,25 @@ fun AppNavigationController(
         composable (
             Screens.UploadIdCard.route
         ) {
-            UploadIdCardScreen()
+            UploadIdCardScreen(
+                onNavigateToTenantForm = {
+                    navHostController.navigate(Screens.NewTenantUser.route) {
+                        popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable (
+            Screens.NewTenantUser.route
+        ) {
+            NewTenantUserScreen(
+                onComplete = {
+                    navHostController.navigate(Screens.MainScreen.route) {
+                        popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

@@ -51,7 +51,8 @@ fun PhotoCarousel(
     aspectRatioX: Float = 3f,
     aspectRatioY: Float = 4f,
     maxResultWidth: Int = 1080,
-    maxResultHeight: Int = 1440
+    maxResultHeight: Int = 1440,
+    useCircularFrame: Boolean = false // Add parameter to control circular framing
 ) {
     var showPicker by remember { mutableStateOf(false) }
     var selectedPhotoForDetail by remember { mutableStateOf<Uri?>(null) }
@@ -88,6 +89,7 @@ fun PhotoCarousel(
 
     val itemModifier = Modifier.size(imageWidth, imageHeight)
     val arrangement = Arrangement.spacedBy(8.dp)
+    val imageShape = if (useCircularFrame) CircleShape else RoundedCornerShape(8.dp)
 
     if (orientation == CarouselOrientation.Horizontal) {
         LazyRow(
@@ -104,7 +106,7 @@ fun PhotoCarousel(
                             .size(imageWidth, imageHeight)
                             .padding(4.dp)
                             .clickable { selectedPhotoForDetail = uri }
-                            .clip(RoundedCornerShape(8.dp)),
+                            .clip(imageShape), // Use dynamic shape
                         contentScale = ContentScale.Crop
                     )
 
@@ -144,7 +146,7 @@ fun PhotoCarousel(
                             },
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         tonalElevation = 2.dp,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = imageShape // Use dynamic shape for add button too
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -182,7 +184,7 @@ fun PhotoCarousel(
                             .size(imageWidth, imageHeight)
                             .padding(4.dp)
                             .clickable { selectedPhotoForDetail = uri }
-                            .clip(RoundedCornerShape(8.dp)),
+                            .clip(imageShape), // Use dynamic shape
                         contentScale = ContentScale.Crop
                     )
 
@@ -222,7 +224,7 @@ fun PhotoCarousel(
                             },
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         tonalElevation = 2.dp,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = imageShape // Use dynamic shape for add button too
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,

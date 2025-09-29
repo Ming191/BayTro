@@ -13,7 +13,9 @@ import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
 import com.example.baytro.viewModel.contract.AddContractVM
+import com.example.baytro.viewModel.splash.IdCardDataViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
+import com.example.baytro.viewModel.splash.NewTenantUserVM
 import com.example.baytro.viewModel.splash.SplashScreenVM
 import com.example.baytro.viewModel.splash.UploadIdCardVM
 import com.google.firebase.auth.FirebaseAuth
@@ -55,6 +57,7 @@ val authModule = module {
     single<FptAiService> { FptAiService(get(), get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<RoomRepository> { RoomRepository(get()) }
+    single { IdCardDataViewModel() }
 
     viewModel { SplashScreenVM(get()) }
     viewModel { NewLandlordUserVM(androidContext(), get(), get(), get()) }
@@ -64,4 +67,5 @@ val authModule = module {
     viewModel { BuildingListVM(get(), get()) }
     viewModel { AddContractVM(androidContext(), get(), get(), get(), get(), get()) }
     viewModel { UploadIdCardVM(androidContext(), get(), get(), get()) }
+    viewModel { NewTenantUserVM(androidContext(), get(), get(), get()) }
 }
