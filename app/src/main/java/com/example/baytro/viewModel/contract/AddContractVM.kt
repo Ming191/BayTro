@@ -232,7 +232,7 @@ class AddContractVM (
             try {
                 val newContract = Contract(
                     id = "",
-                    tenantId = listOf(""), //TODO: Set tenant ID when tenant management is implemented
+                    tenantId = emptyList(), //TODO: Set tenant ID when tenant management is implemented
                     roomId = selectedRoom.id,
                     startDate = formState.startDate,
                     endDate = formState.endDate,
