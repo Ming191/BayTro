@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val currentUser = FirebaseAuth.getInstance().currentUser
         val startDestination = if (currentUser != null) {
-            Screens.UploadIdCard.route
+            Screens.MainScreen.route
         } else {
             Screens.SignIn.route
         }
