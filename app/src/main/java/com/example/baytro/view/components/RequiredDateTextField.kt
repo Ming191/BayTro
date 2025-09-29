@@ -105,7 +105,7 @@ fun RequiredDateTextField(
                 .matchParentSize()
                 .padding(top = 8.dp, bottom = 16.dp)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .clickable{ showDatePicker = true },
+                .clickable { showDatePicker = true },
             color = Color.Transparent,
         ) {}
     }
