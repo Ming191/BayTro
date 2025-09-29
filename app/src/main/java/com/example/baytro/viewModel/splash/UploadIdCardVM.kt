@@ -36,6 +36,7 @@ class UploadIdCardVM(
     private val _uploadIdCardFormState = MutableStateFlow(UploadIdCardFormState())
     val uploadIdCardFormState: StateFlow<UploadIdCardFormState> = _uploadIdCardFormState
 
+
     fun onPhotosChange(photos: List<Uri>) {
         Log.d(TAG, "onPhotosChange: photosCount=${photos.size}")
         _uploadIdCardFormState.value = _uploadIdCardFormState.value.copy(
@@ -77,7 +78,11 @@ class UploadIdCardVM(
         }
 
         val formState = _uploadIdCardFormState.value
-        val currentUser = auth.getCurrentUser()!!
+        val currentUser = auth.getCurrentUser()?: run {
+            Log.e(TAG, "onSubmit: no authenticated user found; aborting submit")
+            _uploadIdCardUiState.value = UiState.Error("User not authenticated")
+            return
+        }
 
         Log.d(TAG, "onSubmit: processing ID card with OCR for ${formState.selectedPhotos.size} photos")
         viewModelScope.launch {
@@ -144,19 +149,39 @@ class UploadIdCardVM(
     private fun combineIdCardInfo(frontSide: IdCardInfo?, backSide: IdCardInfo?): IdCardInfo? {
         Log.d(TAG, "combineIdCardInfo: combining info - front: $frontSide, back: $backSide")
 
-        if (frontSide == null || backSide == null) return null
-
+        if (frontSide == null && backSide == null) {
+            Log.w(TAG, "combineIdCardInfo: Both sides are null, cannot combine")
+            return null
+        }
 
         val combined = IdCardInfo(
-            fullName = frontSide.fullName.ifEmpty { "" },
-            idCardNumber = frontSide.idCardNumber.ifEmpty {""},
-            dateOfBirth = frontSide.dateOfBirth.ifEmpty { "" },
-            gender = frontSide.gender,
-            permanentAddress = frontSide.permanentAddress.ifEmpty {""},
-            idCardIssueDate = backSide.idCardIssueDate.ifEmpty { "" }
+            fullName = selectBestValue(frontSide?.fullName, backSide?.fullName),
+            idCardNumber = selectBestValue(frontSide?.idCardNumber, backSide?.idCardNumber),
+            dateOfBirth = selectBestValue(frontSide?.dateOfBirth, backSide?.dateOfBirth),
+            gender = frontSide?.gender ?: backSide?.gender ?: Gender.OTHER,
+            permanentAddress = selectBestValue(frontSide?.permanentAddress, backSide?.permanentAddress),
+            idCardIssueDate = selectBestValue(backSide?.idCardIssueDate, frontSide?.idCardIssueDate)
         )
+
+        // Validate that we have at least some essential information
+        val hasEssentialInfo = combined.fullName.isNotEmpty() ||
+                              combined.idCardNumber.isNotEmpty() ||
+                              combined.dateOfBirth.isNotEmpty()
+
+        if (!hasEssentialInfo) {
+            Log.w(TAG, "combineIdCardInfo: No essential information found in either image")
+            return null
+        }
 
         Log.d(TAG, "combineIdCardInfo: final combined result: $combined")
         return combined
+    }
+
+    private fun selectBestValue(value1: String?, value2: String?): String {
+        return when {
+            !value1.isNullOrEmpty() -> value1
+            !value2.isNullOrEmpty() -> value2
+            else -> ""
+        }
     }
 }
