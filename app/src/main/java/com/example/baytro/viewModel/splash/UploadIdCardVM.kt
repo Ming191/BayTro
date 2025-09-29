@@ -55,7 +55,7 @@ class UploadIdCardVM(
         val formState = _uploadIdCardFormState.value
 
         val photosValidator = when {
-            formState.selectedPhotos.isEmpty() || formState.selectedPhotos.size < 2-> ValidationResult.Error("Please upload at both front and back side photos of your ID card")
+            formState.selectedPhotos.isEmpty() || formState.selectedPhotos.size < 2-> ValidationResult.Error("Please upload both front and back side photos of your ID card")
             else -> ValidationResult.Success
         }
 
