@@ -19,6 +19,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 
 class UploadIdCardVM(
     private val context: Context,
@@ -28,6 +29,8 @@ class UploadIdCardVM(
 ) : ViewModel() {
     companion object {
         private const val TAG = "UploadIdCardVM"
+        private const val ID_CARD_FRONT_IMAGE_NAME = "front"
+        private const val ID_CARD_BACK_IMAGE_NAME = "back"
     }
 
     private val _uploadIdCardUiState = MutableStateFlow<UiState<IdCardInfoWithImages>>(UiState.Idle)
@@ -92,19 +95,21 @@ class UploadIdCardVM(
                     async { processPhoto(currentUser.uid, photoUri, index) }
                 }
 
-                val (frontResult, backResult) = processingJobs.awaitAll().let {
-                    Pair(it.getOrNull(0), it.getOrNull(1))
-                }
+                val results = processingJobs.awaitAll()
+                val frontResult = results[0]
+                val backResult = results[1]
 
                 Log.d(TAG, "onSubmit: combining front and back side information")
-                val combinedIdCardInfo = combineIdCardInfo(frontResult?.idCardInfo, backResult?.idCardInfo)
+                val combinedIdCardInfo = combineIdCardInfo(frontResult.idCardInfo,
+                    backResult.idCardInfo
+                )
 
                 if (combinedIdCardInfo != null) {
                     Log.d(TAG, "onSubmit: OCR processing completed successfully, combined info: $combinedIdCardInfo")
                     val enhancedIdCardInfo = IdCardInfoWithImages(
                         idCardInfo = combinedIdCardInfo,
-                        frontImageUrl = frontResult?.photoUrl,
-                        backImageUrl = backResult?.photoUrl
+                        frontImageUrl = frontResult.photoUrl,
+                        backImageUrl = backResult.photoUrl
                     )
                     _uploadIdCardUiState.value = UiState.Success(enhancedIdCardInfo)
                 } else {
@@ -121,29 +126,52 @@ class UploadIdCardVM(
     private suspend fun processPhoto(userId: String, photoUri: Uri, index: Int): OcrProcessingResult {
         Log.d(TAG, "processPhoto: processing ID card photo $index: $photoUri")
 
-        val compressedFile = ImageProcessor.compressImageWithCoil(context, photoUri, maxWidth = 1440, quality = 90)
-        Log.d(TAG, "processPhoto: compressed photo $index, file size: ${compressedFile.length()} bytes")
+        var compressedFile: File? = null
+        var photoUrl: String
+        var idCardInfo: IdCardInfo? = null
 
-        val photoUrl = mediaRepo.uploadUserImage(
-            userId = userId,
-            imageUri = Uri.fromFile(compressedFile),
-            subfolder = "idcards",
-            imageName = if (index == 0) "front" else "back"
-        )
-        Log.d(TAG, "processPhoto: uploaded ID card photo $index -> $photoUrl")
+        try {
+            val compressionStartTime = System.nanoTime()
+            compressedFile = ImageProcessor.compressImageWithCoil(context, photoUri, maxWidth = 1440, quality = 90)
+            val compressionDuration = (System.nanoTime() - compressionStartTime) / 1_000_000
+            Log.d(TAG, "processPhoto: compressed photo $index (size: ${compressedFile.length()} bytes) in $compressionDuration ms")
 
-        val ocrResult = fptAiService.extractIdCardInfo(photoUrl, context.cacheDir)
+            val uploadStartTime = System.nanoTime()
+            photoUrl = mediaRepo.uploadUserImage(
+                userId = userId,
+                imageUri = Uri.fromFile(compressedFile),
+                subfolder = "idcards",
+                imageName = if (index == 0) ID_CARD_FRONT_IMAGE_NAME else ID_CARD_BACK_IMAGE_NAME
+            )
+            val uploadDuration = (System.nanoTime() - uploadStartTime) / 1_000_000
+            Log.d(TAG, "processPhoto: uploaded ID card photo $index -> $photoUrl in $uploadDuration ms")
 
-        return ocrResult.fold(
-            onSuccess = { idCardInfo ->
-                Log.d(TAG, "processPhoto: OCR success for photo $index")
-                OcrProcessingResult(photoUrl, idCardInfo)
-            },
-            onFailure = { error ->
-                Log.w(TAG, "processPhoto: OCR failed for photo $index: ${error.message}")
-                OcrProcessingResult(photoUrl, null)
+            val ocrStartTime = System.nanoTime()
+            val ocrResult = fptAiService.extractIdCardInfo(photoUrl, context.cacheDir)
+            val ocrDuration = (System.nanoTime() - ocrStartTime) / 1_000_000
+
+            ocrResult.fold(
+                onSuccess = { info ->
+                    Log.d(TAG, "processPhoto: OCR success for photo $index in $ocrDuration ms")
+                    idCardInfo = info
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "processPhoto: OCR failed for photo $index in $ocrDuration ms:", error)
+                    idCardInfo = null
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "processPhoto: overall error during processing photo $index", e)
+            return OcrProcessingResult("", null)
+        } finally {
+            compressedFile?.let {
+                if (it.exists()) {
+                    val deleted = it.delete()
+                    Log.d(TAG, "processPhoto: Deleted compressed file for photo $index: $deleted (path: ${it.absolutePath})")
+                }
             }
-        )
+        }
+        return OcrProcessingResult(photoUrl, idCardInfo)
     }
 
     private fun combineIdCardInfo(frontSide: IdCardInfo?, backSide: IdCardInfo?): IdCardInfo? {
@@ -163,7 +191,6 @@ class UploadIdCardVM(
             idCardIssueDate = selectBestValue(backSide?.idCardIssueDate, frontSide?.idCardIssueDate)
         )
 
-        // Validate that we have at least some essential information
         val hasEssentialInfo = combined.fullName.isNotEmpty() ||
                               combined.idCardNumber.isNotEmpty() ||
                               combined.dateOfBirth.isNotEmpty()
