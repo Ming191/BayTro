@@ -1,4 +1,4 @@
-package com.example.baytro.data
+package com.example.baytro.data.user
 
 import com.google.firebase.firestore.DocumentId
 import kotlinx.serialization.SerialName

@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.baytro.data.RoleType
+import com.example.baytro.data.user.RoleType
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.Logo
 import com.example.baytro.view.components.SubmitButton

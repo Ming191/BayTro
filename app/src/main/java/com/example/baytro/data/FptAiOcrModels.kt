@@ -1,5 +1,6 @@
 package com.example.baytro.data
 
+import com.example.baytro.data.user.Gender
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

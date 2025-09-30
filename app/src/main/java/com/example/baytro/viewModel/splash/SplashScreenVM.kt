@@ -3,7 +3,7 @@ package com.example.baytro.viewModel.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
-import com.example.baytro.data.RoleType
+import com.example.baytro.data.user.RoleType
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

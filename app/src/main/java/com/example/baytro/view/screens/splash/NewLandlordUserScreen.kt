@@ -42,9 +42,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
-import com.example.baytro.data.BankCode
-import com.example.baytro.data.Gender
-import com.example.baytro.data.User
+import com.example.baytro.data.user.BankCode
+import com.example.baytro.data.user.Gender
+import com.example.baytro.data.user.User
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
@@ -182,7 +182,10 @@ fun NewLandlordUserScreenContent(
         ) {
             // Avatar
             item {
-                DividerWithSubhead("Profile image")
+                DividerWithSubhead(
+                    subhead = "Profile image",
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
                 Box(
                     modifier = Modifier
                         .size(150.dp)
@@ -220,8 +223,8 @@ fun NewLandlordUserScreenContent(
 
             // Personal info
             item { DividerWithSubhead(
+                modifier = Modifier.padding(vertical = 8.dp),
                 "Personal information",
-                modifier = Modifier.padding(vertical = 8.dp)
             ) }
 
             item {
