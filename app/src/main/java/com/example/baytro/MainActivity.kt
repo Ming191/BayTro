@@ -20,9 +20,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val currentUser = FirebaseAuth.getInstance().currentUser
         val startDestination = if (currentUser != null) {
-            Screens.UploadIdCard.route
+            Screens.ContractDetails.passContractId("vbTH4cDdlhBPKFpRChXC")
         } else {
-            Screens.UploadIdCard.route
+            Screens.SignIn.route
         }
         setContent {
             AppTheme {

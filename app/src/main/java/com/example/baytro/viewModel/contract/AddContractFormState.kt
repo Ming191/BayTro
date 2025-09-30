@@ -14,7 +14,7 @@ data class AddContractFormState(
     val endDate: String = "",
     val rentalFee: String = "",
     val deposit: String = "",
-    val status: Status = Status.entries[0],
+    val status: Status = Status.PENDING,
     val photosURL: List<String> = emptyList(),
     val availableBuildings: List<Building> = emptyList(),
     val availableRooms: List<Room> = emptyList(),
@@ -26,5 +26,4 @@ data class AddContractFormState(
     val endDateError: ValidationResult = ValidationResult.Success,
     val rentalFeeError: ValidationResult = ValidationResult.Success,
     val depositError: ValidationResult = ValidationResult.Success,
-    val photosError: ValidationResult = ValidationResult.Success,
 )

@@ -21,6 +21,7 @@ import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class AddContractVM (
     private val context : Context,
@@ -174,7 +175,6 @@ class AddContractVM (
         }
         val rentalFeeValidator = Validator.validateInteger(formState.rentalFee, "Rental Fee")
         val depositValidator = Validator.validateInteger(formState.deposit, "Deposit")
-        val photosValidator = Validator.validatePhotosSelected(formState.selectedPhotos)
         val allResults = listOf(
             startDateValidator,
             endDateValidator,
@@ -190,7 +190,6 @@ class AddContractVM (
                 if (endDateValidator != ValidationResult.Success) add("endDate=$endDateValidator")
                 if (rentalFeeValidator != ValidationResult.Success) add("rentalFee=$rentalFeeValidator")
                 if (depositValidator != ValidationResult.Success) add("deposit=$depositValidator")
-                if (photosValidator != ValidationResult.Success) add("photos=$photosValidator")
             }
             Log.w(TAG, "validateInput: validation failed -> ${errors.joinToString(", ")}")
         }
@@ -201,7 +200,6 @@ class AddContractVM (
             endDateError = endDateValidator,
             rentalFeeError = rentalFeeValidator,
             depositError = depositValidator,
-            photosError = photosValidator
         )
         return isValid
     }
@@ -240,13 +238,15 @@ class AddContractVM (
                     deposit = formState.deposit.toInt(),
                     status = formState.status,
                     photosURL = emptyList(),
+                    buildingId = selectedRoom.buildingId,
+                    landlordId = currentUser.uid,
+                    contractNumber = UUID.randomUUID().toString().take(8)
                 )
 
                 Log.d(TAG, "onSubmit: creating contract without photos")
                 val contractId = contractRepo.add(newContract)
                 Log.d(TAG, "onSubmit: contract created with ID: $contractId")
 
-                // Upload and compress photos with actual contract ID
                 val photoUrls = mutableListOf<String>()
                 formState.selectedPhotos.forEachIndexed { index, photoUri ->
                     Log.d(TAG, "onSubmit: processing photo $index")
@@ -266,7 +266,6 @@ class AddContractVM (
                     Log.d(TAG, "onSubmit: uploaded photo $index -> $photoUrl")
                 }
 
-                // Update contract with photo URLs if photos were uploaded
                 if (photoUrls.isNotEmpty()) {
                     Log.d(TAG, "onSubmit: updating contract with ${photoUrls.size} photo URLs")
                     contractRepo.updateFields(contractId, mapOf("photosURL" to photoUrls))
@@ -274,7 +273,6 @@ class AddContractVM (
 
                 val finalContract = newContract.copy(id = contractId, photosURL = photoUrls)
                 _addContractUiState.value = UiState.Success(finalContract)
-
             } catch (e: Exception) {
                 Log.e(TAG, "onSubmit: error creating contract", e)
                 _addContractUiState.value = UiState.Error(e.message ?: "An unknown error occurred while creating contract")

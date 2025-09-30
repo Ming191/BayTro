@@ -5,8 +5,10 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.baytro.MainScreen
 import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.BuildingListScreen
@@ -18,6 +20,7 @@ import com.example.baytro.view.screens.TenantListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
 import com.example.baytro.view.screens.contract.AddContractScreen
+import com.example.baytro.view.screens.contract.ContractDetailsScreen
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.NewTenantUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
@@ -148,7 +151,13 @@ fun AppNavigationController(
         composable (
             Screens.AddContract.route
         ) {
-            AddContractScreen()
+            AddContractScreen(
+                navigateToDetails = { contractId ->
+                    navHostController.navigate(Screens.ContractDetails.passContractId(contractId)) {
+                        popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
+                    }
+                },
+            )
         }
 
         composable (
@@ -173,6 +182,22 @@ fun AppNavigationController(
                     }
                 }
             )
+        }
+
+        composable(
+            route = Screens.ContractDetails.route,
+            arguments = listOf(
+                navArgument("contractId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val contractId = backStackEntry.arguments?.getString("contractId")
+            if (contractId != null) {
+                ContractDetailsScreen(contractId = contractId)
+            } else {
+                LaunchedEffect(Unit) {
+                    navHostController.popBackStack()
+                }
+            }
         }
     }
 }
