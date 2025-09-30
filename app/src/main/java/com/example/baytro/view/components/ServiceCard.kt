@@ -1,116 +1,145 @@
-package com.example.baytro.view.components
+package com.example.baytro.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.service.Service
+import com.example.baytro.view.components.ServiceIconFrame
 
-// map pricing_type -> icon
-fun serviceIconFor(type: String): ImageVector {
-    return when (type.lowercase()) {
-        "internet" -> Icons.Default.Wifi
-        "electricity" -> Icons.Default.Bolt
-        "water" -> Icons.Default.WaterDrop
-        else -> Icons.Default.Bolt // fallback icon
+@Composable
+fun ServiceActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    backgroundColor: Color,
+    iconColor: Color,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(40.dp)
+            .background(
+                color = backgroundColor.copy(alpha = 0.2f),
+                shape = CircleShape
+            )
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = iconColor
+        )
     }
 }
 
 @Composable
 fun ServiceCard(
     service: Service,
-    onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onEdit: (Service) -> Unit,
+    onDelete: (Service) -> Unit
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .background(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(8.dp)
+            )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Icon + Title
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = serviceIconFor(service.pricing_type),
-                        contentDescription = service.pricing_type,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                shape = CircleShape
-                            )
-                            .padding(6.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                ServiceIconFrame(
+                    label = service.name.take(1)
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
                     Text(
-                        text = service.pricing_type,
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = service.name,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Text(
+                        text = service.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
-                // Actions
-                Row {
-                    IconButton(
-                        onClick = onDeleteClick,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Delete")
-                    }
-                    IconButton(
-                        onClick = onEditClick,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit")
-                    }
-                }
+                ServiceActionButton(
+                    icon = Icons.Default.Edit,
+                    contentDescription = "Edit",
+                    backgroundColor = MaterialTheme.colorScheme.tertiary,
+                    iconColor = MaterialTheme.colorScheme.tertiary,
+                    onClick = { onEdit(service) }
+                )
+                ServiceActionButton(
+                    icon = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    backgroundColor = MaterialTheme.colorScheme.primary,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    onClick = { onDelete(service) }
+                )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Price
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Price:",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = service.price_per_unit,
+                    text = "Price: ${service.price} VND/${service.unit}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ServiceCardPreview() {
+    val mockService = Service(
+        id = "1",
+        name = "Electricity",
+        description = "Based on meter reading",
+        price = "4.000 VND",
+        unit = "kWh",
+        icon = "electricity"
+    )
+
+    ServiceCard(
+        service = mockService,
+        onEdit = {},
+        onDelete = {}
+    )
 }
