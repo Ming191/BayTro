@@ -9,5 +9,5 @@ data class Service(
     val description: String,
     val price: String,
     val unit: String,
-    val icon: String = "" // tên icon hoặc URL icon
+    val icon: String = ""
 )

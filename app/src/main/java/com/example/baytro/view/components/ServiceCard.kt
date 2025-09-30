@@ -1,4 +1,4 @@
-package com.example.baytro.ui.components
+package com.example.baytro.view.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.service.Service
-import com.example.baytro.view.components.ServiceIconFrame
 
 @Composable
 fun ServiceActionButton(
