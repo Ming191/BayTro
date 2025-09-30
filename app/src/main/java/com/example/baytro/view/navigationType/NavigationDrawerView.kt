@@ -26,6 +26,7 @@ import com.example.baytro.navigation.Screens
 
 @Composable
 fun NavigationDrawerView(
+    currentRoute: String? = null,
     onDrawerClicked: () -> Unit,
     onDashboardClicked: () -> Unit,
     onPropertyClicked: () -> Unit,
@@ -34,11 +35,19 @@ fun NavigationDrawerView(
     onBillClicked: () -> Unit,
     onContractClicked: () -> Unit,
 ) {
-    val items = listOf(
-        Screens.BuildingList,
-        Screens.TenantList
-    )
-    val selectedItem = remember { mutableStateOf(items[0]) }
+    val selectedItem = remember(currentRoute) {
+        mutableStateOf(
+            when {
+                currentRoute == Screens.Dashboard.route -> Screens.Dashboard
+                currentRoute == Screens.BuildingList.route || currentRoute?.startsWith("building_") == true -> Screens.BuildingList
+                currentRoute == Screens.TenantList.route -> Screens.TenantList
+                currentRoute == Screens.MaintenanceRequestList.route -> Screens.MaintenanceRequestList
+                currentRoute == Screens.BillList.route -> Screens.BillList
+                currentRoute == Screens.ContractList.route -> Screens.ContractList
+                else -> Screens.Dashboard
+            }
+        )
+    }
 
     Column (
         modifier = Modifier

@@ -8,6 +8,7 @@ import com.example.baytro.MainScreen
 import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.BuildingListScreen
 import com.example.baytro.view.screens.AddBuildingScreen
+import com.example.baytro.view.screens.EditBuildingScreen
 import com.example.baytro.view.screens.ContractListScreen
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.MaintenanceScreen
@@ -35,6 +36,12 @@ fun AppNavigationController(
             Screens.BuildingAdd.route
         ) {
             AddBuildingScreen(navController = navHostController)
+        }
+        composable(
+            Screens.BuildingEdit.route
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id") ?: ""
+            EditBuildingScreen(navController = navHostController, buildingId = id)
         }
         composable(
             Screens.TenantList.route

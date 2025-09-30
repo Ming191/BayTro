@@ -12,7 +12,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.compose.rememberNavController
 import com.example.baytro.navigation.AppScaffold
-//import com.example.baytro.navigation.ContentType
 import com.example.baytro.navigation.NavigationType
 import com.example.baytro.ui.theme.BayTroTheme
 import com.example.baytro.view.navigationType.NavigationDrawerView

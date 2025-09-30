@@ -1,6 +1,6 @@
 package com.example.baytro.view.screens.splash
 
-import RequiredDateTextField
+import com.example.baytro.view.components.RequiredDateTextField
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest

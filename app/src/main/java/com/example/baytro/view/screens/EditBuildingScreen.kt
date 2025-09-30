@@ -1,6 +1,10 @@
 package com.example.baytro.view.screens
 
-import androidx.compose.foundation.Image
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,17 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,13 +32,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -53,30 +52,28 @@ import com.example.baytro.data.Building
 import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.viewModel.AddBuildingVM
+import com.example.baytro.viewModel.EditBuildingVM
 import org.koin.compose.viewmodel.koinViewModel
-import android.net.Uri
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddBuildingScreen(
+fun EditBuildingScreen(
     navController: NavHostController? = null,
-    viewModel: AddBuildingVM = koinViewModel()
+    buildingId: String,
+    viewModel: EditBuildingVM = koinViewModel()
 ) {
-    val uiState by viewModel.addBuildingUIState.collectAsState()
     val context = LocalContext.current
+    val uiState by viewModel.editUIState.collectAsState()
+    val buildingState by viewModel.building.collectAsState()
+
     var name by remember { mutableStateOf("") }
     var floor by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
-    var statusExpanded by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Active") }
     var billingDate by remember { mutableStateOf("") }
     var paymentStart by remember { mutableStateOf("") }
     var paymentDue by remember { mutableStateOf("") }
+    val selectedImages = remember { mutableStateListOf<Uri>() }
 
     var nameError by remember { mutableStateOf(false) }
     var floorError by remember { mutableStateOf(false) }
@@ -92,52 +89,55 @@ fun AddBuildingScreen(
     var startErrorMsg by remember { mutableStateOf<String?>(null) }
     var dueErrorMsg by remember { mutableStateOf<String?>(null) }
 
-    val nameFocus = remember { FocusRequester() }
-    val floorFocus = remember { FocusRequester() }
-    val addressFocus = remember { FocusRequester() }
-    val billingFocus = remember { FocusRequester() }
-    val startFocus = remember { FocusRequester() }
-    val dueFocus = remember { FocusRequester() }
-    val selectedImages = remember { mutableStateOf<List<Uri>>(emptyList()) }
+    LaunchedEffect(buildingId) {
+        viewModel.load(buildingId)
+    }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 3),
-        onResult = { uris ->
-            val current = selectedImages.value
-            val merged = (current + uris).distinct().take(3)
-            selectedImages.value = merged
-        }
-    )
+    LaunchedEffect(buildingState) {
+        val b = buildingState ?: return@LaunchedEffect
+        name = b.name
+        floor = b.floor.toString()
+        address = b.address
+        status = b.status
+        billingDate = b.billingDate.toString()
+        paymentStart = b.paymentStart.toString()
+        paymentDue = b.paymentDue.toString()
+        selectedImages.clear()
+    }
 
-    // Handle UI state changes
-    LaunchedEffect(key1 = uiState) {
-        when (val state = uiState) {
+    LaunchedEffect(uiState) {
+        when (val s = uiState) {
             is AuthUIState.Success -> {
-                Toast.makeText(
-                    context,
-                    "Building added successfully!",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
                 navController?.popBackStack()
             }
 
             is AuthUIState.Error -> {
-                Toast.makeText(
-                    context,
-                    state.message,
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(context, s.message, Toast.LENGTH_SHORT).show()
             }
 
-            else -> Unit
+            else -> {}
         }
     }
 
+    val picker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 3),
+        onResult = { uris ->
+            val merged = (selectedImages.toList() + uris).distinct().take(3)
+            selectedImages.clear(); selectedImages.addAll(merged)
+        }
+    )
+
+    val nameFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val floorFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val addressFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val billingFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val startFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val dueFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -159,15 +159,15 @@ fun AddBuildingScreen(
             item {
                 OutlinedTextField(
                     value = floor,
-                    onValueChange = { newValue ->
-                        floor = newValue
+                    onValueChange = {
+                        floor = it
                         val res = BuildingValidator.validateFloor(floor)
                         floorError = res.isError; floorErrorMsg = res.message
                     },
                     label = { Text("Floor") },
                     singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = floorError,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     supportingText = {
                         if (floorError) Text(
                             text = floorErrorMsg ?: "",
@@ -194,46 +194,17 @@ fun AddBuildingScreen(
             }
 
             item {
-                ExposedDropdownMenuBox(
-                    expanded = statusExpanded,
-                    onExpandedChange = { statusExpanded = !statusExpanded }) {
-                    OutlinedTextField(
-                        value = status,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Status") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded)
-                        },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth()
-                    )
-                    DropdownMenu(
-                        expanded = statusExpanded,
-                        onDismissRequest = { statusExpanded = false }) {
-                        listOf("Active", "Inactive").forEach { option ->
-                            DropdownMenuItem(text = { Text(option) }, onClick = {
-                                status = option
-                                statusExpanded = false
-                            })
-                        }
-                    }
-                }
-            }
-
-            item {
                 OutlinedTextField(
                     value = billingDate,
-                    onValueChange = { newValue ->
-                        billingDate = newValue
+                    onValueChange = {
+                        billingDate = it
                         val res = BuildingValidator.validateBillingDate(billingDate)
                         billingError = res.isError; billingErrorMsg = res.message
                     },
                     label = { Text("Billing date") },
                     singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = billingError,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     supportingText = {
                         if (billingError) Text(
                             text = billingErrorMsg ?: "",
@@ -249,50 +220,48 @@ fun AddBuildingScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = paymentStart,
-                            onValueChange = { newValue ->
-                                paymentStart = newValue
-                                val res =
-                                    BuildingValidator.validatePaymentStart(paymentStart)
-                                startError = res.isError; startErrorMsg = res.message
-                            },
-                            label = { Text("Payment start") },
-                            singleLine = true,
-                            isError = startError,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            supportingText = {
-                                if (startError) Text(
-                                    text = startErrorMsg ?: "",
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth().focusRequester(startFocus)
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = paymentDue,
-                            onValueChange = { newValue ->
-                                paymentDue = newValue
-                                val res =
-                                    BuildingValidator.validatePaymentDue(paymentDue)
-                                dueError = res.isError; dueErrorMsg = res.message
-                            },
-                            label = { Text("Payment due") },
-                            singleLine = true,
-                            isError = dueError,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            supportingText = {
-                                if (dueError) Text(
-                                    text = dueErrorMsg ?: "",
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth().focusRequester(dueFocus)
-                        )
-                    }
+                    OutlinedTextField(
+                        value = paymentStart,
+                        onValueChange = {
+                            paymentStart = it
+                            val res = BuildingValidator.validatePaymentStart(paymentStart)
+                            startError = res.isError; startErrorMsg = res.message
+                        },
+                        label = { Text("Payment start") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        isError = startError,
+                        supportingText = {
+                            if (startError) Text(
+                                text = startErrorMsg ?: "",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        modifier = Modifier.weight(1f).focusRequester(startFocus)
+                    )
+                    OutlinedTextField(
+                        value = paymentDue,
+                        onValueChange = {
+                            paymentDue = it
+                            val res = BuildingValidator.validatePaymentDue(paymentDue)
+                            dueError = res.isError; dueErrorMsg = res.message
+                        },
+                        label = { Text("Payment due") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        isError = dueError,
+                        supportingText = {
+                            if (dueError) Text(
+                                text = dueErrorMsg ?: "",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        modifier = Modifier.weight(1f).focusRequester(dueFocus)
+                    )
                 }
             }
 
@@ -304,34 +273,28 @@ fun AddBuildingScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Images (optional)")
-                        IconButton(
-                            onClick = {
-                                imagePickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        IconButton(onClick = {
+                            picker.launch(
+                                PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
                                 )
-                            },
-                            enabled = selectedImages.value.size < 3
-                        ) {
+                            )
+                        }, enabled = selectedImages.size < 3) {
                             Icon(Icons.Default.AddAPhoto, contentDescription = "Add images")
                         }
                     }
-                    if (selectedImages.value.isNotEmpty()) {
+                    if (selectedImages.isNotEmpty()) {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            itemsIndexed(selectedImages.value) { index, uri ->
+                            itemsIndexed(selectedImages) { index, uri ->
                                 Box {
                                     AsyncImage(
                                         model = uri,
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .size(96.dp)
-                                            .clip(RectangleShape)
+                                        modifier = Modifier.size(96.dp).clip(RectangleShape)
                                     )
                                     IconButton(onClick = {
-                                        selectedImages.value =
-                                            selectedImages.value.toMutableList().also {
-                                                it.removeAt(index)
-                                            }
+                                        selectedImages.removeAt(index)
                                     }) {
                                         Icon(
                                             Icons.Default.Close,
@@ -400,42 +363,31 @@ fun AddBuildingScreen(
                                         firstInvalid.second.message; dueFocus.requestFocus()
                                 }
                             }
-                        }
-
-                        val allGood = firstInvalid == null
-                        if (allGood) {
-                            val floorInt = floor.toInt()
-                            val billingDateInt = billingDate.toInt()
-                            val paymentStartInt = paymentStart.toInt()
-                            val paymentDueInt = paymentDue.toInt()
+                        } else {
                             val building = Building(
-                                id = "",
+                                id = buildingId,
                                 name = name,
-                                floor = floorInt,
+                                floor = floor.toIntOrNull() ?: 0,
                                 address = address,
                                 status = status,
-                                billingDate = billingDateInt,
-                                paymentStart = paymentStartInt,
-                                paymentDue = paymentDueInt,
-                                imageUrls = emptyList(),
+                                billingDate = billingDate.toIntOrNull() ?: 0,
+                                paymentStart = paymentStart.toIntOrNull() ?: 0,
+                                paymentDue = paymentDue.toIntOrNull() ?: 0,
+                                userId = viewModel.building.value?.userId ?: "",
+                                imageUrls = viewModel.building.value?.imageUrls ?: emptyList()
                             )
-                            val images = selectedImages.value
-                            if (images.isEmpty()) {
-                                viewModel.addBuilding(building)
+                            if (selectedImages.isNotEmpty()) {
+                                viewModel.updateWithImages(building, selectedImages)
                             } else {
-                                viewModel.addBuildingWithImages(building, images)
+                                viewModel.update(building)
                             }
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .requiredHeight(50.dp),
+                    modifier = Modifier.fillMaxWidth().requiredHeight(50.dp),
                     enabled = uiState !is AuthUIState.Loading
                 ) {
                     if (uiState is AuthUIState.Loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        CircularProgressIndicator(modifier = Modifier.padding(8.dp))
                     } else {
                         Text("Confirm")
                     }

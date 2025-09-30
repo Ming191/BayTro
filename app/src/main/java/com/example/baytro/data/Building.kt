@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Building(
+    val id: String = "",
     val name: String,
     val floor: Int,
     val address: String,
@@ -11,5 +12,6 @@ data class Building(
     val billingDate: Int,
     val paymentStart: Int,
     val paymentDue: Int,
+    val imageUrls: List<String> = emptyList(),
     val userId: String = "", // ID of landlord owner
 )

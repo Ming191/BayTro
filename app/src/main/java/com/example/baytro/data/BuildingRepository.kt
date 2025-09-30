@@ -9,12 +9,18 @@ class BuildingRepository(
 
     override suspend fun getAll(): List<Building> {
         val snapshot = collection.get()
-        return snapshot.documents.map { it.data<Building>() }
+        return snapshot.documents.map { doc ->
+            val b = doc.data<Building>()
+            b.copy(id = doc.id)
+        }
     }
 
     override suspend fun getById(id: String): Building? {
         val snapshot = collection.document(id).get()
-        return if (snapshot.exists) snapshot.data<Building>() else null
+        return if (snapshot.exists) {
+            val b = snapshot.data<Building>()
+            b.copy(id = snapshot.id)
+        } else null
     }
 
     override suspend fun add(item: Building): String {
@@ -43,7 +49,8 @@ class BuildingRepository(
         val snapshot = collection.where { "userId" equalTo userId }.get()
         return snapshot.documents.mapNotNull { doc ->
             try {
-                doc.data<Building>()
+                val b = doc.data<Building>()
+                b.copy(id = doc.id)
             } catch (e: Exception) {
                 null
             }

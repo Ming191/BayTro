@@ -89,7 +89,7 @@ class NewLandlordUserVM(
             bankAccountNumberError = bankAccountNumberValidator,
             phoneNumberError = phoneNumberValidator,
             avatarUriError = avatarUriValidator
-            )
+        )
         return isValid
     }
 

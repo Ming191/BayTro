@@ -7,6 +7,7 @@ import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.UserRepository
 import com.example.baytro.viewModel.AddBuildingVM
 import com.example.baytro.viewModel.BuildingListVM
+import com.example.baytro.viewModel.EditBuildingVM
 import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
@@ -36,6 +37,7 @@ val authModule = module {
     viewModel { NewLandlordUserVM(androidContext(), get(), get(), get()) }
     viewModel { SignUpVM(get()) }
     viewModel { SignInVM(get(), get()) }
-    viewModel { AddBuildingVM(get(), get()) }
+    viewModel { AddBuildingVM(get(), get(), get()) }
     viewModel { BuildingListVM(get(), get()) }
+    viewModel { EditBuildingVM(get(), get(), get()) }
 }

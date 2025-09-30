@@ -25,4 +25,15 @@ class MediaRepository (
             throw Exception("Failed to upload profile image: ${e.message}", e)
         }
     }
+
+    suspend fun uploadBuildingImage(userId: String, buildingId: String, imageUri: Uri): String {
+        return try {
+            val fileName = "users/$userId/buildings/$buildingId/${System.currentTimeMillis()}.jpg"
+            val storageRef = storage.reference.child(fileName)
+            storageRef.putFile(imageUri).await()
+            storageRef.downloadUrl.await().toString()
+        } catch (e: Exception) {
+            throw Exception("Failed to upload building image: ${e.message}", e)
+        }
+    }
 }
