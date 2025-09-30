@@ -37,7 +37,7 @@ val authModule = module {
     viewModel { NewLandlordUserVM(androidContext(), get(), get(), get()) }
     viewModel { SignUpVM(get()) }
     viewModel { SignInVM(get(), get()) }
-    viewModel { AddBuildingVM(get(), get(), get()) }
+    viewModel { AddBuildingVM(androidContext(), get(), get(), get()) }
     viewModel { BuildingListVM(get(), get()) }
-    viewModel { EditBuildingVM(get(), get(), get()) }
+    viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
 }

@@ -387,7 +387,18 @@ fun EditBuildingScreen(
                     enabled = uiState !is AuthUIState.Loading
                 ) {
                     if (uiState is AuthUIState.Loading) {
-                        CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = if (selectedImages.isNotEmpty()) "Uploading images..." else "Saving...",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     } else {
                         Text("Confirm")
                     }

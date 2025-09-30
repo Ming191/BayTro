@@ -24,7 +24,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +83,7 @@ fun BuildingListScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 80.dp) // chừa chỗ cho FAB
+                    contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
                     items(buildings) { b ->
                         Card(
@@ -86,15 +93,68 @@ fun BuildingListScreen(
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
+                                // 1) Image ở trên (với placeholder cho building không có ảnh)
                                 val firstImage = b.imageUrls.firstOrNull()
-                                AsyncImage(
-                                    model = firstImage ?: "https://via.placeholder.com/800x400?text=Building",
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(160.dp)
-                                )
+                                val context = LocalContext.current
+                                val configuration = LocalConfiguration.current
+                                val density = LocalDensity.current
+                                val widthPx = with(density) { configuration.screenWidthDp.dp.toPx() }.toInt()
+                                val heightPx = with(density) { 160.dp.toPx() }.toInt()
+
+                                if (firstImage != null) {
+                                    // Có ảnh thì load async
+                                    SubcomposeAsyncImage(
+                                        model = ImageRequest.Builder(context)
+                                            .data(firstImage)
+                                            .size(widthPx, heightPx)
+                                            .memoryCachePolicy(CachePolicy.ENABLED)
+                                            .diskCachePolicy(CachePolicy.ENABLED)
+                                            .networkCachePolicy(CachePolicy.ENABLED)
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        loading = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(160.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                CircularProgressIndicator()
+                                            }
+                                        },
+                                        error = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(160.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("Failed to load image", style = MaterialTheme.typography.bodySmall)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(160.dp)
+                                    )
+                                } else {
+                                    // Không có ảnh thì show placeholder ngay
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(160.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "No Image",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                // 2) Thông tin ở dưới
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
