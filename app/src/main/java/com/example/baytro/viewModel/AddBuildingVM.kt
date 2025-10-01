@@ -49,42 +49,62 @@ class AddBuildingVM(
                 val currentUser = authRepository.getCurrentUser()
                     ?: throw IllegalStateException("No logged in user found")
 
+                // Tạo building trước để có ID
                 val buildingWithUserId = building.copy(userId = currentUser.uid, imageUrls = emptyList())
                 val newId = buildingRepository.add(buildingWithUserId)
+                Log.d("AddBuildingVM", "Building created with ID: $newId")
 
                 val limitedUris = imageUris.take(3)
-                Log.d("AddBuildingVM", "Starting parallel upload of ${limitedUris.size} images")
+                Log.d("AddBuildingVM", "Starting optimized upload of ${limitedUris.size} images")
                 val startTime = System.currentTimeMillis()
                 
-                // Upload images in parallel for faster performance
+                // Tối ưu: Compress và upload song song cho từng ảnh
+                // Thay vì compress tất cả rồi upload tất cả
                 val uploadedUrls = limitedUris.mapIndexed { index, uri ->
                     async {
-                        Log.d("AddBuildingVM", "Processing image $index...")
                         val imageStartTime = System.currentTimeMillis()
+                        Log.d("AddBuildingVM", "Processing image $index...")
                         
-                        // Compress image before upload
-                        val compressedFile = ImageProcessor.compressImageWithCoil(context, uri)
-                        val compressedUri = Uri.fromFile(compressedFile)
-                        val compressionTime = System.currentTimeMillis() - imageStartTime
-                        Log.d("AddBuildingVM", "Image $index compressed in ${compressionTime}ms, size: ${compressedFile.length()} bytes")
-                        
-                        // Upload compressed image
-                        val uploadStartTime = System.currentTimeMillis()
-                        val url = mediaRepository.uploadBuildingImage(currentUser.uid, newId, compressedUri)
-                        val uploadTime = System.currentTimeMillis() - uploadStartTime
-                        Log.d("AddBuildingVM", "Image $index uploaded in ${uploadTime}ms")
-                        
-                        url
+                        try {
+                            val compressedFile = ImageProcessor.compressImage(context, uri)
+                            val compressionTime = System.currentTimeMillis() - imageStartTime
+                            Log.d("AddBuildingVM", "Image $index compressed in ${compressionTime}ms, size: ${compressedFile.length()} bytes")
+                            
+                            // Upload ngay
+                            val uploadStartTime = System.currentTimeMillis()
+                            val compressedUri = Uri.fromFile(compressedFile)
+                            val url = mediaRepository.uploadBuildingImage(currentUser.uid, newId, compressedUri)
+                            val uploadTime = System.currentTimeMillis() - uploadStartTime
+                            Log.d("AddBuildingVM", "Image $index uploaded in ${uploadTime}ms")
+                            
+                            // Cleanup temp file
+                            compressedFile.delete()
+                            
+                            val totalImageTime = System.currentTimeMillis() - imageStartTime
+                            Log.d("AddBuildingVM", "Image $index total time: ${totalImageTime}ms")
+                            
+                            url
+                        } catch (e: Exception) {
+                            Log.e("AddBuildingVM", "Failed to process image $index", e)
+                            throw e
+                        }
                     }
                 }.awaitAll()
                 
                 val totalTime = System.currentTimeMillis() - startTime
                 Log.d("AddBuildingVM", "All ${limitedUris.size} images processed in ${totalTime}ms")
+                
+                // Cập nhật building với URLs
                 if (uploadedUrls.isNotEmpty()) {
                     buildingRepository.updateFields(newId, mapOf("imageUrls" to uploadedUrls))
+                    Log.d("AddBuildingVM", "Building updated with ${uploadedUrls.size} image URLs")
                 }
+                
                 _addBuildingUIState.value = AuthUIState.Success(currentUser)
+                Log.d("AddBuildingVM", "Add building completed successfully")
+                
             } catch (e: Exception) {
+                Log.e("AddBuildingVM", "Failed to add building with images", e)
                 _addBuildingUIState.value = AuthUIState.Error(e.message ?: "An unknown error occurred")
             }
         }

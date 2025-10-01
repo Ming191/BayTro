@@ -68,27 +68,42 @@ class EditBuildingVM(
                 Log.d("EditBuildingVM", "Starting parallel upload of ${limited.size} images")
                 val startTime = System.currentTimeMillis()
                 
-                // Upload images in parallel for faster performance
-                val urls = limited.mapIndexed { index, uri ->
+                // Step 1: Compress all images in parallel first
+                Log.d("EditBuildingVM", "Step 1: Compressing ${limited.size} images in parallel...")
+                val compressionStartTime = System.currentTimeMillis()
+                
+                val compressedFiles = limited.mapIndexed { index, uri ->
                     async {
-                        Log.d("EditBuildingVM", "Processing image $index...")
+                        Log.d("EditBuildingVM", "Compressing image $index...")
                         val imageStartTime = System.currentTimeMillis()
-                        
-                        // Compress image before upload
-                        val compressedFile = ImageProcessor.compressImageWithCoil(context, uri)
-                        val compressedUri = Uri.fromFile(compressedFile)
+                        val compressedFile = ImageProcessor.compressImage(context, uri)
                         val compressionTime = System.currentTimeMillis() - imageStartTime
                         Log.d("EditBuildingVM", "Image $index compressed in ${compressionTime}ms, size: ${compressedFile.length()} bytes")
-                        
-                        // Upload compressed image
-                        val uploadStartTime = System.currentTimeMillis()
+                        compressedFile
+                    }
+                }.awaitAll()
+                
+                val totalCompressionTime = System.currentTimeMillis() - compressionStartTime
+                Log.d("EditBuildingVM", "All images compressed in ${totalCompressionTime}ms")
+                
+                // Step 2: Upload all compressed images in parallel
+                Log.d("EditBuildingVM", "Step 2: Uploading ${compressedFiles.size} images in parallel...")
+                val uploadStartTime = System.currentTimeMillis()
+                
+                val urls = compressedFiles.mapIndexed { index, compressedFile ->
+                    async {
+                        Log.d("EditBuildingVM", "Edit building info")
+                        val imageUploadStartTime = System.currentTimeMillis()
+                        val compressedUri = Uri.fromFile(compressedFile)
                         val url = mediaRepository.uploadBuildingImage(currentUser.uid, building.id, compressedUri)
-                        val uploadTime = System.currentTimeMillis() - uploadStartTime
+                        val uploadTime = System.currentTimeMillis() - imageUploadStartTime
                         Log.d("EditBuildingVM", "Image $index uploaded in ${uploadTime}ms")
-                        
                         url
                     }
                 }.awaitAll()
+                
+                val totalUploadTime = System.currentTimeMillis() - uploadStartTime
+                Log.d("EditBuildingVM", "All images uploaded in ${totalUploadTime}ms")
                 
                 val totalTime = System.currentTimeMillis() - startTime
                 Log.d("EditBuildingVM", "All ${limited.size} images processed in ${totalTime}ms")

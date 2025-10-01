@@ -60,6 +60,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import com.yalantis.ucrop.UCrop
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,14 +102,40 @@ fun AddBuildingScreen(
     val dueFocus = remember { FocusRequester() }
     val selectedImages = remember { mutableStateOf<List<Uri>>(emptyList()) }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 3),
-        onResult = { uris ->
-            val current = selectedImages.value
-            val merged = (current + uris).distinct().take(3)
-            selectedImages.value = merged
+    // UCrop launcher
+    val cropLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            result.data?.let { intent ->
+                val croppedUri = UCrop.getOutput(intent)
+                croppedUri?.let { uri ->
+                    val current = selectedImages.value
+                    selectedImages.value = (current + uri).take(3)
+                }
+            }
         }
-    )
+    }
+
+    // Photo picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            if (selectedImages.value.size < 3) {
+                val destinationUri = Uri.fromFile(
+                    File(context.cacheDir, "building_cropped_${System.currentTimeMillis()}.jpg")
+                )
+                
+                val uCropIntent = UCrop.of(selectedUri, destinationUri)
+                    .withAspectRatio(16f, 9f) // Tỷ lệ 16:9 cho ảnh building
+                    .withMaxResultSize(1080, 608) // Max size tương ứng
+                    .getIntent(context)
+                
+                cropLauncher.launch(uCropIntent)
+            }
+        }
+    }
 
     // Handle UI state changes
     LaunchedEffect(key1 = uiState) {
@@ -441,7 +469,7 @@ fun AddBuildingScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = if (selectedImages.value.isNotEmpty()) "Uploading images..." else "Saving...",
+                                text = "Add building info",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }

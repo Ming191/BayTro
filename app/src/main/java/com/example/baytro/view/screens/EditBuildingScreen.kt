@@ -5,6 +5,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import com.yalantis.ucrop.UCrop
+import java.io.File
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -120,13 +122,41 @@ fun EditBuildingScreen(
         }
     }
 
-    val picker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 3),
-        onResult = { uris ->
-            val merged = (selectedImages.toList() + uris).distinct().take(3)
-            selectedImages.clear(); selectedImages.addAll(merged)
+    // UCrop launcher
+    val cropLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            result.data?.let { intent ->
+                val croppedUri = UCrop.getOutput(intent)
+                croppedUri?.let { uri ->
+                    if (selectedImages.size < 3) {
+                        selectedImages.add(uri)
+                    }
+                }
+            }
         }
-    )
+    }
+
+    // Photo picker launcher
+    val picker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            if (selectedImages.size < 3) {
+                val destinationUri = Uri.fromFile(
+                    File(context.cacheDir, "building_edit_cropped_${System.currentTimeMillis()}.jpg")
+                )
+                
+                val uCropIntent = UCrop.of(selectedUri, destinationUri)
+                    .withAspectRatio(16f, 9f) // Tỷ lệ 16:9 cho ảnh building
+                    .withMaxResultSize(1080, 608) // Max size tương ứng
+                    .getIntent(context)
+                
+                cropLauncher.launch(uCropIntent)
+            }
+        }
+    }
 
     val nameFocus = remember { androidx.compose.ui.focus.FocusRequester() }
     val floorFocus = remember { androidx.compose.ui.focus.FocusRequester() }
@@ -275,9 +305,7 @@ fun EditBuildingScreen(
                         Text(text = "Images (optional)")
                         IconButton(onClick = {
                             picker.launch(
-                                PickVisualMediaRequest(
-                                    ActivityResultContracts.PickVisualMedia.ImageOnly
-                                )
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
                         }, enabled = selectedImages.size < 3) {
                             Icon(Icons.Default.AddAPhoto, contentDescription = "Add images")
@@ -395,7 +423,7 @@ fun EditBuildingScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = if (selectedImages.isNotEmpty()) "Uploading images..." else "Saving...",
+                                text = "Edit building info",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }

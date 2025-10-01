@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -31,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import coil3.request.crossfade
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,7 +105,7 @@ fun BuildingListScreen(
                                 val heightPx = with(density) { 160.dp.toPx() }.toInt()
 
                                 if (firstImage != null) {
-                                    // Có ảnh thì load async
+                                    // Optimized image loading with better caching
                                     SubcomposeAsyncImage(
                                         model = ImageRequest.Builder(context)
                                             .data(firstImage)
@@ -110,7 +113,8 @@ fun BuildingListScreen(
                                             .memoryCachePolicy(CachePolicy.ENABLED)
                                             .diskCachePolicy(CachePolicy.ENABLED)
                                             .networkCachePolicy(CachePolicy.ENABLED)
-                                            .crossfade(true)
+                                            .crossfade(300) // Faster crossfade
+                                            .allowHardware(true) // Use hardware acceleration
                                             .build(),
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
@@ -121,7 +125,10 @@ fun BuildingListScreen(
                                                     .height(160.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                CircularProgressIndicator()
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(32.dp),
+                                                    strokeWidth = 3.dp
+                                                )
                                             }
                                         },
                                         error = {
@@ -131,7 +138,21 @@ fun BuildingListScreen(
                                                     .height(160.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                Text("Failed to load image", style = MaterialTheme.typography.bodySmall)
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.BrokenImage,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(32.dp),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Text(
+                                                        "Image unavailable", 
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
                                             }
                                         },
                                         modifier = Modifier
@@ -139,18 +160,28 @@ fun BuildingListScreen(
                                             .height(160.dp)
                                     )
                                 } else {
-                                    // Không có ảnh thì show placeholder ngay
+                                    // Better placeholder for no image
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(160.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            text = "No Image",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Image,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(48.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = "No Image",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
 
