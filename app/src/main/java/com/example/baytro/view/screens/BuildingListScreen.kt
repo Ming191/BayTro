@@ -10,11 +10,17 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -57,22 +63,89 @@ fun BuildingListScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // Search bar
-            SearchBar(
-                query = "",
-                onQueryChange = {},
-                placeholder = { Text("Enter building name, address") },
-                onSearch = {},
-                active = false,
-                onActiveChange = {},
-                leadingIcon = { },
-                trailingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                },
+            // Search and status filter row
+            val searchQuery by viewModel.searchQuery.collectAsState()
+            val statusFilter by viewModel.statusFilter.collectAsState()
+            var showStatusMenu by remember { mutableStateOf(false) }
+            var isSearchFocused by remember { mutableStateOf(false) }
+
+            // Search bar with integrated filter
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
-            ) {}
+                    .padding(horizontal =16.dp, vertical = 16.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.setSearchQuery(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            isSearchFocused = focusState.isFocused
+                        },
+                    singleLine = true,
+                    shape = RoundedCornerShape(24.dp),
+                    leadingIcon = { 
+                        Icon(Icons.Default.Search, contentDescription = null) 
+                    },
+                    trailingIcon = {
+                        Box {
+                            IconButton(
+                                onClick = { showStatusMenu = true }
+                            ) {
+                                Icon(
+                                    Icons.Default.FilterList,
+                                    contentDescription = "Filter by status",
+                                    tint = if (statusFilter != BuildingListVM.BuildingStatusFilter.ALL) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            }
+                            
+                            DropdownMenu(
+                                expanded = showStatusMenu,
+                                onDismissRequest = { showStatusMenu = false }
+                            ) {
+                                BuildingListVM.BuildingStatusFilter.values().forEach { filter ->
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Text(
+                                                text = filter.name.lowercase().replaceFirstChar { it.uppercase() },
+                                                color = if (filter == statusFilter) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                }
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.setStatusFilter(filter)
+                                            showStatusMenu = false
+                                        },
+                                        leadingIcon = if (filter == statusFilter) {
+                                            {
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        } else null
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    placeholder = { 
+                        if (!isSearchFocused && searchQuery.isEmpty()) {
+                            Text("Search by name or address")
+                        }
+                    },
+                    label = { Text("") }
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -84,11 +157,12 @@ fun BuildingListScreen(
                     CircularProgressIndicator()
                 }
             } else {
+                val filteredBuildings by viewModel.filteredBuildings.collectAsState()
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
-                    items(buildings) { b ->
+                    items(filteredBuildings) { b ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -96,7 +170,6 @@ fun BuildingListScreen(
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
-                                // 1) Image ở trên (với placeholder cho building không có ảnh)
                                 val firstImage = b.imageUrls.firstOrNull()
                                 val context = LocalContext.current
                                 val configuration = LocalConfiguration.current
@@ -105,7 +178,6 @@ fun BuildingListScreen(
                                 val heightPx = with(density) { 160.dp.toPx() }.toInt()
 
                                 if (firstImage != null) {
-                                    // Optimized image loading with better caching
                                     SubcomposeAsyncImage(
                                         model = ImageRequest.Builder(context)
                                             .data(firstImage)
@@ -114,7 +186,7 @@ fun BuildingListScreen(
                                             .diskCachePolicy(CachePolicy.ENABLED)
                                             .networkCachePolicy(CachePolicy.ENABLED)
                                             .crossfade(300) // Faster crossfade
-                                            .allowHardware(true) // Use hardware acceleration
+                                            .allowHardware(true)
                                             .build(),
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
@@ -148,7 +220,7 @@ fun BuildingListScreen(
                                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                     Text(
-                                                        "Image unavailable", 
+                                                        "Image unavailable",
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )

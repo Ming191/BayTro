@@ -147,12 +147,12 @@ fun EditBuildingScreen(
                 val destinationUri = Uri.fromFile(
                     File(context.cacheDir, "building_edit_cropped_${System.currentTimeMillis()}.jpg")
                 )
-                
+
                 val uCropIntent = UCrop.of(selectedUri, destinationUri)
                     .withAspectRatio(16f, 9f) // Tỷ lệ 16:9 cho ảnh building
                     .withMaxResultSize(1080, 608) // Max size tương ứng
                     .getIntent(context)
-                
+
                 cropLauncher.launch(uCropIntent)
             }
         }
