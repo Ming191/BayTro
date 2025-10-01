@@ -28,16 +28,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
-object Variables {
-    val SchemesSurface: Color = Color(0xFFFFF8F8)
-    val SchemesOutlineVariant: Color = Color(0xFFD4C2C7)
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuildingListScreen(
     navController: NavHostController? = null,
-    onViewBuilding: () -> Unit = {},
+    onViewBuilding: (String) -> Unit = {},
     onEditBuilding: () -> Unit = {},
     onAddBuilding: () -> Unit = {},
     viewModel: BuildingListVM = koinViewModel()
@@ -109,7 +104,7 @@ fun BuildingListScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                OutlinedButton(onClick = onViewBuilding) {
+                                OutlinedButton(onClick = {onViewBuilding(b.id)}) {
                                     Text("View building")
                                 }
                                 IconButton(onClick = onEditBuilding) {

@@ -1,9 +1,12 @@
 package com.example.baytro.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.baytro.MainScreen
 import com.example.baytro.view.screens.AddBuildingScreen
 import com.example.baytro.view.screens.BillListScreen
@@ -32,7 +35,13 @@ fun AppNavigationController(
         composable(
             Screens.BuildingList.route
         ) {
-            BuildingListScreen(navController = navHostController)
+            BuildingListScreen(
+                navController = navHostController,
+                onViewBuilding = { buildingName ->
+                    Log.d("DEBUG", "Navigate with buildingId=$buildingName")
+                    navHostController.navigate(Screens.RoomList.createRoute(buildingName))
+                }
+            )
         }
         composable(
             Screens.BuildingAdd.route
@@ -65,9 +74,17 @@ fun AppNavigationController(
             ContractListScreen()
         }
         composable(
-            Screens.RoomList.route
-        ) {
-            RoomListScreen(navController = navHostController)
+            route = Screens.RoomList.route, // route có {buildingName} bên trong
+            arguments = listOf(navArgument("buildingName") { type = NavType.StringType})
+        ) { entry ->
+            // Lấy tham số từ navigation
+            val buildingName = entry.arguments?.getString("buildingName") ?: ""
+            Log.d("DEBUG", "RoomListScreen received buildingName=$buildingName")
+            // Gọi screen, truyền buildingName vào
+            RoomListScreen(
+                navController = navHostController,
+                buildingId = buildingName
+            )
         }
         composable(
             Screens.EditRoom.route

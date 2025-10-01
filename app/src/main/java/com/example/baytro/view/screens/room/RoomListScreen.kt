@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.room
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -25,9 +26,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
@@ -43,6 +41,8 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -57,14 +57,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.baytro.R
+import com.example.baytro.data.Building
+import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.Floor
+import com.example.baytro.data.Room
+import com.example.baytro.data.RoomRepository
 import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.ButtonComponent
 import com.example.baytro.view.components.DividerWithSubhead
+import com.example.baytro.viewModel.Room.RoomListVM
+import org.koin.compose.viewmodel.koinViewModel
 
 
-data class Floor(val number: Int, val rooms: List<String>)
 @Composable
 fun TabRowComponent(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
     Box(
@@ -140,7 +145,7 @@ fun ViewRoomList(floors : List<Floor>, navController : NavController) {
                         Column {
                             floor.rooms.forEach { room ->
                                 ListItem(
-                                    headlineContent = { Text("Room $room") },
+                                    headlineContent = { Text("Room ${room.roomNumber}") },
                                     leadingContent = {
                                         Icon(
                                             Icons.Outlined.Person,
@@ -174,7 +179,11 @@ fun ViewRoomList(floors : List<Floor>, navController : NavController) {
 }
 
 @Composable
-fun ViewBuildingDetails(navController : NavHostController) {
+fun ViewBuildingDetails(
+    navController : NavHostController,
+    building: Building?
+) {
+    Log.d("BuildingDetails", "BuildingName: ${building?.name}")
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.Start,
@@ -221,7 +230,7 @@ fun ViewBuildingDetails(navController : NavHostController) {
             ) {
                 Text(text = "Num.Floors:", modifier = Modifier.fillMaxWidth(1/3f))
                 Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = "12")
+                Text(text = building?.floor.toString())
             }
 
             Row(
@@ -233,7 +242,7 @@ fun ViewBuildingDetails(navController : NavHostController) {
             ) {
                 Text(text = "Address:", modifier = Modifier.fillMaxWidth(1/3f))
                 Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = "12")
+                Text(text = building?.address.toString())
             }
 
             Row(
@@ -245,7 +254,7 @@ fun ViewBuildingDetails(navController : NavHostController) {
             ) {
                 Text(text = "Billing date:", modifier = Modifier.fillMaxWidth(1/3f))
                 Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = "12")
+                Text(text = building?.billingDate.toString())
             }
 
             Row(
@@ -255,9 +264,9 @@ fun ViewBuildingDetails(navController : NavHostController) {
                     .padding(start = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Rental fee:", modifier = Modifier.fillMaxWidth(1/3f))
+                Text(text = "Payment start:", modifier = Modifier.fillMaxWidth(1/3f))
                 Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = "12")
+                Text(text = building?.paymentStart.toString())
             }
 
             Row(
@@ -267,9 +276,9 @@ fun ViewBuildingDetails(navController : NavHostController) {
                     .padding(start = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Payment date:", modifier = Modifier.fillMaxWidth(1/3f))
+                Text(text = "Payment due:", modifier = Modifier.fillMaxWidth(1/3f))
                 Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = "12")
+                Text(text = building?.paymentDue.toString())
             }
         }
         DividerWithSubhead("Building photo")
@@ -294,27 +303,29 @@ fun ViewBuildingDetails(navController : NavHostController) {
 
 @Composable
 fun RoomListScreen(
-    navController: NavHostController
+    navController: NavHostController,
+    buildingId: String,
+    viewModel: RoomListVM = koinViewModel(),
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val floors = remember {
-        listOf(
-            Floor(1, List(10) { "${101   + it}" }), // Tầng 1: 10 phòng
-            Floor(2, List(8) { "${201 + it}" }),  // Tầng 2: 8 phòng
-            Floor(3, List(12) { "${301 + it}" })  // Tầng 3: 12 phòng
-        )
+    val floors by viewModel.floors.collectAsState()
+    val building by viewModel.building.collectAsState()
+    LaunchedEffect(Unit) {
+        viewModel.fetchBuilding()
+        viewModel.fetchRooms()
     }
-    Column() {
+    Column {
         TabRowComponent(
             selectedTabIndex = selectedTabIndex,
             onTabSelected = { selectedTabIndex = it }
         )
         when (selectedTabIndex) {
-            0 -> ViewRoomList(floors, navController)
-            1 -> ViewBuildingDetails(navController)
+            0 -> ViewRoomList(floors, navController)   // truyền floors fetch được
+            1 -> ViewBuildingDetails(navController, building)
         }
     }
 }
+
 @Preview
 @Composable
 fun Preview() {

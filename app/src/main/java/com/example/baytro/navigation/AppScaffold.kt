@@ -49,7 +49,7 @@ fun AppScaffold (
 				Screens.ContractList.route -> "Contracts"
 				Screens.MaintenanceRequestList.route -> "Maintenance"
 				Screens.Dashboard.route -> "BayTro"
-                Screens.RoomList.route -> "Rooms"
+                Screens.RoomList.route-> "Rooms"
 				else -> "BayTro"
 			}
 			CenterAlignedTopAppBar(

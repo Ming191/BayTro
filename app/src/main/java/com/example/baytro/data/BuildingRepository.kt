@@ -43,7 +43,10 @@ class BuildingRepository(
         val snapshot = collection.where { "userId" equalTo userId }.get()
         return snapshot.documents.mapNotNull { doc ->
             try {
-                doc.data<Building>()
+                // Lấy object
+                val building = doc.data<Building>()
+                // Gán thêm id từ document.id
+                building.copy(id = doc.id)
             } catch (e: Exception) {
                 null
             }
