@@ -3,9 +3,26 @@ package com.example.baytro.data.qr_session
 import android.util.Log
 import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+
+
+data class PendingQrSession(
+    val sessionId: String,
+    val tenantId: String,
+    val tenantName: String,
+    val tenantAvatarUrl: String
+)
+
 
 class QrSessionRepository(
-    private val db: FirebaseFirestore
+    private val db: FirebaseFirestore,
+    private val userRepository: com.example.baytro.data.user.UserRepository
 ) : Repository<QrSession> {
     private val collection = db.collection("qr_sessions")
 
@@ -60,5 +77,46 @@ class QrSessionRepository(
         } catch (e: Exception) {
             false
         }
+    }
+
+    fun listenForScannedSessions(contractId: String): Flow<List<PendingQrSession>> {
+        if (contractId.isBlank()) {
+            return flowOf(emptyList())
+        }
+
+        val query = collection.where {
+            all(
+                "contractId" equalTo contractId,
+                "status" equalTo "scanned"
+            )
+        }
+
+        return query.snapshots
+            .map { querySnapshot ->
+                coroutineScope {
+                    val deferreds = querySnapshot.documents.map { doc ->
+                        async {
+                            val sessionData = doc.data<QrSession>()
+                            val tenantId = sessionData.scannedByTenantId
+
+                            if (tenantId != null) {
+                                val user = userRepository.getById(tenantId)
+                                user?.let {
+                                    PendingQrSession(
+                                        sessionId = doc.id,
+                                        tenantId = tenantId,
+                                        tenantName = it.fullName,
+                                        tenantAvatarUrl = it.profileImgUrl!!
+                                    )
+                                }
+                            } else {
+                                null
+                            }
+                        }
+                    }
+
+                    deferreds.awaitAll().filterNotNull()
+                }
+            }
     }
 }

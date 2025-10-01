@@ -10,6 +10,8 @@ import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.contract.Status
+import com.example.baytro.data.qr_session.PendingQrSession
+import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.view.screens.UiState
@@ -28,13 +30,17 @@ class ContractDetailsVM(
     private val buildingRepository: BuildingRepository,
     private val userRepository: UserRepository,
     savedStateHandle: SavedStateHandle,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val qrSessionRepository: QrSessionRepository
 ): ViewModel() {
     private val _qrState = mutableStateOf<UiState<String>>(UiState.Idle)
     val qrState : State<UiState<String>> = _qrState
 
     private val _formState = MutableStateFlow(ContractDetailsFormState())
     val formState : StateFlow<ContractDetailsFormState> = _formState
+
+    private val _pendingSessions = MutableStateFlow<List<PendingQrSession>>(emptyList())
+    val pendingSessions: StateFlow<List<PendingQrSession>> = _pendingSessions
 
     private val contractId: String = savedStateHandle.get<String>("contractId")!!
 
@@ -58,6 +64,33 @@ class ContractDetailsVM(
                 deposit = contract?.deposit?.toString() ?: "",
             )
         }
+    }
+
+    private fun listenForPendingSessions() {
+        viewModelScope.launch {
+            qrSessionRepository.listenForScannedSessions(contractId).collect { sessions ->
+                _pendingSessions.value = sessions
+                Log.d("ContractDetailsVM", "Pending sessions updated: ${sessions.size} items")
+            }
+        }
+    }
+
+    fun confirmTenant(sessionId: String) {
+        viewModelScope.launch {
+            try {
+                val request = mapOf("sessionId" to sessionId)
+                functions
+                    .getHttpsCallable("confirmTenantLink")
+                    .call(request)
+                    .await()
+            } catch (e: Exception) {
+                Log.e("ContractDetailsVM", "Error confirming tenant", e)
+            }
+        }
+    }
+
+    fun declineTenant(sessionId: String) {
+        TODO("Not yet implemented")
     }
 
     fun generateQrCode() {

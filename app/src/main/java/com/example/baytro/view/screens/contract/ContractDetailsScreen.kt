@@ -1,6 +1,8 @@
 package com.example.baytro.view.screens.contract
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,23 +12,32 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.example.baytro.data.contract.Status
+import com.example.baytro.data.qr_session.PendingQrSession
 import com.example.baytro.data.user.Gender
 import com.example.baytro.data.user.User
 import com.example.baytro.view.components.AddFirstTenantPrompt
@@ -60,6 +71,9 @@ fun ContractDetailsScreen(
 fun ContractDetailsContent(
     formState: ContractDetailsFormState,
     onAddTenant: () -> Unit = {},
+    pendingSessions: List<PendingQrSession> = emptyList(),
+    onConfirmTenant: (String) -> Unit = {},
+    onDeclineTenant: (String) -> Unit = {}
 ) {
     Scaffold { paddingValues ->
         LazyColumn(
@@ -99,6 +113,16 @@ fun ContractDetailsContent(
                 )
             }
 
+            if (pendingSessions.isNotEmpty()) {
+                item {
+                    PendingRequestsSection(
+                        sessions = pendingSessions,
+                        onConfirm = onConfirmTenant,
+                        onDecline = onDeclineTenant
+                    )
+                }
+            }
+
             if (formState.status == Status.PENDING) {
                 item {
                     AddFirstTenantPrompt(onClick = onAddTenant)
@@ -109,8 +133,54 @@ fun ContractDetailsContent(
                         tenants = formState.tenantList,
                         onAddTenantClick = onAddTenant,
                     )
+                }
+            }
+
+            item {
+                if (formState.status == Status.ACTIVE) {
                     Spacer(Modifier.height(16.dp))
                     ActionButtonsRow()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PendingRequestsSection(
+    sessions: List<PendingQrSession>,
+    onConfirm: (String) -> Unit,
+    onDecline: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Pending Join Requests", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+        sessions.forEach { session ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = session.tenantAvatarUrl,
+                        contentDescription = session.tenantName,
+                        modifier = Modifier.size(40.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(session.tenantName, modifier = Modifier.weight(1f))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { onConfirm(session.sessionId) },
+                            contentPadding = PaddingValues(horizontal = 16.dp)
+                        ) { Text("Confirm") }
+
+                        OutlinedButton(
+                            onClick = { onDecline(session.sessionId) },
+                            contentPadding = PaddingValues(horizontal = 16.dp)
+                        ) { Text("Decline") }
+                    }
                 }
             }
         }
