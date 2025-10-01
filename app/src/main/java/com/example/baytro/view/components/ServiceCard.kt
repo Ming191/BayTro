@@ -59,13 +59,11 @@ fun ServiceCard(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+                .fillMaxWidth(),
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -75,8 +73,7 @@ fun ServiceCard(
 
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                        .fillMaxWidth(),
                 ) {
                     Text(
                         text = service.name,
@@ -108,8 +105,7 @@ fun ServiceCard(
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -133,7 +129,8 @@ fun ServiceCardPreview() {
         description = "Based on meter reading",
         price = "4.000 VND",
         unit = "kWh",
-        icon = "electricity"
+        icon = "electricity",
+        buildingID = "1"
     )
 
     ServiceCard(
