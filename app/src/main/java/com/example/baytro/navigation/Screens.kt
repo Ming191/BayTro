@@ -17,7 +17,7 @@ sealed class Screens (val route : String) {
     object NewTenantUser : Screens("new_tenant_user_screen")
     object AddContract : Screens("add_contract_screen")
     object UploadIdCard : Screens("upload_id_card_screen")
-
+    object TenantEmptyContract : Screens("tenant_empty_contract_screen")
     object ContractDetails : Screens("contract_details_screen/{contractId}") {
         fun passContractId(contractId: String): String {
             return "contract_details_screen/$contractId"

@@ -35,7 +35,9 @@ fun SignInScreen(
     viewModel: SignInVM = koinViewModel(),
     onSignInSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit,
-    onFirstTimeUser: () -> Unit
+    onFirstTimeUser: () -> Unit,
+    onTenantNoContract: () -> Unit,
+    onTenantPendingSession: () -> Unit
 ) {
     val formState by viewModel.signInFormState.collectAsState()
     val loginUiState by viewModel.signInUIState.collectAsState()
@@ -56,6 +58,12 @@ fun SignInScreen(
             }
             is AuthUIState.FirstTimeUser -> {
                 onFirstTimeUser()
+            }
+            is AuthUIState.TenantNoContract -> {
+                onTenantNoContract()
+            }
+            is AuthUIState.TenantPendingSession -> {
+                onTenantPendingSession()
             }
             is AuthUIState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
@@ -118,7 +126,10 @@ fun SignInContent(
             SubmitButton(
                 text = "Sign In",
                 isLoading = loginUiState is AuthUIState.Loading,
-                onClick = onSignInClicked
+                onClick = onSignInClicked,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
             )
 
             TextButton(onClick = onNavigateToSignUp) {

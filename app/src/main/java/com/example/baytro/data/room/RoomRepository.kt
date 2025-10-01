@@ -6,7 +6,7 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 class RoomRepository(
     db: FirebaseFirestore
 ) : Repository<Room> {
-    private val collection = db.collection("rooms")
+    private val collection = db.collection("rooms_test")
 
     override suspend fun getAll(): List<Room> {
         val snapshot = collection.get()
@@ -49,7 +49,7 @@ class RoomRepository(
             try {
                 val room = doc.data<Room>()
                 room.copy(id = doc.id)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
         }

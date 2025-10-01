@@ -82,6 +82,7 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.firebase.functions)
     implementation(libs.firebase.appcheck.playintegrity)
+    implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

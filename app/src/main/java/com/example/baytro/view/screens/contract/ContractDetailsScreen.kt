@@ -1,6 +1,5 @@
 package com.example.baytro.view.screens.contract
 
-import QrCodeDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,6 +32,7 @@ import com.example.baytro.data.user.User
 import com.example.baytro.view.components.AddFirstTenantPrompt
 import com.example.baytro.view.components.ContractCard
 import com.example.baytro.view.components.DividerWithSubhead
+import com.example.baytro.view.components.QrCodeDialog
 import com.example.baytro.view.components.TenantsSection
 import com.example.baytro.viewModel.contract.ContractDetailsFormState
 import com.example.baytro.viewModel.contract.ContractDetailsVM
@@ -40,7 +40,6 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ContractDetailsScreen(
-    contractId: String,
     viewModel: ContractDetailsVM = koinViewModel()
 ) {
     val qrState by viewModel.qrState

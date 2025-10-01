@@ -10,9 +10,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.baytro.MainScreen
+import com.example.baytro.view.screens.AddBuildingScreen
 import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.BuildingListScreen
-import com.example.baytro.view.screens.AddBuildingScreen
 import com.example.baytro.view.screens.ContractListScreen
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.MaintenanceScreen
@@ -21,6 +21,7 @@ import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
 import com.example.baytro.view.screens.contract.AddContractScreen
 import com.example.baytro.view.screens.contract.ContractDetailsScreen
+import com.example.baytro.view.screens.contract.TenantEmptyContractView
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.NewTenantUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
@@ -99,6 +100,20 @@ fun AppNavigationController(
                 },
                 onSignInSuccess = {
                     navHostController.navigate(Screens.MainScreen.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                    }
+                },
+                onTenantNoContract = {
+                    navHostController.navigate(Screens.TenantEmptyContract.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                    }
+                },
+                onTenantPendingSession = {
+                    navHostController.navigate(Screens.TenantEmptyContract.route) {
                         popUpTo(0) {
                             inclusive = true
                         }
@@ -192,12 +207,18 @@ fun AppNavigationController(
         ) { backStackEntry ->
             val contractId = backStackEntry.arguments?.getString("contractId")
             if (contractId != null) {
-                ContractDetailsScreen(contractId = contractId)
+                ContractDetailsScreen()
             } else {
                 LaunchedEffect(Unit) {
                     navHostController.popBackStack()
                 }
             }
+        }
+
+        composable(
+            Screens.TenantEmptyContract.route
+        ) {
+            TenantEmptyContractView()
         }
     }
 }

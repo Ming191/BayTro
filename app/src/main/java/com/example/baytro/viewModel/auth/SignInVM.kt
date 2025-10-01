@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.SignInFormState
+import com.example.baytro.data.contract.ContractRepository
+import com.example.baytro.data.qr_session.QrSessionRepository
+import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
@@ -16,7 +19,9 @@ import java.net.UnknownHostException
 
 class SignInVM(
     private val authRepository: AuthRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val contractRepository: ContractRepository,
+    private val qrSessionRepository: QrSessionRepository
 ) : ViewModel() {
     private val _signInUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
     val signInUIState: StateFlow<AuthUIState> = _signInUIState
@@ -64,6 +69,19 @@ class SignInVM(
                     if (repoUser == null) {
                         _signInUIState.value = AuthUIState.FirstTimeUser(user)
                     } else {
+                        if (repoUser.role is Role.Tenant) {
+                            val hasPendingSession = qrSessionRepository.hasScannedSession(user.uid)
+                            if (hasPendingSession) {
+                                _signInUIState.value = AuthUIState.TenantPendingSession(user)
+                                return@launch
+                            }
+
+                            val isInContract = contractRepository.isUserInAnyContract(user.uid)
+                            if (!isInContract) {
+                                _signInUIState.value = AuthUIState.TenantNoContract(user)
+                                return@launch
+                            }
+                        }
                         _signInUIState.value = AuthUIState.Success(user)
                     }
                 } else {
