@@ -3,7 +3,6 @@ package com.example.baytro.viewModel.contract
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.building.BuildingRepository
@@ -17,7 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlinx.serialization.Serializable
 
 
 sealed interface QrGenerationState {
@@ -27,9 +25,6 @@ sealed interface QrGenerationState {
     data class Error(val message: String) : QrGenerationState
 }
 
-@Serializable
-data class GenerateQrRequest(val contractId: String)
-
 class ContractDetailsVM(
     private val functions: FirebaseFunctions,
     private val contractRepository: ContractRepository,
@@ -37,10 +32,16 @@ class ContractDetailsVM(
     private val buildingRepository: BuildingRepository,
     private val userRepository: UserRepository,
     private val qrSessionRepository: QrSessionRepository,
-    private val savedStateHandle: SavedStateHandle,
 ): ViewModel() {
 
-    private val contractId: String = savedStateHandle.get<String>("contractId")!!
+    private var contractId: String? = null
+
+    fun loadContract(id: String) {
+        contractId = id
+        listenForContractUpdates()
+        listenForPendingSessions()
+    }
+
     private val _formState = MutableStateFlow(ContractDetailsFormState())
     val formState: StateFlow<ContractDetailsFormState> = _formState
     private val _qrState = mutableStateOf<QrGenerationState>(QrGenerationState.Idle)
@@ -56,16 +57,11 @@ class ContractDetailsVM(
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading
 
-
-    init {
-        listenForContractUpdates()
-        listenForPendingSessions()
-    }
-
     private fun listenForContractUpdates() {
         viewModelScope.launch {
+            val id = contractId ?: return@launch
             _loading.value = true
-            contractRepository.getContractFlow(contractId).collect { contract ->
+            contractRepository.getContractFlow(id).collect { contract ->
                 if (contract != null) {
                     Log.d("ContractDetailsVM", "contract.tenantIds: ${contract.tenantIds}")
                     val room = roomRepository.getById(contract.roomId)
@@ -100,7 +96,8 @@ class ContractDetailsVM(
 
     private fun listenForPendingSessions() {
         viewModelScope.launch {
-            qrSessionRepository.listenForScannedSessions(contractId).collect {
+            val id = contractId ?: return@launch
+            qrSessionRepository.listenForScannedSessions(id).collect {
                 sessions ->
                 _pendingSessions.value = sessions
             }
@@ -109,7 +106,8 @@ class ContractDetailsVM(
 
     fun generateQrCode() {
         Log.d("ContractDetailsVM", "generateQrCode called for contractId: $contractId")
-        if (contractId.isBlank()) {
+        val id = contractId ?: return
+        if (id.isBlank()) {
             Log.e("ContractDetailsVM", "Contract ID is missing.")
             _qrState.value = QrGenerationState.Error("Contract ID is missing.")
             return
@@ -117,7 +115,7 @@ class ContractDetailsVM(
         viewModelScope.launch {
             _qrState.value = QrGenerationState.Loading
             try {
-                val request = mapOf("contractId" to contractId)
+                val request = mapOf("contractId" to id)
                 Log.d("ContractDetailsVM", "Calling generateQrSession with request: $request")
                 val result = functions.getHttpsCallable("generate_qr_session").call(request).await()
                 val data = result.data as? Map<*, *>

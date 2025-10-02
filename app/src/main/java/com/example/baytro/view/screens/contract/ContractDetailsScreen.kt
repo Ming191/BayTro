@@ -124,8 +124,12 @@ fun ContractDetailsScreenPreview() {
 
 @Composable
 fun ContractDetailsScreen(
-    viewModel: ContractDetailsVM = koinViewModel()
+    viewModel: ContractDetailsVM = koinViewModel(),
+    contractId: String
 ) {
+    LaunchedEffect(contractId) {
+        viewModel.loadContract(contractId)
+    }
     val qrState by viewModel.qrState
     val formState by viewModel.formState.collectAsState()
     val pendingSessions by viewModel.pendingSessions.collectAsState()

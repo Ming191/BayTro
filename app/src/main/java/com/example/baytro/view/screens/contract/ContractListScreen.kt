@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.contract
 
+import android.util.Log
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,11 +19,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,7 +55,8 @@ private val tabData: List<Pair<String, ImageVector>> = listOf(
 
 @Composable
 fun ContractListScreen(
-    viewModel: ContractListVM = koinViewModel()
+    viewModel: ContractListVM = koinViewModel(),
+    onContractClick: (String) -> Unit
 ) {
     val selectedTab by viewModel.selectedTab.collectAsState()
     val contracts by viewModel.contracts.collectAsState()
@@ -73,7 +77,8 @@ fun ContractListScreen(
         contracts = contracts,
         loading = loading,
         error = error,
-        ownedBuildings = ownedBuildings
+        ownedBuildings = ownedBuildings,
+        onContractClick = onContractClick
     )
     LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
         if (!pagerState.isScrollInProgress) {
@@ -91,13 +96,46 @@ fun ContractListContent(
     contracts: List<Contract> = emptyList(),
     loading: Boolean = false,
     error: String? = null,
-    ownedBuildings: List<Building> = emptyList()
+    ownedBuildings: List<Building> = emptyList(),
+    onContractClick: (String) -> Unit = {}
 ) {
     var selectedBuildingId by remember { mutableStateOf<String?>(null) }
-    val buildingOptions = ownedBuildings.map { it.id to it.name }
-    val filteredContracts = selectedBuildingId?.let { id ->
-        contracts.filter { it.buildingId == id }
-    } ?: contracts
+    var showNoBuildingsDialog by remember { mutableStateOf(false) }
+
+    // Check if user has no buildings and show dialog
+    LaunchedEffect(ownedBuildings) {
+        if (ownedBuildings.isEmpty() && !loading) {
+            showNoBuildingsDialog = true
+        }
+    }
+
+    // Add "All" option to the building options
+    val buildingOptions = if (ownedBuildings.isNotEmpty()) {
+        listOf("" to "All") + ownedBuildings.map { it.id to it.name }
+    } else {
+        listOf("" to "No buildings available")
+    }
+
+    // Filter contracts based on selected building (null/empty means show all)
+    val filteredContracts = if (selectedBuildingId.isNullOrEmpty()) {
+        contracts
+    } else {
+        contracts.filter { it.buildingId == selectedBuildingId }
+    }
+
+    if (showNoBuildingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showNoBuildingsDialog = false },
+            title = { Text("No buildings found") },
+            text = { Text("You don't have any buildings registered. Please add a building first to create contracts.") },
+            confirmButton = {
+                TextButton(onClick = { showNoBuildingsDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             Tabs(
@@ -112,19 +150,20 @@ fun ContractListContent(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                if (buildingOptions.isNotEmpty()) {
-                    DropdownSelectField(
-                        label = "Filter by Building",
-                        options = buildingOptions.map { it.second },
-                        selectedOption = buildingOptions.find { it.first == selectedBuildingId }?.second,
-                        onOptionSelected = { name ->
-                            selectedBuildingId = buildingOptions.find { it.second == name }?.first
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    )
-                }
+                DropdownSelectField(
+                    label = "Filter by Building",
+                    options = buildingOptions.map { it.second },
+                    selectedOption = buildingOptions.find { it.first == selectedBuildingId }?.second
+                        ?: buildingOptions.firstOrNull()?.second,
+                    onOptionSelected = { name ->
+                        selectedBuildingId = buildingOptions.find { it.second == name }?.first
+                    },
+                    enabled = ownedBuildings.isNotEmpty(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+
                 Box(modifier = Modifier.weight(1f)) {
                     HorizontalPager(
                         state = pagerState,
@@ -133,11 +172,15 @@ fun ContractListContent(
                         if (page == selectedTabIndex) {
                             ContractListPage(
                                 isLoading = loading,
-                                contracts = filteredContracts,
-                                emptyMessage = "No ${tabData[page].first.lowercase()} contracts found."
+                                contracts = if (ownedBuildings.isEmpty()) emptyList() else filteredContracts,
+                                emptyMessage = if (ownedBuildings.isEmpty()) {
+                                    "No buildings found. Please add a building first."
+                                } else {
+                                    "No ${tabData[page].first.lowercase()} contracts found."
+                                },
+                                onContractClick = onContractClick
                             )
                         } else {
-                            // For non-selected tabs, show nothing
                             Box(modifier = Modifier.fillMaxSize())
                         }
                     }
@@ -152,11 +195,13 @@ fun ContractListContent(
     )
 }
 
+
 @Composable
 fun ContractListPage(
     isLoading: Boolean,
     contracts: List<Contract>,
-    emptyMessage: String
+    emptyMessage: String,
+    onContractClick: (String) -> Unit = {}
 ) {
     Crossfade(targetState = isLoading, label = "Page Loading Crossfade") { loadingState ->
         if (loadingState) {
@@ -164,7 +209,7 @@ fun ContractListPage(
                 CircularProgressIndicator()
             }
         } else {
-            ContractList(contracts = contracts, emptyMessage = emptyMessage)
+            ContractList(contracts = contracts, emptyMessage = emptyMessage, onContractClick = onContractClick)
         }
     }
 }
@@ -174,6 +219,7 @@ fun ContractList(
     contracts: List<Contract>,
     emptyMessage: String,
     isLoading: Boolean = false,
+    onContractClick: (String) -> Unit = {}
 ) {
     if (!isLoading && contracts.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -186,18 +232,23 @@ fun ContractList(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(contracts) { contract ->
-                ContractListItem(contract = contract)
+                ContractListItem(contract = contract, onClick = {
+                    Log.d("NavigationCheck", "Navigating with contractId: '${contract.id}'")
+                    onContractClick(contract.id)
+                })
             }
         }
     }
 }
 
 @Composable
-fun ContractListItem(contract: Contract) {
+fun ContractListItem(contract: Contract, onClick: () -> Unit = {}) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: Navigate to contract details */ }
+            .clickable {
+                onClick()
+            }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = "Room: ${contract.roomNumber}", style = MaterialTheme.typography.titleMedium)

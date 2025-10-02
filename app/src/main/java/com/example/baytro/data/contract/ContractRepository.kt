@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapNotNull
 
 class ContractRepository(
-    private val db : FirebaseFirestore
+    db : FirebaseFirestore
 ) : Repository<Contract> {
     private val collection = db.collection("contracts")
 
@@ -59,7 +59,7 @@ class ContractRepository(
             }.get()
 
             snapshot.documents.isNotEmpty()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -91,7 +91,10 @@ class ContractRepository(
                     "status" inArray statuses.map { it.name }
                 )
             }.get()
-            return querySnapshot.documents.map { it.data() }
+            return querySnapshot.documents.map { doc ->
+                val contract = doc.data<Contract>()
+                contract.copy(id = doc.id)
+            }
         } catch (e: Exception) {
             Log.e("ContractRepository", "Error fetching contracts by status", e)
             throw e

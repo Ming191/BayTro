@@ -14,8 +14,7 @@ enum class Status {
 @Serializable
 data class Contract(
     @kotlinx.serialization.Transient
-    @DocumentId
-    val id: String = "",
+    @DocumentId val id: String = "",
     val contractNumber: String,
     val landlordId: String,
     val tenantIds: List<String>,

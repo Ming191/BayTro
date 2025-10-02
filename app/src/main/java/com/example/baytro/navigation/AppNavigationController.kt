@@ -80,7 +80,11 @@ fun AppNavigationController(
         composable(
             Screens.ContractList.route
         ) {
-            ContractListScreen()
+            ContractListScreen(
+                onContractClick = { contractId ->
+                    navHostController.navigate(Screens.ContractDetails.passContractId(contractId))
+                }
+            )
         }
         composable (
             Screens.MainScreen.route
@@ -205,14 +209,10 @@ fun AppNavigationController(
                 navArgument("contractId") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val contractId = backStackEntry.arguments?.getString("contractId")
-            if (contractId != null) {
-                ContractDetailsScreen()
-            } else {
-                LaunchedEffect(Unit) {
-                    navHostController.popBackStack()
-                }
-            }
+            val contractId = backStackEntry.arguments?.getString("contractId") ?: ""
+            ContractDetailsScreen(
+                contractId = contractId
+            )
         }
 
         composable(
