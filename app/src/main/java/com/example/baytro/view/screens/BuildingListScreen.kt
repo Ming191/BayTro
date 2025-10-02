@@ -139,11 +139,15 @@ fun BuildingListScreen(
                         }
                     },
                     placeholder = { 
-                        if (!isSearchFocused && searchQuery.isEmpty()) {
+                        if (!isSearchFocused) {
                             Text("Search by name or address")
                         }
                     },
-                    label = { Text("") }
+                    label = { 
+                        if (!isSearchFocused && searchQuery.isEmpty()) {
+                            Text("Search by name or address")
+                        }
+                    }
                 )
             }
 

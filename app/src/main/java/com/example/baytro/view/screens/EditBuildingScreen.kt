@@ -47,6 +47,9 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
@@ -76,6 +79,7 @@ fun EditBuildingScreen(
     var paymentStart by remember { mutableStateOf("") }
     var paymentDue by remember { mutableStateOf("") }
     val selectedImages = remember { mutableStateListOf<Uri>() }
+    val existingImages = remember { mutableStateListOf<String>() }
 
     var nameError by remember { mutableStateOf(false) }
     var floorError by remember { mutableStateOf(false) }
@@ -105,6 +109,8 @@ fun EditBuildingScreen(
         paymentStart = b.paymentStart.toString()
         paymentDue = b.paymentDue.toString()
         selectedImages.clear()
+        existingImages.clear()
+        existingImages.addAll(b.imageUrls)
     }
 
     LaunchedEffect(uiState) {
@@ -143,7 +149,7 @@ fun EditBuildingScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         uri?.let { selectedUri ->
-            if (selectedImages.size < 3) {
+            if (selectedImages.size + existingImages.size < 3) {
                 val destinationUri = Uri.fromFile(
                     File(context.cacheDir, "building_edit_cropped_${System.currentTimeMillis()}.jpg")
                 )
@@ -182,6 +188,10 @@ fun EditBuildingScreen(
                     label = "Building name",
                     isError = nameError,
                     errorMessage = nameErrorMsg,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { floorFocus.requestFocus() }
+                    ),
                     modifier = Modifier.fillMaxWidth().focusRequester(nameFocus)
                 )
             }
@@ -196,7 +206,13 @@ fun EditBuildingScreen(
                     },
                     label = { Text("Floor") },
                     singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { addressFocus.requestFocus() }
+                    ),
                     isError = floorError,
                     supportingText = {
                         if (floorError) Text(
@@ -219,6 +235,10 @@ fun EditBuildingScreen(
                     label = "Address",
                     isError = addressError,
                     errorMessage = addressErrorMsg,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { billingFocus.requestFocus() }
+                    ),
                     modifier = Modifier.fillMaxWidth().focusRequester(addressFocus)
                 )
             }
@@ -233,7 +253,13 @@ fun EditBuildingScreen(
                     },
                     label = { Text("Billing date") },
                     singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { startFocus.requestFocus() }
+                    ),
                     isError = billingError,
                     supportingText = {
                         if (billingError) Text(
@@ -259,8 +285,12 @@ fun EditBuildingScreen(
                         },
                         label = { Text("Payment start") },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = KeyboardType.Number
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { dueFocus.requestFocus() }
                         ),
                         isError = startError,
                         supportingText = {
@@ -280,8 +310,12 @@ fun EditBuildingScreen(
                         },
                         label = { Text("Payment due") },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = KeyboardType.Number
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = { dueFocus.freeFocus() }
                         ),
                         isError = dueError,
                         supportingText = {
@@ -307,12 +341,34 @@ fun EditBuildingScreen(
                             picker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
-                        }, enabled = selectedImages.size < 3) {
+                        }, enabled = selectedImages.size + existingImages.size < 3) {
                             Icon(Icons.Default.AddAPhoto, contentDescription = "Add images")
                         }
                     }
-                    if (selectedImages.isNotEmpty()) {
+                    if (existingImages.isNotEmpty() || selectedImages.isNotEmpty()) {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Existing images
+                            itemsIndexed(existingImages) { index, imageUrl ->
+                                Box {
+                                    AsyncImage(
+                                        model = imageUrl,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.size(96.dp).clip(RectangleShape)
+                                    )
+                                    IconButton(onClick = {
+                                        existingImages.removeAt(index)
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Remove existing image",
+                                            tint = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // New selected images
                             itemsIndexed(selectedImages) { index, uri ->
                                 Box {
                                     AsyncImage(
@@ -326,7 +382,7 @@ fun EditBuildingScreen(
                                     }) {
                                         Icon(
                                             Icons.Default.Close,
-                                            contentDescription = "Remove",
+                                            contentDescription = "Remove new image",
                                             tint = Color.White
                                         )
                                     }
@@ -402,7 +458,7 @@ fun EditBuildingScreen(
                                 paymentStart = paymentStart.toIntOrNull() ?: 0,
                                 paymentDue = paymentDue.toIntOrNull() ?: 0,
                                 userId = viewModel.building.value?.userId ?: "",
-                                imageUrls = viewModel.building.value?.imageUrls ?: emptyList()
+                                imageUrls = existingImages.toList()
                             )
                             if (selectedImages.isNotEmpty()) {
                                 viewModel.updateWithImages(building, selectedImages)

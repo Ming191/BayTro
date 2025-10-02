@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
@@ -180,6 +182,10 @@ fun AddBuildingScreen(
                     label = "Building name",
                     isError = nameError,
                     errorMessage = nameErrorMsg,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { floorFocus.requestFocus() }
+                    ),
                     modifier = Modifier.fillMaxWidth().focusRequester(nameFocus)
                 )
             }
@@ -195,7 +201,13 @@ fun AddBuildingScreen(
                     label = { Text("Floor") },
                     singleLine = true,
                     isError = floorError,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { addressFocus.requestFocus() }
+                    ),
                     supportingText = {
                         if (floorError) Text(
                             text = floorErrorMsg ?: "",
@@ -217,6 +229,10 @@ fun AddBuildingScreen(
                     label = "Address",
                     isError = addressError,
                     errorMessage = addressErrorMsg,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { billingFocus.requestFocus() }
+                    ),
                     modifier = Modifier.fillMaxWidth().focusRequester(addressFocus)
                 )
             }
@@ -261,7 +277,13 @@ fun AddBuildingScreen(
                     label = { Text("Billing date") },
                     singleLine = true,
                     isError = billingError,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { startFocus.requestFocus() }
+                    ),
                     supportingText = {
                         if (billingError) Text(
                             text = billingErrorMsg ?: "",
@@ -289,7 +311,13 @@ fun AddBuildingScreen(
                             label = { Text("Payment start") },
                             singleLine = true,
                             isError = startError,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { dueFocus.requestFocus() }
+                            ),
                             supportingText = {
                                 if (startError) Text(
                                     text = startErrorMsg ?: "",
@@ -311,7 +339,13 @@ fun AddBuildingScreen(
                             label = { Text("Payment due") },
                             singleLine = true,
                             isError = dueError,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { dueFocus.freeFocus() }
+                            ),
                             supportingText = {
                                 if (dueError) Text(
                                     text = dueErrorMsg ?: "",
