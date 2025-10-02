@@ -2,6 +2,9 @@ package com.example.baytro.data.contract
 
 import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.mapNotNull
 
 class ContractRepository(
     private val db : FirebaseFirestore
@@ -58,5 +61,20 @@ class ContractRepository(
         } catch (e: Exception) {
             false
         }
+    }
+
+    fun getContractFlow(contractId: String): Flow<Contract?> {
+        if (contractId.isBlank()) {
+            return flowOf(null)
+        }
+        val docRef = collection.document(contractId)
+        return docRef.snapshots
+            .mapNotNull { documentSnapshot ->
+                if (documentSnapshot.exists) {
+                    documentSnapshot.data<Contract>()
+                } else {
+                    null
+                }
+            }
     }
 }

@@ -61,7 +61,7 @@ val authModule = module {
     single<MediaRepository> { MediaRepository(get()) }
     single<FptAiService> { FptAiService(get(), get()) }
     single<ContractRepository> { ContractRepository(get()) }
-    single<QrSessionRepository> { QrSessionRepository(get()) }
+    single<QrSessionRepository> { QrSessionRepository(get(),get()) }
     single<RoomRepository> { RoomRepository(get()) }
     single { IdCardDataViewModel() }
 

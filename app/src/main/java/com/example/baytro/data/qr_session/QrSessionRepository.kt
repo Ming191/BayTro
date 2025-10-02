@@ -7,7 +7,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
@@ -75,12 +75,14 @@ class QrSessionRepository(
             Log.d("QrSessionRepository", "scanned: ${snapshot.documents.size}")
             snapshot.documents.isNotEmpty()
         } catch (e: Exception) {
+            Log.e("QrSessionRepository", "Error checking scanned sessions", e)
             false
         }
     }
 
     fun listenForScannedSessions(contractId: String): Flow<List<PendingQrSession>> {
         if (contractId.isBlank()) {
+            Log.w("QrSessionRepository", "Contract ID is blank, returning empty list")
             return flowOf(emptyList())
         }
 
@@ -96,20 +98,26 @@ class QrSessionRepository(
                 coroutineScope {
                     val deferreds = querySnapshot.documents.map { doc ->
                         async {
-                            val sessionData = doc.data<QrSession>()
-                            val tenantId = sessionData.scannedByTenantId
+                            try {
+                                val sessionData = doc.data<QrSession>()
+                                val tenantId = sessionData.scannedByTenantId
 
-                            if (tenantId != null) {
-                                val user = userRepository.getById(tenantId)
-                                user?.let {
-                                    PendingQrSession(
-                                        sessionId = doc.id,
-                                        tenantId = tenantId,
-                                        tenantName = it.fullName,
-                                        tenantAvatarUrl = it.profileImgUrl!!
-                                    )
+                                if (tenantId != null) {
+                                    val user = userRepository.getById(tenantId)
+                                    user?.let {
+                                        PendingQrSession(
+                                            sessionId = doc.id,
+                                            tenantId = tenantId,
+                                            tenantName = it.fullName,
+                                            tenantAvatarUrl = it.profileImgUrl ?: "" // Fix: Handle null profileImgUrl
+                                        )
+                                    }
+                                } else {
+                                    Log.w("QrSessionRepository", "Session ${doc.id} has no tenantId")
+                                    null
                                 }
-                            } else {
+                            } catch (e: Exception) {
+                                Log.e("QrSessionRepository", "Error processing session ${doc.id}", e)
                                 null
                             }
                         }
@@ -117,6 +125,10 @@ class QrSessionRepository(
 
                     deferreds.awaitAll().filterNotNull()
                 }
+            }
+            .catch { e ->
+                Log.e("QrSessionRepository", "Error in listenForScannedSessions flow", e)
+                emit(emptyList())
             }
     }
 }

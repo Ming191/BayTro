@@ -31,7 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
-import com.example.baytro.view.screens.UiState
+import com.example.baytro.viewModel.contract.QrGenerationState
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import java.io.File
@@ -40,11 +40,11 @@ import java.io.IOException
 
 @Composable
 fun QrCodeDialog(
-    state: UiState<String>,
+    state: QrGenerationState,
     onDismissRequest: () -> Unit,
     onRetry: () -> Unit,
 ) {
-    if (state !is UiState.Idle) {
+    if (state !is QrGenerationState.Idle) {
         Dialog(onDismissRequest = onDismissRequest) {
             Card(
                 modifier = Modifier
@@ -57,7 +57,7 @@ fun QrCodeDialog(
                     verticalArrangement = Arrangement.Center
                 ) {
                     when (state) {
-                        is UiState.Loading -> {
+                        is QrGenerationState.Loading -> {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -70,10 +70,10 @@ fun QrCodeDialog(
                                 Text("Generating code...")
                             }
                         }
-                        is UiState.Success -> {
-                            QrCodeDisplayWithActions(sessionId = state.data)
+                        is QrGenerationState.Success -> {
+                            QrCodeDisplayWithActions(sessionId = state.sessionId)
                         }
-                        is UiState.Error -> {
+                        is QrGenerationState.Error -> {
                             ErrorDisplay(message = state.message, onRetry)
                         }
                         else -> { /* Do nothing */}
@@ -134,14 +134,12 @@ private fun shareBitmap(context: Context, bitmap: Bitmap, title: String) {
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream)
         fileOutputStream.close()
 
-        // Get the content URI for the file using FileProvider
         val contentUri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
             file
         )
 
-        // Create and launch the share intent
         val shareIntent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_STREAM, contentUri)
@@ -155,11 +153,9 @@ private fun shareBitmap(context: Context, bitmap: Bitmap, title: String) {
 
     } catch (e: IOException) {
         e.printStackTrace()
-        // Handle error - could show a toast or log the error
     }
 }
 
-// Composable để hiển thị lỗi
 @Composable
 private fun ErrorDisplay(message: String, onRetryClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
