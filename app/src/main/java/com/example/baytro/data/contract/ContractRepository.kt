@@ -1,5 +1,6 @@
 package com.example.baytro.data.contract
 
+import android.util.Log
 import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
@@ -76,5 +77,24 @@ class ContractRepository(
                     null
                 }
             }
+    }
+
+    suspend fun getContractsByStatus(landlordId: String, statuses: List<Status>): List<Contract> {
+        if (landlordId.isBlank() || statuses.isEmpty()) {
+            return emptyList()
+        }
+
+        try {
+            val querySnapshot = collection.where {
+                all(
+                    "landlordId" equalTo landlordId,
+                    "status" inArray statuses.map { it.name }
+                )
+            }.get()
+            return querySnapshot.documents.map { it.data() }
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching contracts by status", e)
+            throw e
+        }
     }
 }

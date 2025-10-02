@@ -13,7 +13,7 @@ import com.example.baytro.MainScreen
 import com.example.baytro.view.screens.AddBuildingScreen
 import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.BuildingListScreen
-import com.example.baytro.view.screens.ContractListScreen
+import com.example.baytro.view.screens.contract.ContractListScreen
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen

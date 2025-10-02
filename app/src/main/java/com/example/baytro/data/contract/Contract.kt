@@ -20,6 +20,7 @@ data class Contract(
     val landlordId: String,
     val tenantIds: List<String>,
     val roomId: String,
+    val roomNumber: String,
     val buildingId: String,
     val startDate: String,
     val endDate: String,

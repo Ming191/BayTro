@@ -229,7 +229,8 @@ class AddContractVM (
                     photosURL = emptyList(),
                     buildingId = selectedRoom.buildingId,
                     landlordId = currentUser.uid,
-                    contractNumber = UUID.randomUUID().toString().take(8)
+                    contractNumber = UUID.randomUUID().toString().take(8),
+                    roomNumber = selectedRoom.roomNumber
                 )
 
                 Log.d(TAG, "onSubmit: creating contract without photos")

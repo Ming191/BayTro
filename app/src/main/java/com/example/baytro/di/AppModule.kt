@@ -15,6 +15,7 @@ import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
 import com.example.baytro.viewModel.contract.AddContractVM
 import com.example.baytro.viewModel.contract.ContractDetailsVM
+import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
@@ -140,6 +141,14 @@ val authModule = module {
 
     viewModel {
         TenantJoinVM(
+            get(),
+            get(),
+            get()
+        )
+    }
+
+    viewModel {
+        ContractListVM(
             get(),
             get(),
             get()
