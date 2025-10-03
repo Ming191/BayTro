@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.baytro.data.building.Building
+import com.example.baytro.data.Building
 import com.example.baytro.data.contract.Contract
 import com.example.baytro.data.contract.Status
 import com.example.baytro.data.room.Room
@@ -39,7 +39,7 @@ import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.contract.AddContractFormState
 import com.example.baytro.viewModel.contract.AddContractVM
 import org.koin.compose.viewmodel.koinViewModel
-
+import kotlin.collections.isNotEmpty
 @Composable
 fun AddContractScreen(
     viewModel: AddContractVM = koinViewModel()

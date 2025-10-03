@@ -163,7 +163,7 @@ class NewTenantUserVM(
                 Log.d(TAG, "Auth user found: ${authUser.uid}")
 
                 Log.d(TAG, "Compressing image: ${formState.avatarUri}")
-                val compressedFile = ImageProcessor.compressImageWithCoil(
+                val compressedFile = ImageProcessor.compressImage(
                     context = context,
                     uri = formState.avatarUri
                 )
