@@ -87,7 +87,7 @@ fun BuildingListScreen(
                             isSearchFocused = focusState.isFocused
                         },
                     singleLine = true,
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(12.dp),
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = null)
                     },
