@@ -1,6 +1,9 @@
 package com.example.baytro.navigation
 
+import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,14 +17,28 @@ import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
+import com.example.baytro.view.screens.contract.AddContractScreen
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
+import com.example.baytro.view.screens.splash.NewTenantUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
+import com.example.baytro.view.screens.splash.UploadIdCardScreen
 
+@SuppressLint("RestrictedApi")
 @Composable
 fun AppNavigationController(
     navHostController: NavHostController,
     startDestination: String
 ) {
+    LaunchedEffect(Unit) {
+        navHostController.addOnDestinationChangedListener { controller, _, _ ->
+            val routes = controller
+                .currentBackStack.value.joinToString(", ") {
+                    it.destination.route ?: it.destination.id.toString()
+                }
+
+            Log.d("BackStackLog", "BackStack: $routes")
+        }
+    }
     NavHost (
         navController = navHostController,
         startDestination = startDestination
@@ -85,11 +102,7 @@ fun AppNavigationController(
                     }
                 },
                 onNavigateToSignUp = {
-                    navHostController.navigate(Screens.SignUp.route) {
-                        popUpTo(Screens.SignIn.route) {
-                            inclusive = false
-                        }
-                    }
+                    navHostController.navigate(Screens.SignUp.route)
                 }
             )
         }
@@ -112,7 +125,11 @@ fun AppNavigationController(
 
                     }
                 },
-                navigateToTenantLogin = {},
+                navigateToTenantLogin = {
+                    navHostController.navigate(Screens.UploadIdCard.route) {
+                        popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
+                    }
+                },
             )
         }
 
@@ -120,6 +137,36 @@ fun AppNavigationController(
             Screens.NewLandlordUser.route
         ) {
             NewLandlordUserScreen(
+                onComplete = {
+                    navHostController.navigate(Screens.MainScreen.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable (
+            Screens.AddContract.route
+        ) {
+            AddContractScreen()
+        }
+
+        composable (
+            Screens.UploadIdCard.route
+        ) {
+            UploadIdCardScreen(
+                onNavigateToTenantForm = {
+                    navHostController.navigate(Screens.NewTenantUser.route) {
+                        popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable (
+            Screens.NewTenantUser.route
+        ) {
+            NewTenantUserScreen(
                 onComplete = {
                     navHostController.navigate(Screens.MainScreen.route) {
                         popUpTo(navHostController.graph.startDestinationId) { inclusive = true }

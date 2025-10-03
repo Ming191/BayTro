@@ -1,7 +1,5 @@
 package com.example.baytro.view.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -13,25 +11,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
-import com.example.baytro.data.Building
 import com.example.baytro.navigation.Screens
 import com.example.baytro.viewModel.BuildingListVM
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.compose.currentBackStackEntryAsState
-
-object Variables {
-    val SchemesSurface: Color = Color(0xFFFFF8F8)
-    val SchemesOutlineVariant: Color = Color(0xFFD4C2C7)
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

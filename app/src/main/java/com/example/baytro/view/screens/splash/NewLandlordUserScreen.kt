@@ -289,7 +289,8 @@ fun NewLandlordUserScreenContent(
                         label = "Gender",
                         options = Gender.entries.toList(),
                         selectedOption = formState.gender,
-                        onOptionSelected = { onGenderChange(it) }
+                        onOptionSelected = { onGenderChange(it) },
+                        optionToString = { it.name.lowercase().replaceFirstChar { char -> char.uppercase() } }
                     )
                     DropdownSelectField(
                         modifier = Modifier.fillMaxWidth().weight(1f),
@@ -297,7 +298,8 @@ fun NewLandlordUserScreenContent(
                         options = BankCode.entries.toList(),
                         selectedOption = formState.bankCode,
                         onOptionSelected = { onBankCodeChange(it) },
-                        isLowerCased = false
+                        optionToString = { it.name.lowercase().replaceFirstChar { char -> char.uppercase() } }
+
                     )
                 }
             }

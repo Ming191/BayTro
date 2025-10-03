@@ -54,6 +54,7 @@ fun SplashScreen(
                     RoleType.LANDLORD -> navigateToLandlordLogin()
                     RoleType.TENANT -> navigateToTenantLogin()
                 }
+                viewModel.clearError()
             }
             is UiState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
@@ -100,7 +101,7 @@ fun SplashScreenContent(
                 modifier = Modifier.fillMaxWidth(),
                 label = "You're a",
                 onOptionSelected = {onRoleChange(it)},
-                isLowerCased = true,
+                optionToString = { it.name.lowercase().replaceFirstChar { char -> char.uppercase() } }
             )
             Spacer(modifier = Modifier.padding(16.dp))
             SubmitButton(
