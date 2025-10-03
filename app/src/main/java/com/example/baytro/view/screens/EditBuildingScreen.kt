@@ -2,9 +2,12 @@ package com.example.baytro.view.screens
 
 import android.net.Uri
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import androidx.core.content.FileProvider
 import com.yalantis.ucrop.UCrop
 import java.io.File
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +25,22 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,15 +59,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -57,6 +76,7 @@ import com.example.baytro.data.Building
 import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.FullScreenImageViewer
 import com.example.baytro.viewModel.EditBuildingVM
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -80,6 +100,17 @@ fun EditBuildingScreen(
     var paymentDue by remember { mutableStateOf("") }
     val selectedImages = remember { mutableStateListOf<Uri>() }
     val existingImages = remember { mutableStateListOf<String>() }
+    val cameraImageUri = remember { mutableStateOf<Uri?>(null) }
+    
+    // Image viewer state
+    var showImageViewer by remember { mutableStateOf(false) }
+    var imageViewerIndex by remember { mutableIntStateOf(0) }
+    
+    // Multi-select state
+    var isMultiSelectMode by remember { mutableStateOf(false) }
+    val selectedExistingImages = remember { mutableStateListOf<Int>() }
+    val selectedNewImages = remember { mutableStateListOf<Int>() }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     var nameError by remember { mutableStateOf(false) }
     var floorError by remember { mutableStateOf(false) }
@@ -136,7 +167,7 @@ fun EditBuildingScreen(
             result.data?.let { intent ->
                 val croppedUri = UCrop.getOutput(intent)
                 croppedUri?.let { uri ->
-                    if (selectedImages.size < 3) {
+                    if (selectedImages.size + existingImages.size < 3) {
                         selectedImages.add(uri)
                     }
                 }
@@ -144,7 +175,28 @@ fun EditBuildingScreen(
         }
     }
 
-    // Photo picker launcher
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            cameraImageUri.value?.let { uri ->
+                if (selectedImages.size + existingImages.size < 3) {
+                    val destinationUri = Uri.fromFile(
+                        File(context.cacheDir, "building_camera_cropped_${System.currentTimeMillis()}.jpg")
+                    )
+                    
+                    val uCropIntent = UCrop.of(uri, destinationUri)
+                        .withAspectRatio(16f, 9f)
+                        .withMaxResultSize(1080, 608)
+                        .getIntent(context)
+                    
+                    cropLauncher.launch(uCropIntent)
+                }
+            }
+        }
+    }
+
     val picker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -164,12 +216,35 @@ fun EditBuildingScreen(
         }
     }
 
-    val nameFocus = remember { androidx.compose.ui.focus.FocusRequester() }
-    val floorFocus = remember { androidx.compose.ui.focus.FocusRequester() }
-    val addressFocus = remember { androidx.compose.ui.focus.FocusRequester() }
-    val billingFocus = remember { androidx.compose.ui.focus.FocusRequester() }
-    val startFocus = remember { androidx.compose.ui.focus.FocusRequester() }
-    val dueFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val nameFocus = remember { FocusRequester() }
+    val floorFocus = remember { FocusRequester() }
+    val addressFocus = remember { FocusRequester() }
+    val billingFocus = remember { FocusRequester() }
+    val startFocus = remember { FocusRequester() }
+    val dueFocus = remember { FocusRequester() }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted, launch camera
+            try {
+                val imageFile = File(context.cacheDir, "building_camera_${System.currentTimeMillis()}.jpg")
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.provider",
+                    imageFile
+                )
+                cameraImageUri.value = uri
+                cameraLauncher.launch(uri)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Camera not available: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Camera permission is required to take photos", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -331,61 +406,301 @@ fun EditBuildingScreen(
 
             item {
                 Column(modifier = Modifier.fillMaxWidth()) {
+                    // Header with image count and multi-select controls
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                     ) {
-                        Text(text = "Images (optional)")
-                        IconButton(onClick = {
-                            picker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        Column {
+                            Text(
+                                text = if (isMultiSelectMode) "Select Images to Delete" else "Building Images",
+                                style = MaterialTheme.typography.titleMedium
                             )
-                        }, enabled = selectedImages.size + existingImages.size < 3) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = "Add images")
+                            Text(
+                                text = if (isMultiSelectMode) 
+                                    "${selectedExistingImages.size + selectedNewImages.size} selected" 
+                                else 
+                                    "${selectedImages.size + existingImages.size}/3 images",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        if (isMultiSelectMode) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                // Delete selected button
+                                if (selectedExistingImages.isNotEmpty() || selectedNewImages.isNotEmpty()) {
+                                    IconButton(
+                                        onClick = { showDeleteConfirmDialog = true }
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete selected",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                
+                                // Cancel multi-select
+                                TextButton(
+                                    onClick = {
+                                        isMultiSelectMode = false
+                                        selectedExistingImages.clear()
+                                        selectedNewImages.clear()
+                                    }
+                                ) {
+                                    Text("Cancel")
+                                }
+                            }
                         }
                     }
+                    
+                    // Image action buttons
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        // Gallery button
+                        OutlinedButton(
+                            onClick = {
+                                picker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            enabled = selectedImages.size + existingImages.size < 3,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Gallery")
+                        }
+                        
+                        // Camera button
+                        OutlinedButton(
+                            onClick = {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            },
+                            enabled = selectedImages.size + existingImages.size < 3,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Camera")
+                        }
+                    }
+                    // Image grid with clickable images
                     if (existingImages.isNotEmpty() || selectedImages.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             // Existing images
                             itemsIndexed(existingImages) { index, imageUrl ->
-                                Box {
-                                    AsyncImage(
-                                        model = imageUrl,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.size(96.dp).clip(RectangleShape)
-                                    )
-                                    IconButton(onClick = {
-                                        existingImages.removeAt(index)
-                                    }) {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Remove existing image",
-                                            tint = Color.White
+                                Card(
+                                    modifier = Modifier.size(120.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .combinedClickable(
+                                                onClick = {
+                                                    if (isMultiSelectMode) {
+                                                        // Toggle selection
+                                                        if (selectedExistingImages.contains(index)) {
+                                                            selectedExistingImages.remove(index)
+                                                        } else {
+                                                            selectedExistingImages.add(index)
+                                                        }
+                                                    } else {
+                                                        // Open image viewer
+                                                        imageViewerIndex = index
+                                                        showImageViewer = true
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    if (!isMultiSelectMode) {
+                                                        isMultiSelectMode = true
+                                                        selectedExistingImages.add(index)
+                                                    }
+                                                }
+                                            )
+                                    ) {
+                                        AsyncImage(
+                                            model = imageUrl,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
                                         )
+                                        
+                                        // Selection indicator or delete button
+                                        if (isMultiSelectMode) {
+                                            // Selection indicator
+                                            Icon(
+                                                imageVector = if (selectedExistingImages.contains(index)) 
+                                                    Icons.Default.CheckCircle 
+                                                else 
+                                                    Icons.Default.RadioButtonUnchecked,
+                                                contentDescription = if (selectedExistingImages.contains(index)) 
+                                                    "Selected" 
+                                                else 
+                                                    "Not selected",
+                                                tint = if (selectedExistingImages.contains(index)) 
+                                                    MaterialTheme.colorScheme.primary 
+                                                else 
+                                                    Color.White,
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(8.dp)
+                                                    .size(24.dp)
+                                            )
+                                        } else {
+                                            // Delete button in top-left corner
+                                            IconButton(
+                                                onClick = {
+                                                    existingImages.removeAt(index)
+                                                },
+                                                modifier = Modifier
+                                                    .align(Alignment.TopStart)
+                                                    .padding(4.dp)
+                                                    .size(32.dp)
+                                                    .background(
+                                                        Color.Black.copy(alpha = 0.6f),
+                                                        CircleShape
+                                                    )
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Close,
+                                                    contentDescription = "Remove existing image",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
                             
                             // New selected images
                             itemsIndexed(selectedImages) { index, uri ->
-                                Box {
-                                    AsyncImage(
-                                        model = uri,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.size(96.dp).clip(RectangleShape)
-                                    )
-                                    IconButton(onClick = {
-                                        selectedImages.removeAt(index)
-                                    }) {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Remove new image",
-                                            tint = Color.White
+                                Card(
+                                    modifier = Modifier.size(120.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .combinedClickable(
+                                                onClick = {
+                                                    if (isMultiSelectMode) {
+                                                        // Toggle selection
+                                                        if (selectedNewImages.contains(index)) {
+                                                            selectedNewImages.remove(index)
+                                                        } else {
+                                                            selectedNewImages.add(index)
+                                                        }
+                                                    } else {
+                                                        // Open image viewer
+                                                        imageViewerIndex = existingImages.size + index
+                                                        showImageViewer = true
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    if (!isMultiSelectMode) {
+                                                        isMultiSelectMode = true
+                                                        selectedNewImages.add(index)
+                                                    }
+                                                }
+                                            )
+                                    ) {
+                                        AsyncImage(
+                                            model = uri,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
                                         )
+                                        
+                                        // Selection indicator or delete button
+                                        if (isMultiSelectMode) {
+                                            // Selection indicator
+                                            Icon(
+                                                imageVector = if (selectedNewImages.contains(index)) 
+                                                    Icons.Default.CheckCircle 
+                                                else 
+                                                    Icons.Default.RadioButtonUnchecked,
+                                                contentDescription = if (selectedNewImages.contains(index)) 
+                                                    "Selected" 
+                                                else 
+                                                    "Not selected",
+                                                tint = if (selectedNewImages.contains(index)) 
+                                                    MaterialTheme.colorScheme.primary 
+                                                else 
+                                                    Color.White,
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(8.dp)
+                                                    .size(24.dp)
+                                            )
+                                        } else {
+                                            // Delete button in top-left corner
+                                            IconButton(
+                                                onClick = {
+                                                    selectedImages.removeAt(index)
+                                                },
+                                                modifier = Modifier
+                                                    .align(Alignment.TopStart)
+                                                    .padding(4.dp)
+                                                    .size(32.dp)
+                                                    .background(
+                                                        Color.Black.copy(alpha = 0.6f),
+                                                        CircleShape
+                                                    )
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Close,
+                                                    contentDescription = "Remove new image",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
                                     }
+                                }
+                            }
+                        }
+                    } else {
+                        // Empty state for images
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            )
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        Icons.Default.AddAPhoto,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(32.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        "Add building photos",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }
@@ -460,6 +775,9 @@ fun EditBuildingScreen(
                                 userId = viewModel.building.value?.userId ?: "",
                                 imageUrls = existingImages.toList()
                             )
+                            
+                            android.util.Log.d("EditBuildingScreen", "Existing images: ${existingImages.size}, New images: ${selectedImages.size}")
+                            
                             if (selectedImages.isNotEmpty()) {
                                 viewModel.updateWithImages(building, selectedImages)
                             } else {
@@ -489,5 +807,60 @@ fun EditBuildingScreen(
                 }
             }
         }
+    }
+    
+    // Image Viewer
+    if (showImageViewer) {
+        val allImages = existingImages.toList() + selectedImages.toList()
+        FullScreenImageViewer(
+            images = allImages,
+            initialIndex = imageViewerIndex,
+            onDismiss = { showImageViewer = false }
+        )
+    }
+    
+    // Delete Confirmation Dialog
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = { Text("Delete Images") },
+            text = { 
+                Text("Are you sure you want to delete ${selectedExistingImages.size + selectedNewImages.size} selected image(s)?") 
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // Delete selected existing images (in reverse order to maintain indices)
+                        selectedExistingImages.sortedDescending().forEach { index ->
+                            if (index < existingImages.size) {
+                                existingImages.removeAt(index)
+                            }
+                        }
+                        
+                        // Delete selected new images (in reverse order to maintain indices)
+                        selectedNewImages.sortedDescending().forEach { index ->
+                            if (index < selectedImages.size) {
+                                selectedImages.removeAt(index)
+                            }
+                        }
+                        
+                        // Reset multi-select mode
+                        isMultiSelectMode = false
+                        selectedExistingImages.clear()
+                        selectedNewImages.clear()
+                        showDeleteConfirmDialog = false
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

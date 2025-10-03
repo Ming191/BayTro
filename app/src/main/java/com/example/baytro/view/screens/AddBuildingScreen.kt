@@ -1,6 +1,5 @@
 package com.example.baytro.view.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,12 +12,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -40,11 +45,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -55,6 +58,8 @@ import com.example.baytro.data.Building
 import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.FullScreenImageViewer
+import androidx.compose.foundation.clickable
 import com.example.baytro.viewModel.AddBuildingVM
 import org.koin.compose.viewmodel.koinViewModel
 import android.net.Uri
@@ -62,6 +67,13 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.core.content.FileProvider
 import com.yalantis.ucrop.UCrop
 import java.io.File
 
@@ -103,6 +115,11 @@ fun AddBuildingScreen(
     val startFocus = remember { FocusRequester() }
     val dueFocus = remember { FocusRequester() }
     val selectedImages = remember { mutableStateOf<List<Uri>>(emptyList()) }
+    val cameraImageUri = remember { mutableStateOf<Uri?>(null) }
+    
+    // Image viewer state
+    var showImageViewer by remember { mutableStateOf(false) }
+    var imageViewerIndex by remember { mutableIntStateOf(0) }
 
     // UCrop launcher
     val cropLauncher = rememberLauncherForActivityResult(
@@ -116,6 +133,48 @@ fun AddBuildingScreen(
                     selectedImages.value = (current + uri).take(3)
                 }
             }
+        }
+    }
+
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            cameraImageUri.value?.let { uri ->
+                val destinationUri = Uri.fromFile(
+                    File(context.cacheDir, "building_camera_cropped_${System.currentTimeMillis()}.jpg")
+                )
+                val uCropIntent = UCrop.of(uri, destinationUri)
+                    .withAspectRatio(16f, 9f)
+                    .withMaxResultSize(1080, 608)
+                    .getIntent(context)
+                
+                cropLauncher.launch(uCropIntent)
+            }
+        }
+    }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted, launch camera
+            try {
+                val imageFile = File(context.cacheDir, "building_camera_${System.currentTimeMillis()}.jpg")
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.provider",
+                    imageFile
+                )
+                cameraImageUri.value = uri
+                cameraLauncher.launch(uri)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Camera not available: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Camera permission is required to take photos", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -250,7 +309,6 @@ fun AddBuildingScreen(
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded)
                         },
                         modifier = Modifier
-                            .menuAnchor()
                             .fillMaxWidth()
                     )
                     DropdownMenu(
@@ -360,47 +418,143 @@ fun AddBuildingScreen(
 
             item {
                 Column(modifier = Modifier.fillMaxWidth()) {
+                    // Header with image count
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                     ) {
-                        Text(text = "Images (optional)")
-                        IconButton(
+                        Column {
+                            Text(
+                                text = "Building Images",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "${selectedImages.value.size}/3 images",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    
+                    // Image action buttons
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        // Gallery button
+                        OutlinedButton(
                             onClick = {
                                 imagePickerLauncher.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                 )
                             },
-                            enabled = selectedImages.value.size < 3
+                            enabled = selectedImages.value.size < 3,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = "Add images")
+                            Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Gallery")
+                        }
+                        
+                        // Camera button
+                        OutlinedButton(
+                            onClick = {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            },
+                            enabled = selectedImages.value.size < 3,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Camera")
                         }
                     }
+                    // Image grid
                     if (selectedImages.value.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             itemsIndexed(selectedImages.value) { index, uri ->
-                                Box {
-                                    AsyncImage(
-                                        model = uri,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
+                                Card(
+                                    modifier = Modifier.size(120.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Box(
                                         modifier = Modifier
-                                            .size(96.dp)
-                                            .clip(RectangleShape)
-                                    )
-                                    IconButton(onClick = {
-                                        selectedImages.value =
-                                            selectedImages.value.toMutableList().also {
-                                                it.removeAt(index)
+                                            .fillMaxSize()
+                                            .clickable {
+                                                imageViewerIndex = index
+                                                showImageViewer = true
                                             }
-                                    }) {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Remove",
-                                            tint = Color.White
+                                    ) {
+                                        AsyncImage(
+                                            model = uri,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
                                         )
+                                        
+                                        // Delete button in top-left corner
+                                        IconButton(
+                                            onClick = {
+                                                selectedImages.value =
+                                                    selectedImages.value.toMutableList().also {
+                                                        it.removeAt(index)
+                                                    }
+                                            },
+                                            modifier = Modifier
+                                                .align(Alignment.TopStart)
+                                                .padding(4.dp)
+                                                .size(32.dp)
+                                                .background(
+                                                    Color.Black.copy(alpha = 0.6f),
+                                                    CircleShape
+                                                )
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Close,
+                                                contentDescription = "Remove image",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
                                     }
+                                }
+                            }
+                        }
+                    } else {
+                        // Empty state for images
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            )
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        Icons.Default.AddAPhoto,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(32.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        "Add building photos",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }
@@ -513,5 +667,14 @@ fun AddBuildingScreen(
                 }
             }
         }
+    }
+    
+    // Image Viewer
+    if (showImageViewer) {
+        FullScreenImageViewer(
+            images = selectedImages.value,
+            initialIndex = imageViewerIndex,
+            onDismiss = { showImageViewer = false }
+        )
     }
 }

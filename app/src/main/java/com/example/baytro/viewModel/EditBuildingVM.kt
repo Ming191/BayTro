@@ -107,8 +107,12 @@ class EditBuildingVM(
                 
                 val totalTime = System.currentTimeMillis() - startTime
                 Log.d("EditBuildingVM", "All ${limited.size} images processed in ${totalTime}ms")
-                val merged = if (urls.isEmpty()) building.imageUrls else urls
-                buildingRepository.update(building.id, building.copy(imageUrls = merged))
+                
+                // Merge existing images with new uploaded images
+                val mergedImageUrls = (building.imageUrls + urls).take(3)
+                Log.d("EditBuildingVM", "Merged images: existing=${building.imageUrls.size}, new=${urls.size}, total=${mergedImageUrls.size}")
+                
+                buildingRepository.update(building.id, building.copy(imageUrls = mergedImageUrls))
                 _editUIState.value = AuthUIState.Success(currentUser)
             } catch (e: Exception) {
                 _editUIState.value = AuthUIState.Error(e.message ?: "Failed to update building")
