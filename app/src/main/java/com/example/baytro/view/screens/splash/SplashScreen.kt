@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,9 +24,10 @@ import androidx.compose.ui.unit.dp
 import com.example.baytro.data.RoleType
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.Logo
+import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
-import com.example.baytro.viewModel.splash.SplashScreenVM
 import com.example.baytro.viewModel.splash.SplashFormState
+import com.example.baytro.viewModel.splash.SplashScreenVM
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -45,6 +44,7 @@ fun SplashScreen(
         onSplashCompleted = viewModel::onComplete,
         formState = formState,
         onRoleChange = viewModel::onRoleChange,
+        splashUiState = splashUiState,
     )
 
     LaunchedEffect(key1 = splashUiState) {
@@ -68,6 +68,7 @@ fun SplashScreenContent(
     onSplashCompleted: () -> Unit,
     formState : SplashFormState,
     onRoleChange: (RoleType) -> Unit,
+    splashUiState: UiState<RoleType>,
 ) {
     Box(
         modifier = Modifier
@@ -102,16 +103,11 @@ fun SplashScreenContent(
                 isLowerCased = true,
             )
             Spacer(modifier = Modifier.padding(16.dp))
-            Button(
-                onClick = {
-                    onSplashCompleted()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text("Get Started")
-            }
+            SubmitButton(
+                text = "Continue",
+                isLoading = splashUiState is UiState.Loading,
+                onClick = onSplashCompleted,
+            )
         }
     }
 }

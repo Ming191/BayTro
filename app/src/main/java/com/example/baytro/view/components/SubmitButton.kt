@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SubmitButton(
+    text: String = "Submit",
     isLoading: Boolean,
     onClick: () -> Unit
 ) {
@@ -30,7 +31,7 @@ fun SubmitButton(
                 strokeWidth = 2.dp
             )
         } else {
-            Text("Submit")
+            Text(text)
         }
     }
 }
