@@ -64,9 +64,8 @@ class NewLandlordUserVM(
         _newLandlordUserFormState.value = _newLandlordUserFormState.value.copy(phoneNumber = phoneNumber, phoneNumberError = ValidationResult.Success)
     }
 
-    private fun validateInput(
-        formState: NewLandlordUserFormState
-    ): Boolean {
+    private fun validateInput(): Boolean {
+        val formState = _newLandlordUserFormState.value
         val fullNameValidator = Validator.validateNonEmpty(formState.fullName, "Full Name")
         val permanentAddressValidator = Validator.validateNonEmpty(formState.permanentAddress, "Permanent Address")
         val dateOfBirthValidator = Validator.validateNonEmpty(formState.dateOfBirth, "Date of Birth")
@@ -115,7 +114,7 @@ class NewLandlordUserVM(
         val formState = _newLandlordUserFormState.value
         Log.d("NewLandlordUserVM", "Submit called with formState: $formState")
 
-        if (!validateInput(formState)) {
+        if (!validateInput()) {
             Log.w("NewLandlordUserVM", "Validation failed")
             _newLandlordUserUIState.value = UiState.Error("Please fix the errors in the form.")
             return
@@ -138,9 +137,11 @@ class NewLandlordUserVM(
                 Log.d("NewLandlordUserVM", "Compressed image saved at: $compressedFileUri")
 
                 Log.d("NewLandlordUserVM", "Uploading profile image...")
-                val profileImgUrl = mediaRepository.uploadUserProfileImage(
+                val profileImgUrl = mediaRepository.uploadUserImage(
                     userId = authUser.uid,
-                    imageUri = compressedFileUri
+                    imageUri = compressedFileUri,
+                    subfolder = "profile",
+                    imageName = "profile"
                 )
                 Log.d("NewLandlordUserVM", "Profile image uploaded: $profileImgUrl")
 

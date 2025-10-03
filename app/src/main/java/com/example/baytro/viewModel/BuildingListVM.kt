@@ -24,7 +24,7 @@ class BuildingListVM(
 
     private val _isLoading = MutableStateFlow(true) // Start with loading true
     val isLoading: StateFlow<Boolean> = _isLoading
-    
+
     private val _hasLoadedOnce = MutableStateFlow(false)
     val hasLoadedOnce: StateFlow<Boolean> = _hasLoadedOnce
 
@@ -37,7 +37,7 @@ class BuildingListVM(
     // Pagination
     private val _currentPage = MutableStateFlow(0)
     val currentPage: StateFlow<Int> = _currentPage
-    
+
     private val _itemsPerPage = 10
     val itemsPerPage: Int = _itemsPerPage
 

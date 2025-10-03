@@ -38,4 +38,7 @@ class SplashScreenVM(
         _splashFormState.value = _splashFormState.value.copy(role = role)
     }
 
+    fun clearError() {
+        _splashUiState.value = UiState.Idle
+    }
 }
