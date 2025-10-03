@@ -47,7 +47,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.runtime.remember
 import coil3.compose.rememberAsyncImagePainter
 import com.example.baytro.data.BankCode
 import com.example.baytro.data.Gender
@@ -55,7 +54,6 @@ import com.example.baytro.data.User
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
-import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
