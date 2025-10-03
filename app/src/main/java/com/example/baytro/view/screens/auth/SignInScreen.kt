@@ -21,6 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.runtime.remember
 import com.example.baytro.auth.SignInFormState
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
@@ -78,6 +84,8 @@ fun SignInContent(
     onSignInClicked: () -> Unit,
     onNavigateToSignUp: () -> Unit
 ) {
+    val emailFocus = remember { FocusRequester() }
+    val passwordFocus = remember { FocusRequester() }
 
 
     Box(
@@ -101,18 +109,26 @@ fun SignInContent(
                 errorMessage = formState.emailError.let {
                     if (it is ValidationResult.Error) it.message else null
                 },
-                modifier = Modifier.fillMaxWidth()
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(
+                    onNext = { passwordFocus.requestFocus() }
+                ),
+                modifier = Modifier.fillMaxWidth().focusRequester(emailFocus)
             )
 
             PasswordTextField(
                 value = formState.password,
                 onValueChange = onPasswordChange,
                 label = "Password",
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(passwordFocus),
                 isError = formState.passwordError is ValidationResult.Error,
                 errorMessage = formState.passwordError.let {
                     if (it is ValidationResult.Error) it.message else null
-                }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = { onSignInClicked() }
+                )
             )
 
             SubmitButton(

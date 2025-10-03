@@ -43,6 +43,7 @@ fun AppScaffold (
 			val titleText = when (currentRoute) {
 				Screens.BuildingList.route -> "Buildings"
 				Screens.BuildingAdd.route -> "Add building"
+                Screens.BuildingEdit.route -> "Edit building"
 				Screens.TenantList.route -> "Tenants"
 				Screens.BillList.route -> "Bills"
 				Screens.ContractList.route -> "Contracts"
@@ -53,7 +54,7 @@ fun AppScaffold (
 			CenterAlignedTopAppBar(
 				title = { Text(titleText) },
 				navigationIcon = {
-					if (currentRoute == Screens.BuildingAdd.route) {
+                    if (currentRoute == Screens.BuildingAdd.route || currentRoute?.startsWith("building_edit_screen") == true) {
 						IconButton(onClick = { navHostController.popBackStack() }) {
 							Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
 						}

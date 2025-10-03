@@ -60,6 +60,17 @@ class MediaRepository (
         }
     }
 
+    suspend fun uploadBuildingImage(userId: String, buildingId: String, imageUri: Uri): String {
+        return try {
+            val fileName = "users/$userId/buildings/$buildingId/${System.currentTimeMillis()}.jpg"
+            val storageRef = storage.reference.child(fileName)
+            storageRef.putFile(imageUri).await()
+            storageRef.downloadUrl.await().toString()
+        } catch (e: Exception) {
+            throw Exception("Failed to upload building image: ${e.message}", e)
+        }
+    }
+
 
     /**
      * Uploads an ID card photo to Firebase Storage.

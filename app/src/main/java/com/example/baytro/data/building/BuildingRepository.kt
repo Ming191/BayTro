@@ -1,6 +1,5 @@
-package com.example.baytro.data.building
+package com.example.baytro.data
 
-import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 class BuildingRepository(
@@ -10,19 +9,18 @@ class BuildingRepository(
 
     override suspend fun getAll(): List<Building> {
         val snapshot = collection.get()
-        return snapshot.documents.mapNotNull { doc ->
-            runCatching { doc.data<Building>().copy(id = doc.id) }.getOrNull()
+        return snapshot.documents.map { doc ->
+            val b = doc.data<Building>()
+            b.copy(id = doc.id)
         }
     }
 
     override suspend fun getById(id: String): Building? {
         val snapshot = collection.document(id).get()
         return if (snapshot.exists) {
-            val building = snapshot.data<Building>()
-            building.copy(id = snapshot.id)
-        } else {
-            null
-        }
+            val b = snapshot.data<Building>()
+            b.copy(id = snapshot.id)
+        } else null
     }
 
     override suspend fun add(item: Building): String {
@@ -50,7 +48,12 @@ class BuildingRepository(
     suspend fun getBuildingsByUserId(userId: String): List<Building> {
         val snapshot = collection.where { "userId" equalTo userId }.get()
         return snapshot.documents.mapNotNull { doc ->
-            runCatching { doc.data<Building>().copy(id = doc.id) }.getOrNull()
+            try {
+                val b = doc.data<Building>()
+                b.copy(id = doc.id)
+            } catch (e: Exception) {
+                null
+            }
         }
     }
 }

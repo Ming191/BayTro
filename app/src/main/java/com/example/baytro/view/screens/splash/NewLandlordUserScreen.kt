@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.splash
 
+import com.example.baytro.view.components.RequiredDateTextField
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -41,6 +42,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
 import coil3.compose.rememberAsyncImagePainter
 import com.example.baytro.data.BankCode
 import com.example.baytro.data.Gender
@@ -48,7 +54,6 @@ import com.example.baytro.data.User
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
-import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
@@ -144,6 +149,11 @@ fun NewLandlordUserScreenContent(
     onPhoneNumberChange: (String) -> Unit,
     newLandlordUserUIState: UiState<User>
 ) {
+    val fullNameFocus = remember { FocusRequester() }
+    val phoneNumberFocus = remember { FocusRequester() }
+    val addressFocus = remember { FocusRequester() }
+    val bankAccountFocus = remember { FocusRequester() }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -226,14 +236,18 @@ fun NewLandlordUserScreenContent(
 
             item {
                 RequiredTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(fullNameFocus),
                     value = formState.fullName,
                     onValueChange = onFullNameChange,
                     label = "Full name",
                     isError = formState.fullNameError is ValidationResult.Error,
                     errorMessage = formState.fullNameError.let {
                         if (it is ValidationResult.Error) it.message else null
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { phoneNumberFocus.requestFocus() }
+                    )
                 )
             }
 
@@ -252,28 +266,36 @@ fun NewLandlordUserScreenContent(
 
             item {
                 RequiredTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(phoneNumberFocus),
                     value = formState.phoneNumber,
                     onValueChange = onPhoneNumberChange,
                     label = "Phone number",
                     isError = formState.phoneNumberError is ValidationResult.Error,
                     errorMessage = formState.phoneNumberError.let {
                         if (it is ValidationResult.Error) it.message else null
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { addressFocus.requestFocus() }
+                    )
                 )
             }
 
             item {
                 RequiredTextField(
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth().focusRequester(addressFocus),
                     value = formState.permanentAddress,
                     onValueChange = onAddressChange,
                     label = "Permanent address",
                     isError = formState.permanentAddressError is ValidationResult.Error,
                     errorMessage = formState.permanentAddressError.let {
                         if (it is ValidationResult.Error) it.message else null
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { bankAccountFocus.requestFocus() }
+                    )
                 )
             }
 
@@ -306,14 +328,18 @@ fun NewLandlordUserScreenContent(
 
             item {
                 RequiredTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(bankAccountFocus),
                     value = formState.bankAccountNumber,
                     onValueChange = onBankAccountNumberChange,
                     label = "Bank account number",
                     isError = formState.bankAccountNumberError is ValidationResult.Error,
                     errorMessage = formState.bankAccountNumberError.let {
                         if (it is ValidationResult.Error) it.message else null
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { bankAccountFocus.freeFocus() }
+                    )
                 )
             }
         }

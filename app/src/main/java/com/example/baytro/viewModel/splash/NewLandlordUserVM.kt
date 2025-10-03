@@ -88,7 +88,7 @@ class NewLandlordUserVM(
             bankAccountNumberError = bankAccountNumberValidator,
             phoneNumberError = phoneNumberValidator,
             avatarUriError = avatarUriValidator
-            )
+        )
         return isValid
     }
 
@@ -129,7 +129,7 @@ class NewLandlordUserVM(
                 Log.d("NewLandlordUserVM", "Auth user found: ${authUser.uid}")
 
                 Log.d("NewLandlordUserVM", "Compressing image: ${formState.avatarUri}")
-                val compressedFile = ImageProcessor.compressImageWithCoil(
+                val compressedFile = ImageProcessor.compressImage(
                     context = context,
                     uri = formState.avatarUri
                 )

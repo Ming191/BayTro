@@ -132,7 +132,7 @@ class UploadIdCardVM(
 
         try {
             val compressionStartTime = System.nanoTime()
-            compressedFile = ImageProcessor.compressImageWithCoil(context, photoUri, maxWidth = 1440, quality = 90)
+            compressedFile = ImageProcessor.compressImage(context, photoUri, maxWidth = 1440, quality = 90)
             val compressionDuration = (System.nanoTime() - compressionStartTime) / 1_000_000
             Log.d(TAG, "processPhoto: compressed photo $index (size: ${compressedFile.length()} bytes) in $compressionDuration ms")
 

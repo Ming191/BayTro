@@ -6,9 +6,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
+import com.example.baytro.data.Building
+import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
-import com.example.baytro.data.building.Building
-import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.contract.Contract
 import com.example.baytro.data.contract.ContractRepository
@@ -250,7 +250,7 @@ class AddContractVM (
                 val photoUrls = mutableListOf<String>()
                 formState.selectedPhotos.forEachIndexed { index, photoUri ->
                     Log.d(TAG, "onSubmit: processing photo $index")
-                    val compressedFile = ImageProcessor.compressImageWithCoil(
+                    val compressedFile = ImageProcessor.compressImage(
                         context = context,
                         uri = photoUri,
                         maxWidth = 1080,

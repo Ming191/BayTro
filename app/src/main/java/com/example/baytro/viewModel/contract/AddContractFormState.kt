@@ -1,7 +1,7 @@
 package com.example.baytro.viewModel.contract
 
 import android.net.Uri
-import com.example.baytro.data.building.Building
+import com.example.baytro.data.Building
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.contract.Status
 import com.example.baytro.utils.ValidationResult

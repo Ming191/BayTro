@@ -25,6 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
 import com.example.baytro.auth.SignUpFormState
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
@@ -88,6 +93,10 @@ fun SignUpContent(
     onSignUpClicked: () -> Unit,
     onNavigateToSignIn: () -> Unit,
 ) {
+    val emailFocus = remember { FocusRequester() }
+    val passwordFocus = remember { FocusRequester() }
+    val confirmPasswordFocus = remember { FocusRequester() }
+
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -105,7 +114,11 @@ fun SignUpContent(
                 label = "Email",
                 isError = formState.emailError is ValidationResult.Error,
                 errorMessage = emailError,
-                modifier = Modifier.fillMaxWidth()
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(
+                    onNext = { passwordFocus.requestFocus() }
+                ),
+                modifier = Modifier.fillMaxWidth().focusRequester(emailFocus)
             )
             Column(modifier = Modifier.fillMaxWidth()) {
                 val passwordError = remember(formState.passwordError, formState.passwordStrengthError) {
@@ -122,7 +135,11 @@ fun SignUpContent(
                     label = "Password",
                     isError = formState.passwordError is ValidationResult.Error || formState.passwordStrengthError is ValidationResult.Error,
                     errorMessage = passwordError,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { confirmPasswordFocus.requestFocus() }
+                    ),
+                    modifier = Modifier.fillMaxWidth().focusRequester(passwordFocus)
                 )
                 AnimatedVisibility(
                     visible = formState.password.isNotEmpty()
@@ -143,7 +160,11 @@ fun SignUpContent(
                 label = "Confirm Password",
                 isError = formState.confirmPasswordError is ValidationResult.Error,
                 errorMessage = confirmPasswordError,
-                modifier = Modifier.fillMaxWidth()
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = { onSignUpClicked() }
+                ),
+                modifier = Modifier.fillMaxWidth().focusRequester(confirmPasswordFocus)
             )
 
             Button(
