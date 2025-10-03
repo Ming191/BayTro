@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +55,7 @@ import com.example.baytro.data.User
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
+import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
@@ -69,20 +74,22 @@ fun NewLandlordUserScreen(
     val newLandlordUserUIState by viewModel.newLandlordUserUIState.collectAsState()
 
     val context = LocalContext.current
+    var isAvatarPickerOpen by remember { mutableStateOf(false) }
     val cropLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            result.data?.let { intent ->
-                val croppedUri = UCrop.getOutput(intent)
-                croppedUri?.let { viewModel.onAvatarUriChange(it) }
+            ) { result ->
+            isAvatarPickerOpen = false
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                result.data?.let { intent ->
+                    val croppedUri = UCrop.getOutput(intent)
+                    croppedUri?.let { viewModel.onAvatarUriChange(it) }
+                }
             }
         }
-    }
-
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
+        isAvatarPickerOpen = false
         uri?.let {
             val destinationUri = Uri.fromFile(
                 File(context.cacheDir, "avatar_cropped_${System.currentTimeMillis()}.jpg")
@@ -98,9 +105,14 @@ fun NewLandlordUserScreen(
     NewLandlordUserScreenContent(
         formState = formState,
         avatarUri = formState.avatarUri,
-        onAvatarClick = { photoPickerLauncher.launch(
-            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-        ) },
+        onAvatarClick = {
+            if (!isAvatarPickerOpen) {
+                isAvatarPickerOpen = true
+                photoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }
+        },
         onFullNameChange = viewModel::onFullNameChange,
         onAddressChange = viewModel::onPermanentAddressChange,
         onGenderChange = viewModel::onGenderChange,
@@ -191,7 +203,7 @@ fun NewLandlordUserScreenContent(
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (avatarUri != Uri.EMPTY) {
+                    if (avatarUri != null && avatarUri != Uri.EMPTY) {
                         Image(
                             painter = rememberAsyncImagePainter(avatarUri),
                             contentDescription = "Profile photo",
@@ -204,6 +216,15 @@ fun NewLandlordUserScreenContent(
                             contentDescription = "Placeholder",
                             modifier = Modifier.size(80.dp),
                             tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                AnimatedVisibility(visible = formState.avatarUriError is ValidationResult.Error) {
+                    (formState.avatarUriError as? ValidationResult.Error)?.let { error ->
+                        Text(
+                            text = error.message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }

@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +32,7 @@ import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.auth.SignInVM
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -132,19 +131,11 @@ fun SignInContent(
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = onSignInClicked,
-                enabled = loginUiState !is AuthUIState.Loading,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
-            ) {
-                if (loginUiState is AuthUIState.Loading) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text("Sign In")
-                }
-            }
+            SubmitButton(
+                text = "Sign In",
+                isLoading = loginUiState is AuthUIState.Loading,
+                onClick = onSignInClicked
+            )
 
             TextButton(onClick = onNavigateToSignUp) {
                 Text("Don't have an account? Sign Up")

@@ -1,5 +1,6 @@
 package com.example.baytro
 
+import android.content.res.Configuration
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -10,16 +11,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.baytro.navigation.AppScaffold
 import com.example.baytro.navigation.NavigationType
-import com.example.baytro.ui.theme.BayTroTheme
 import com.example.baytro.view.navigationType.NavigationDrawerView
+import com.example.baytro.ui.theme.AppTheme
 import kotlinx.coroutines.launch
 
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
 fun MainScreen() {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val navController = rememberNavController()
-    BayTroTheme {
+    AppTheme {
         val navigationType: NavigationType = NavigationType.NavigationDrawer
         ModalNavigationDrawer(
             drawerContent = {

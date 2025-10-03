@@ -87,4 +87,5 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
     // https://mvnrepository.com/artifact/com.github.yalantis/ucrop
     implementation("com.github.yalantis:ucrop:2.2.6")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.9.2")
 }
