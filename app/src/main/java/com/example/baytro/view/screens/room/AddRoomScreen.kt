@@ -1,5 +1,7 @@
 package com.example.baytro.view.screens.room
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -13,6 +15,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,11 +34,12 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun AddRoomScreen(
-    navController: NavHostController? = null,
+    navController: NavHostController,
     viewModel: AddRoomVM = koinViewModel(),
+    buildingName: String
 ) {
+    Log.d("AddRoomScreen", "buildingNameInAddRoomScreen: $buildingName")
     // --- State for each TextField ---
-    val buildingName: (String) -> Unit =  viewModel::onBuildingNameChange
     val roomNumber: (String) -> Unit = viewModel::onRoomNumberChange
     val floor: (String) -> Unit = viewModel::onFloorChange
     val size: (String) -> Unit = viewModel::onSizeChange
@@ -45,22 +49,33 @@ fun AddRoomScreen(
     val uiState by viewModel.addRoomUIState.collectAsState()
     val formState by viewModel.addRoomFormState.collectAsState()
 
+    LaunchedEffect(uiState) {
+        if (uiState is UiState.Success) {
+            Toast.makeText(
+                navController?.context,
+                "Room added successfully!",
+                Toast.LENGTH_SHORT
+            ).show()
+            navController?.popBackStack()
+        }
+    }
 
     LazyColumn (
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        item { DividerWithSubhead("Building information") }
+        item { DividerWithSubhead("Building information ", Modifier.padding(start = 16.dp, end = 16.dp)) }
         item {
-            RequiredTextField(
-                value = formState.buildingName, // Bind to state
-                onValueChange = buildingName, // Update state
+            RequiredTextField( // buildingName is fixed
+                value = buildingName,
+                onValueChange = {},
                 label = "Building name",
-                isError = false, // You'll likely get this from ViewModel validation
-                errorMessage = null, // Also from ViewModel
+                isError = false,
+                errorMessage = null   ,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp)
+                    .padding(start = 16.dp, end = 16.dp),
+                readOnly = true
             )
         }
 
@@ -69,8 +84,8 @@ fun AddRoomScreen(
                 value = formState.roomNumber,
                 onValueChange = roomNumber,
                 label = "Room number",
-                isError = false,
-                errorMessage = null,
+                isError = formState.roomNumberError != null,
+                errorMessage = formState.roomNumberError,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp)
@@ -82,8 +97,8 @@ fun AddRoomScreen(
                 value = formState.floor.toString(),
                 onValueChange = floor,
                 label = "Floor",
-                isError = false,
-                errorMessage = null,
+                isError = formState.floorError != null,
+                errorMessage = formState.floorError,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp)
@@ -95,8 +110,8 @@ fun AddRoomScreen(
                 value = formState.size.toString(),
                 onValueChange = size,
                 label = "Size",
-                isError = false,
-                errorMessage = null,
+                isError = formState.sizeError != null,
+                errorMessage = formState.sizeError,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp)
@@ -108,8 +123,8 @@ fun AddRoomScreen(
                 value = formState.rentalFee,
                 onValueChange = defaultRentalFee,
                 label = "Default rental fee",
-                isError = false,
-                errorMessage = null,
+                isError = formState.rentalFeeError != null,
+                errorMessage = formState.rentalFeeError,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp)
@@ -117,13 +132,13 @@ fun AddRoomScreen(
         }
 
         item {
-            DividerWithSubhead("Interior condition")
+            DividerWithSubhead("Interior condition ", Modifier.padding(start = 16.dp, end = 16.dp))
             ChoiceSelection(
-                options = Furniture.entries.toList(),
+                options = Furniture.entries.toList().dropLast(1), //hide the last options Unknow
                 selectedOption = formState.interior,
                 onOptionSelected = interior,
-                isError = false,
-                errorMessage = null
+                isError = formState.interiorError != null,
+                errorMessage = formState.interiorError,
             )
         }
 
@@ -134,16 +149,16 @@ fun AddRoomScreen(
                     .width(380.dp)
                     .background(Color.White)
             ) {
-                Row(modifier = Modifier.padding(16.dp)) { // Add padding inside the card
-                    Icon(
-                        Icons.Filled.Bolt,
-                        "electric icon"
-                    )
-                    Text(
-                        text = "Electric", // "Electricity" to match the image
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
+//                Row(modifier = Modifier.padding(16.dp)) { // Add padding inside the card
+//                    Icon(
+//                        Icons.Filled.Bolt,
+//                        "electric icon"
+//                    )
+//                    Text(
+//                        text = "Electric", // "Electricity" to match the image
+//                        modifier = Modifier.padding(start = 8.dp)
+//                    )
+//                }
             }
         }
         item {

@@ -5,12 +5,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class Status {
-    AVAILABLE, RENTED, UNDER_MAINTENANCE
+    Available, Rented
 }
 @Serializable
 enum class Furniture {
     Furnished,
     Unfurnished,
+    Unknow
 }
 
 @Serializable
@@ -23,7 +24,7 @@ data class Room (
     val id : String = "",
     val buildingName : String,
     val floor: Int,
-    val roomNumber : Int,
+    val roomNumber : String,
     val size : Int,
     val status: Status,
     val rentalFee : Int,

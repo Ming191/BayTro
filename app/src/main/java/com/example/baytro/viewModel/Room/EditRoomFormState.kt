@@ -2,9 +2,9 @@ package com.example.baytro.viewModel.Room
 
 import com.example.baytro.data.Furniture
 
-data class AddRoomFormState(
+data class EditRoomFormState(
     val buildingName: String = "",
-    //val buildingNameError: String? = null,
+    val buildingNameError: String? = null,
 
     val roomNumber: String = "",
     val roomNumberError: String? = null,

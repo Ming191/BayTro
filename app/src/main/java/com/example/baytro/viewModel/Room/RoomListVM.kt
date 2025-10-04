@@ -17,7 +17,7 @@ class RoomListVM(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val buildingId: String = checkNotNull(savedStateHandle["buildingName"])
+    private val buildingId: String = checkNotNull(savedStateHandle["buildingId"])
 
     private val _building = MutableStateFlow<Building?>(null)
     val building: StateFlow<Building?> = _building
@@ -39,11 +39,10 @@ class RoomListVM(
     fun fetchRooms() {
         viewModelScope.launch {
             try {
-                val building = _building.value ?: buildingRepository.getById(buildingId)
+                val building = _building.value?: buildingRepository.getById(buildingId)
                 _building.value = building
-
                 val rooms = roomRepository.getAll()
-                val filteredRooms = rooms.filter { it.buildingName == building?.name }
+                val filteredRooms = rooms.filter { it.buildingName == building?.name}
                 val roomsGroupByFloor = filteredRooms.groupBy { it.floor }
                 val floorsList = roomsGroupByFloor.map { (floorNumber, rooms) ->
                     Floor(number = floorNumber, rooms = rooms)

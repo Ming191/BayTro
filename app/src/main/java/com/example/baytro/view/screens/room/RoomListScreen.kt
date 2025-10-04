@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +23,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -31,13 +32,12 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.Divider
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LeadingIconTab
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,83 +49,91 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.example.baytro.R
 import com.example.baytro.data.Building
-import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.Floor
-import com.example.baytro.data.Room
-import com.example.baytro.data.RoomRepository
 import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.ButtonComponent
+import com.example.baytro.view.components.CardComponent
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.viewModel.Room.RoomListVM
 import org.koin.compose.viewmodel.koinViewModel
 
-
 @Composable
-fun TabRowComponent(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
-    Box(
-        Modifier
-            .width(412.dp)
-            .height(48.dp)
-            .background(Color.White)
-    ) {
-        TabRow(
-            selectedTabIndex = selectedTabIndex,
-            Modifier.background(Color.White)
-        ) {
-            LeadingIconTab(
-                selected = selectedTabIndex == 0,
-                onClick = {onTabSelected(0)},
-                text = { Text(text = "Room list", maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                icon = {
-                    Icon(
-                        Icons.Outlined.List,
-                        contentDescription = "room list" // Add a valid content description
-                    )
-                }
-            )
-            LeadingIconTab(
-                selected = selectedTabIndex == 1,
-                onClick = {onTabSelected(1)},
-                text = { Text(text = "Details", maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                icon = {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = "building details" // Add a valid content description
-                    )
-                }
-            )
+fun ViewBuildingTabRow(
+    tabItemList: List<Pair<String, ImageVector>>,
+    floors : List<Floor>,
+    navController : NavHostController,
+    building : Building?
+) {
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val pagerState = rememberPagerState (initialPage = 0){tabItemList.size}
+    LaunchedEffect(selectedTabIndex) {
+        pagerState.animateScrollToPage(selectedTabIndex)
+    }
+    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
+        if (!pagerState.isScrollInProgress) {
+            selectedTabIndex = pagerState.currentPage
+        }
+    }
+    Column(Modifier.fillMaxSize()) {
+        TabRow(selectedTabIndex = selectedTabIndex) {
+            tabItemList.forEachIndexed { index, tabItem ->
+                Tab(
+                    text = { Text(tabItem.first) },
+                    icon = { Icon(tabItem.second, contentDescription = tabItem.first) },
+                    selected = selectedTabIndex == index,
+                    onClick = { selectedTabIndex = index }
+                )
+            }
+        }
+        HorizontalPager(
+            state = pagerState,
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) { index ->
+            when (index) {
+                0 -> ViewRoomList(floors, navController,building?.name)
+                1 -> ViewBuildingDetails(navController, building)
+            }
         }
     }
 }
 
 @Composable
-fun ViewRoomList(floors : List<Floor>, navController : NavController) {
+fun ViewRoomList(
+    floors : List<Floor>,
+    navController : NavController,
+    buildingName: String?
+) {
     var expandedFloorNumber by remember { mutableIntStateOf(-1) }
+    Log.d("RoomList", "BuildingNameInRoomList: $buildingName")
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier.fillMaxSize()
         ) {
             items(floors) { floor ->
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp) // spacing floor
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                expandedFloorNumber =
-                                    if (expandedFloorNumber == floor.number) -1 else floor.number
+                                expandedFloorNumber = if (expandedFloorNumber == floor.number) -1 else floor.number
                             }
-                            .padding(end = 20.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -158,17 +166,24 @@ fun ViewRoomList(floors : List<Floor>, navController : NavController) {
                                             contentDescription = "Room Info"
                                         )
                                     },
-                                    modifier = Modifier.padding(horizontal = 16.dp) // Padding cho phòng
+                                    modifier = Modifier.clickable {
+                                        navController.navigate(Screens.RoomDetails.createRoute(room.id ))
+                                    }
                                 )
                             }
                         }
                     }
                 }
+                Divider(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
             }
         }
         //add room
         FloatingActionButton(
-            onClick = {navController.navigate(Screens.AddRoom.route)},
+            onClick = {navController.navigate(Screens.AddRoom.createRoute(buildingName))},
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -188,99 +203,22 @@ fun ViewBuildingDetails(
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.Start,
         modifier = Modifier
-            .width(380.dp)
+            .fillMaxWidth()
             .wrapContentHeight()
-            .padding(start = 8.dp)
+            .padding(16.dp)
     ) {
         DividerWithSubhead("Information")
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(start = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Num.Rooms:", modifier = Modifier.fillMaxWidth(1/3f))
-                Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = "12")
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(start = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Num.Tenants:", modifier = Modifier.fillMaxWidth(1/3f))
-                Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = "12")
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(start = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Num.Floors:", modifier = Modifier.fillMaxWidth(1/3f))
-                Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = building?.floor.toString())
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(start = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Address:", modifier = Modifier.fillMaxWidth(1/3f))
-                Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = building?.address.toString())
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(start = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Billing date:", modifier = Modifier.fillMaxWidth(1/3f))
-                Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = building?.billingDate.toString())
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(start = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Payment start:", modifier = Modifier.fillMaxWidth(1/3f))
-                Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = building?.paymentStart.toString())
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(start = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Payment due:", modifier = Modifier.fillMaxWidth(1/3f))
-                Spacer(modifier = Modifier.fillMaxWidth(5/19f))
-                Text(text = building?.paymentDue.toString())
-            }
-        }
+        CardComponent(
+            infoMap = mapOf(
+                "Num.Rooms" to "12",
+                "Num.Tenants" to "12",
+                "Num.Floors" to building?.floor.toString(),
+                "Address" to building?.address.toString(),
+                "Billing date" to building?.billingDate.toString(),
+                "Payment start" to building?.paymentStart.toString(),
+                "Payment due" to building?.paymentDue.toString()
+            )
+        )
         DividerWithSubhead("Building photo")
         Image(
             painter = painterResource(id = R.drawable.building_img),
@@ -294,7 +232,7 @@ fun ViewBuildingDetails(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
             verticalAlignment = Alignment.Top,
         ) {
-            ButtonComponent(text = "Edit", onButtonClick = { navController.navigate(Screens.EditRoom.route)})
+            ButtonComponent(text = "Edit", onButtonClick = {})
             Spacer(Modifier.width(8.dp))
             ButtonComponent (text = "Delete", onButtonClick = {})
         }
@@ -304,26 +242,23 @@ fun ViewBuildingDetails(
 @Composable
 fun RoomListScreen(
     navController: NavHostController,
-    buildingId: String,
     viewModel: RoomListVM = koinViewModel(),
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
     val floors by viewModel.floors.collectAsState()
     val building by viewModel.building.collectAsState()
     LaunchedEffect(Unit) {
         viewModel.fetchBuilding()
         viewModel.fetchRooms()
     }
-    Column {
-        TabRowComponent(
-            selectedTabIndex = selectedTabIndex,
-            onTabSelected = { selectedTabIndex = it }
-        )
-        when (selectedTabIndex) {
-            0 -> ViewRoomList(floors, navController)   // truyền floors fetch được
-            1 -> ViewBuildingDetails(navController, building)
-        }
-    }
+    ViewBuildingTabRow(
+        tabItemList = listOf(
+            "Room list" to Icons.Outlined.List,
+            "Details" to Icons.Outlined.Info
+        ),
+        floors = floors,
+        navController = navController,
+        building = building
+    )
 }
 
 @Preview

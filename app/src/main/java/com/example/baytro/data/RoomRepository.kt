@@ -6,12 +6,20 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 class RoomRepository (
     db : FirebaseFirestore,
-    private val buildingRepository: BuildingRepository
 ) : Repository<Room> {
     private val collection = db.collection("rooms")
     override suspend fun getAll(): List<Room> {
         val snapshot = collection.get()
-        return snapshot.documents.map { it.data<Room>()}
+        return snapshot.documents.mapNotNull { doc ->
+            try {
+                // Lấy object
+                val room = doc.data<Room>()
+                // Gán thêm id từ document.id
+                room.copy(id = doc.id)
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
 
     override suspend fun getById(id: String): Room? {

@@ -77,6 +77,8 @@ dependencies {
 
     implementation (libs.androidx.compose.material.icons.core)
     implementation (libs.androidx.compose.material.icons.extended)
+    implementation("androidx.compose.foundation:foundation")
+
 
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
@@ -87,4 +89,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
     // https://mvnrepository.com/artifact/com.github.yalantis/ucrop
     implementation("com.github.yalantis:ucrop:2.2.6")
+
+
 }

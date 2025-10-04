@@ -8,9 +8,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.baytro.MainScreen
-import com.example.baytro.view.screens.AddBuildingScreen
+import com.example.baytro.view.screens.building.AddBuildingScreen
 import com.example.baytro.view.screens.BillListScreen
-import com.example.baytro.view.screens.BuildingListScreen
+import com.example.baytro.view.screens.building.BuildingListScreen
 import com.example.baytro.view.screens.ContractListScreen
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.MaintenanceScreen
@@ -19,6 +19,7 @@ import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
 import com.example.baytro.view.screens.room.AddRoomScreen
 import com.example.baytro.view.screens.room.EditRoomScreen
+import com.example.baytro.view.screens.room.RoomDetailsScreen
 import com.example.baytro.view.screens.room.RoomListScreen
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
@@ -35,13 +36,7 @@ fun AppNavigationController(
         composable(
             Screens.BuildingList.route
         ) {
-            BuildingListScreen(
-                navController = navHostController,
-                onViewBuilding = { buildingName ->
-                    Log.d("DEBUG", "Navigate with buildingId=$buildingName")
-                    navHostController.navigate(Screens.RoomList.createRoute(buildingName))
-                }
-            )
+            BuildingListScreen(navController = navHostController)
         }
         composable(
             Screens.BuildingAdd.route
@@ -74,27 +69,43 @@ fun AppNavigationController(
             ContractListScreen()
         }
         composable(
-            route = Screens.RoomList.route, // route có {buildingName} bên trong
+            route = Screens.RoomList.route, // route có {buildingId} bên trong
+            arguments = listOf(navArgument("buildingId") { type = NavType.StringType})
+        ) { entry ->
+            // Lấy tham số từ navigation
+            val buildingId = entry.arguments?.getString("buildingId") ?: ""
+            // Gọi screen, truyền buildingName vào
+            RoomListScreen(
+                navController = navHostController,
+            )
+        }
+        composable(
+            route = Screens.RoomDetails.route,
+            arguments = listOf(navArgument("roomId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+            RoomDetailsScreen(
+                navController = navHostController)
+        }
+        composable(
+            route = Screens.EditRoom.route,
+            arguments = listOf(navArgument("roomId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+            EditRoomScreen(navController = navHostController)
+        }
+        composable(
+            route = Screens.AddRoom.route,
             arguments = listOf(navArgument("buildingName") { type = NavType.StringType})
         ) { entry ->
             // Lấy tham số từ navigation
             val buildingName = entry.arguments?.getString("buildingName") ?: ""
-            Log.d("DEBUG", "RoomListScreen received buildingName=$buildingName")
+            Log.d("AddRoomNav", "BuildingNameInNav: $buildingName")
             // Gọi screen, truyền buildingName vào
-            RoomListScreen(
+            AddRoomScreen(
                 navController = navHostController,
-                buildingId = buildingName
+                buildingName = buildingName
             )
-        }
-        composable(
-            Screens.EditRoom.route
-        ) {
-            EditRoomScreen()
-        }
-        composable(
-            Screens.AddRoom.route
-        ) {
-            AddRoomScreen(navHostController)
         }
         composable (
             Screens.MainScreen.route

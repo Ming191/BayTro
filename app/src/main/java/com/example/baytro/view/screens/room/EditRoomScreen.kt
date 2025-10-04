@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -26,14 +27,18 @@ import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
-import com.example.baytro.viewModel.Room.AddRoomVM
+import com.example.baytro.viewModel.Room.EditRoomVM
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun EditRoomScreen(
-    navController: NavHostController? = null,
-    viewModel: AddRoomVM = koinViewModel(),
+    navController: NavHostController,
+    viewModel: EditRoomVM = koinViewModel(),
 ) {
+    val room by viewModel.room.collectAsState()
+    val uiState by viewModel.editRoomUIState.collectAsState()
+    val formState by viewModel.editRoomFormState.collectAsState()
+
     // --- State for each TextField ---
     val buildingName: (String) -> Unit =  viewModel::onBuildingNameChange
     val roomNumber: (String) -> Unit = viewModel::onRoomNumberChange
@@ -42,9 +47,9 @@ fun EditRoomScreen(
     val defaultRentalFee: (String) -> Unit = viewModel::onRentalFeeChange
     val interior: (Furniture) -> Unit = viewModel::onInteriorChange
 
-    val uiState by viewModel.addRoomUIState.collectAsState()
-    val formState by viewModel.addRoomFormState.collectAsState()
-
+    LaunchedEffect(Unit) {
+        viewModel.loadRoom()
+    }
 
     LazyColumn (
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
@@ -53,14 +58,15 @@ fun EditRoomScreen(
         item { DividerWithSubhead("Building information") }
         item {
             RequiredTextField(
-                value = formState.buildingName, // Bind to state
+                value = room?.buildingName ?: "", // Bind to state
                 onValueChange = buildingName, // Update state
                 label = "Building name",
                 isError = false, // You'll likely get this from ViewModel validation
                 errorMessage = null, // Also from ViewModel
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp)
+                    .padding(start = 16.dp, end = 16.dp),
+                readOnly = true
             )
         }
 
@@ -119,7 +125,7 @@ fun EditRoomScreen(
         item {
             DividerWithSubhead("Interior condition")
             ChoiceSelection(
-                options = Furniture.entries.toList(),
+                options = Furniture.entries.toList().dropLast(1),
                 selectedOption = formState.interior,
                 onOptionSelected = interior,
                 isError = false,
@@ -150,7 +156,7 @@ fun EditRoomScreen(
             SubmitButton(
                 isLoading = uiState is UiState.Loading,
                 onClick = {
-                    viewModel.addRoom()
+                    viewModel.editRoom()
                 }
             )
         }
