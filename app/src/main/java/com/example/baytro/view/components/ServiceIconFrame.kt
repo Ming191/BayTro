@@ -15,7 +15,7 @@ import com.example.baytro.ui.theme.*
 @Composable
 fun ServiceIconFrame(
     modifier: Modifier = Modifier,
-    label: String = "" // Chữ cái đầu hoặc ký hiệu
+    label: String = ""
 ) {
     Box(
         modifier = modifier
