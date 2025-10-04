@@ -251,7 +251,8 @@ fun ContractListItem(contract: Contract, onClick: () -> Unit = {}) {
             }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Room: ${contract.roomNumber}", style = MaterialTheme.typography.titleMedium)
+            Text(text = "Contract number: ${contract.contractNumber}", style = MaterialTheme.typography.titleMedium)
+            Text(text = "Room: ${contract.roomNumber}", style = MaterialTheme.typography.bodyMedium)
             Text(text = "Start: ${contract.startDate} - End: ${contract.endDate}", style = MaterialTheme.typography.bodyMedium)
         }
     }
