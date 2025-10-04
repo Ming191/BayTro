@@ -1,7 +1,9 @@
 package com.example.baytro.view.screens.contract
 
 import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,7 +23,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.Building
 import com.example.baytro.data.contract.Contract
@@ -34,6 +34,7 @@ import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.SecondaryButton
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.contract.AddContractFormState
@@ -42,7 +43,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import kotlin.collections.isNotEmpty
 @Composable
 fun AddContractScreen(
-    viewModel: AddContractVM = koinViewModel()
+    viewModel: AddContractVM = koinViewModel(),
+    navigateToDetails: (String) -> Unit
 ) {
     val uiState by viewModel.addContractUiState.collectAsState()
     val formState by viewModel.addContractFormState.collectAsState()
@@ -66,8 +68,13 @@ fun AddContractScreen(
                 CircularProgressIndicator()
             }
         }
-        is UiState.Success -> Unit
-        UiState.Idle -> Unit
+        is UiState.Success -> {
+            // Navigate to details screen
+            val contractId = (uiState as UiState.Success<Contract>).data.id
+            navigateToDetails(contractId)
+            viewModel.clearError()
+        }
+        else -> {}
     }
 
     AddContractContent(
@@ -152,6 +159,7 @@ fun AddContractContent(
                         selectedOption = formState.status,
                         onOptionSelected = onStatusChange,
                         optionToString = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
+                        enabled = false
                     )
                 }
 
@@ -212,7 +220,7 @@ fun AddContractContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 16.dp),
-                        subhead = "Tenants"
+                        subhead = "Service"
                     )
                 }
 
@@ -228,66 +236,28 @@ fun AddContractContent(
                         onPhotosSelected = onPhotosSelected,
                         maxSelectionCount = 5,
                     )
-                    if (formState.photosError is ValidationResult.Error) {
-                        Text(
-                            text = formState.photosError.message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
                 }
 
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
-                    SubmitButton(
-                        text = "Submit",
-                        isLoading = uiState is UiState.Loading,
-                        onClick = onSubmit
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        SecondaryButton(
+                            text = "Back",
+                            onClick = { /* TODO: Handle cancel action */ },
+                            modifier = Modifier.weight(1f).fillMaxWidth()
+                        )
+                        SubmitButton(
+                            text = "Save",
+                            isLoading = uiState is UiState.Loading,
+                            onClick = onSubmit,
+                            modifier = Modifier.weight(1f).fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AddContractContentPreview() {
-    val buildings = listOf(
-        Building(
-            id = "1", name = "Building A", address = "123 Main St",
-            floor = 1,
-            status = "active",
-            billingDate = 1,
-            paymentStart = 2,
-            paymentDue = 3
-        ),
-        Building(
-            id = "2", name = "Building 2", address = "123 Main St",
-            floor = 1,
-            status = "active",
-            billingDate = 1,
-            paymentStart = 2,
-            paymentDue = 3
-        ),
-    )
-    val rooms = listOf(
-        Room(id = "1", roomNumber = "101", buildingId = "1"),
-        Room(id = "2", roomNumber = "102", buildingId = "1"),
-        Room(id = "3", roomNumber = "201", buildingId = "2")
-    )
-    AddContractContent(
-        formState = AddContractFormState(
-            availableBuildings = buildings,
-            selectedBuilding = buildings[0],
-            availableRooms = rooms,
-            selectedRoom = rooms[0]
-        ),
-        onBuildingSelected = {},
-        onRoomSelected = {},
-        onStartDateSelected = {},
-        onEndDateSelected = {},
-        onDepositChange = {},
-        onRentalFeeChange = {}
     )
 }

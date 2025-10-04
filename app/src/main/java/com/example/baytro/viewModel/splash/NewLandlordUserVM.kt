@@ -6,12 +6,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
-import com.example.baytro.data.BankCode
-import com.example.baytro.data.Gender
+import com.example.baytro.data.user.BankCode
+import com.example.baytro.data.user.Gender
 import com.example.baytro.data.MediaRepository
-import com.example.baytro.data.Role
-import com.example.baytro.data.User
-import com.example.baytro.data.UserRepository
+import com.example.baytro.data.user.Role
+import com.example.baytro.data.user.User
+import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator

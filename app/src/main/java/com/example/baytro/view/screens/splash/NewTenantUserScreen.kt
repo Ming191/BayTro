@@ -24,8 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.baytro.data.Gender
-import com.example.baytro.data.User
+import com.example.baytro.data.user.Gender
+import com.example.baytro.data.user.User
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
@@ -151,7 +151,10 @@ fun NewTenantUserScreenContent(
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             item {
-                DividerWithSubhead("Profile image")
+                DividerWithSubhead(
+                    subhead = "Profile image",
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
                 PhotoCarousel(
                     selectedPhotos = selectedPhotos,
                     onPhotosSelected = onPhotosSelected,
@@ -178,8 +181,8 @@ fun NewTenantUserScreenContent(
             // Personal info
             item {
                 DividerWithSubhead(
+                    modifier = Modifier.padding(vertical = 8.dp),
                     "Personal information",
-                    modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
 
@@ -248,8 +251,8 @@ fun NewTenantUserScreenContent(
 
             item {
                 DividerWithSubhead(
+                    modifier = Modifier.padding(vertical = 8.dp),
                     "Tenant information",
-                    modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
 

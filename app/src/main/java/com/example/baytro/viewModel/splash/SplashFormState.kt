@@ -1,9 +1,9 @@
 package com.example.baytro.viewModel.splash
 
 import android.net.Uri
-import com.example.baytro.data.BankCode
-import com.example.baytro.data.Gender
-import com.example.baytro.data.RoleType
+import com.example.baytro.data.user.BankCode
+import com.example.baytro.data.user.Gender
+import com.example.baytro.data.user.RoleType
 import com.example.baytro.utils.ValidationResult
 data class SplashFormState(
     val role: RoleType = RoleType.entries[0],

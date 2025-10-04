@@ -1,4 +1,4 @@
-package com.example.baytro.data
+package com.example.baytro.data.user
 
 import com.google.firebase.firestore.DocumentId
 import kotlinx.serialization.SerialName
@@ -54,4 +54,5 @@ data class User (
     val gender: Gender,
     val address: String,
     val profileImgUrl: String?,
+    val fcmToken: String? = null,
 )

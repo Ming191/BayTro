@@ -1,5 +1,8 @@
-package com.example.baytro.data
+package com.example.baytro.data.user
 
+import android.util.Log
+import com.example.baytro.data.Repository
+import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 
@@ -49,6 +52,32 @@ class UserRepository(
             userDocRef.update("profileImgUrl" to imageUrl)
         } catch (e: Exception) {
             throw Exception("Failed to update user profile in database.", e)
+        }
+    }
+
+    suspend fun getUsersByIds(userIds: List<String>): List<User> {
+        Log.d("UserRepository", "getUsersByIds ENTRY, userIds: $userIds")
+        if (userIds.isEmpty()) {
+            Log.d("UserRepository", "getUsersByIds: userIds is empty, returning emptyList")
+            return emptyList()
+        }
+
+        return try {
+            val querySnapshot = collection.where {
+                FieldPath.documentId inArray userIds
+            }.get()
+            Log.d("UserRepository", "getUsersByIds: querySnapshot.documents.size = ${querySnapshot.documents.size}")
+            querySnapshot.documents.forEach { doc ->
+                Log.d("UserRepository", "getUsersByIds: found user docId=${doc.id}, data=${doc.data<User>()}")
+            }
+            querySnapshot.documents.mapNotNull { doc ->
+                runCatching {
+                    doc.data<User>().copy(id = doc.id)
+                }.getOrNull()
+            }
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error fetching users by IDs", e)
+            emptyList()
         }
     }
 }

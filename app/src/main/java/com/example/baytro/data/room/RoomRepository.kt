@@ -49,7 +49,7 @@ class RoomRepository(
             try {
                 val room = doc.data<Room>()
                 room.copy(id = doc.id)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
         }

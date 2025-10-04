@@ -1,16 +1,22 @@
 package com.example.baytro.data.contract
 
+import android.util.Log
 import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.mapNotNull
 
 class ContractRepository(
-    private val db : FirebaseFirestore
+    db : FirebaseFirestore
 ) : Repository<Contract> {
     private val collection = db.collection("contracts")
 
     override suspend fun getAll(): List<Contract> {
         val snapshot = collection.get()
-        return snapshot.documents.map { it.data<Contract>()}
+        return snapshot.documents.map {
+            it.data<Contract>().copy(id = it.id)
+        }
     }
 
     override suspend fun getById(id: String): Contract? {
@@ -41,5 +47,57 @@ class ContractRepository(
     }
     override suspend fun updateFields(id: String, fields: Map<String, Any?>) {
         collection.document(id).update(fields)
+    }
+
+    suspend fun isUserInAnyContract(userId: String): Boolean {
+        return try {
+            val snapshot = collection.where {
+                all(
+                    "tenantIds" contains userId,
+                    "status" equalTo "ACTIVE"
+                )
+            }.get()
+
+            snapshot.documents.isNotEmpty()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun getContractFlow(contractId: String): Flow<Contract?> {
+        if (contractId.isBlank()) {
+            return flowOf(null)
+        }
+        val docRef = collection.document(contractId)
+        return docRef.snapshots
+            .mapNotNull { documentSnapshot ->
+                if (documentSnapshot.exists) {
+                    documentSnapshot.data<Contract>()
+                } else {
+                    null
+                }
+            }
+    }
+
+    suspend fun getContractsByStatus(landlordId: String, statuses: List<Status>): List<Contract> {
+        if (landlordId.isBlank() || statuses.isEmpty()) {
+            return emptyList()
+        }
+
+        try {
+            val querySnapshot = collection.where {
+                all(
+                    "landlordId" equalTo landlordId,
+                    "status" inArray statuses.map { it.name }
+                )
+            }.get()
+            return querySnapshot.documents.map { doc ->
+                val contract = doc.data<Contract>()
+                contract.copy(id = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching contracts by status", e)
+            throw e
+        }
     }
 }

@@ -6,7 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
-import com.example.baytro.data.Gender
+import com.example.baytro.data.user.Gender
 import com.example.baytro.data.IdCardInfo
 import com.example.baytro.data.IdCardInfoWithImages
 import com.example.baytro.data.MediaRepository
@@ -58,7 +58,7 @@ class UploadIdCardVM(
         val formState = _uploadIdCardFormState.value
 
         val photosValidator = when {
-            formState.selectedPhotos.isEmpty() || formState.selectedPhotos.size < 2-> ValidationResult.Error("Please upload both front and back side photos of your ID card")
+                        formState.selectedPhotos.isEmpty() || formState.selectedPhotos.size < 2 -> ValidationResult.Error("Please upload both front and back side photos of your ID card")
             else -> ValidationResult.Success
         }
 

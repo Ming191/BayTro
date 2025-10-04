@@ -5,20 +5,24 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.baytro.MainScreen
 import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.BuildingListScreen
 import com.example.baytro.view.screens.AddBuildingScreen
-import com.example.baytro.view.screens.EditBuildingScreen
-import com.example.baytro.view.screens.ContractListScreen
 import com.example.baytro.view.screens.DashboardScreen
+import com.example.baytro.view.screens.EditBuildingScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
 import com.example.baytro.view.screens.contract.AddContractScreen
+import com.example.baytro.view.screens.contract.ContractDetailsScreen
+import com.example.baytro.view.screens.contract.ContractListScreen
+import com.example.baytro.view.screens.contract.TenantEmptyContractView
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.NewTenantUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
@@ -83,7 +87,11 @@ fun AppNavigationController(
         composable(
             Screens.ContractList.route
         ) {
-            ContractListScreen()
+            ContractListScreen(
+                onContractClick = { contractId ->
+                    navHostController.navigate(Screens.ContractDetails.passContractId(contractId))
+                }
+            )
         }
         composable (
             Screens.MainScreen.route
@@ -103,6 +111,20 @@ fun AppNavigationController(
                 },
                 onSignInSuccess = {
                     navHostController.navigate(Screens.MainScreen.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                    }
+                },
+                onTenantNoContract = {
+                    navHostController.navigate(Screens.TenantEmptyContract.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                    }
+                },
+                onTenantPendingSession = {
+                    navHostController.navigate(Screens.TenantEmptyContract.route) {
                         popUpTo(0) {
                             inclusive = true
                         }
@@ -155,7 +177,13 @@ fun AppNavigationController(
         composable (
             Screens.AddContract.route
         ) {
-            AddContractScreen()
+            AddContractScreen(
+                navigateToDetails = { contractId ->
+                    navHostController.navigate(Screens.ContractDetails.passContractId(contractId)) {
+                        popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
+                    }
+                },
+            )
         }
 
         composable (
@@ -180,6 +208,24 @@ fun AppNavigationController(
                     }
                 }
             )
+        }
+
+        composable(
+            route = Screens.ContractDetails.route,
+            arguments = listOf(
+                navArgument("contractId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val contractId = backStackEntry.arguments?.getString("contractId") ?: ""
+            ContractDetailsScreen(
+                contractId = contractId
+            )
+        }
+
+        composable(
+            Screens.TenantEmptyContract.route
+        ) {
+            TenantEmptyContractView()
         }
     }
 }
