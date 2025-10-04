@@ -55,7 +55,7 @@ fun EditRoomScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        item { DividerWithSubhead("Building information") }
+        item { DividerWithSubhead("Building information", Modifier.padding(start = 16.dp, end = 16.dp)) }
         item {
             RequiredTextField(
                 value = room?.buildingName ?: "", // Bind to state
@@ -123,7 +123,7 @@ fun EditRoomScreen(
         }
 
         item {
-            DividerWithSubhead("Interior condition")
+            DividerWithSubhead("Interior condition", Modifier.padding(start = 16.dp, end = 16.dp))
             ChoiceSelection(
                 options = Furniture.entries.toList().dropLast(1),
                 selectedOption = formState.interior,

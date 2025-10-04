@@ -7,7 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,6 +26,8 @@ import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.viewModel.Room.RoomDetailsVM
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.CardComponent
 import java.text.NumberFormat
@@ -49,10 +56,11 @@ fun RoomDetailsScreen(
     Log.d("RoomDetailsScreen", "RoomID: ${room?.buildingName}")
     Column (
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        DividerWithSubhead("Room information", Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp))
+        DividerWithSubhead("Room information")
         CardComponent(
             infoMap = mapOf(
                 "Status" to room?.status.toString(),
@@ -62,12 +70,41 @@ fun RoomDetailsScreen(
                 "Interior" to room?.interior.toString()
             )
         )
-        DividerWithSubhead("Contract", Modifier.padding(16.dp))
-        Card {
-            Text("contract")
+        DividerWithSubhead("Contract", Modifier.padding(top = 16.dp, bottom = 16.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            ListItem(
+                headlineContent = {
+                    Text(
+                        text = "Contract#1234",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                supportingContent = {
+                    Column {
+                        Text(
+                            text = "Room 101-Gay Town",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "4/2025-4/2026",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                },
+                colors = ListItemDefaults.colors(
+                    containerColor = Color.Transparent
+                )
+            )
         }
-        DividerWithSubhead("Service", Modifier.padding(16.dp))
-        DividerWithSubhead("Tenants", Modifier.padding(16.dp))
+        DividerWithSubhead("Service", Modifier.padding(top = 16.dp, bottom = 16.dp))
+        DividerWithSubhead("Tenants", Modifier.padding(top = 16.dp, bottom = 16.dp))
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
