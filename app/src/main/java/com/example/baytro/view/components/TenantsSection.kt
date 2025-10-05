@@ -33,7 +33,7 @@ import com.example.baytro.data.user.User
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TenantsSection(tenants: List<User>, onAddTenantClick: () -> Unit) {
+fun TenantsSection(tenants: List<User>, onAddTenantClick: () -> Unit, showAddButton: Boolean = true) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -43,7 +43,9 @@ fun TenantsSection(tenants: List<User>, onAddTenantClick: () -> Unit) {
         tenants.forEach { tenant ->
             TenantItem(tenant = tenant)
         }
-        AddTenantButton(onClick = onAddTenantClick)
+        if (showAddButton) {
+            AddTenantButton(onClick = onAddTenantClick)
+        }
     }
 }
 @Composable

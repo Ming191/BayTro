@@ -24,4 +24,5 @@ sealed class Screens (val route : String) {
             return "contract_details_screen/$contractId"
         }
     }
+    object TenantDashboard : Screens("tenant_dashboard")
 }

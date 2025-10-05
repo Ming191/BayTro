@@ -8,26 +8,33 @@ import com.example.baytro.data.contract.Contract
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.contract.Status
 import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.room.RoomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.text.get
 
 enum class ContractTab {
     ACTIVE, PENDING, ENDED
 }
 
+// Create a data class to hold contract with room number
+data class ContractWithRoom(
+    val contract: Contract,
+    val roomNumber: String
+)
+
 class ContractListVM(
     private val contractRepository: ContractRepository,
     private val authRepository: AuthRepository,
-    private val buildingRepository: BuildingRepository // Inject BuildingRepository
+    private val buildingRepository: BuildingRepository,
+    private val roomRepository: RoomRepository
 ) : ViewModel() {
     private val _selectedTab = MutableStateFlow(ContractTab.ACTIVE)
     val selectedTab: StateFlow<ContractTab> = _selectedTab.asStateFlow()
 
-    private val _contracts = MutableStateFlow<List<Contract>>(emptyList())
-    val contracts: StateFlow<List<Contract>> = _contracts.asStateFlow()
+    private val _contracts = MutableStateFlow<List<ContractWithRoom>>(emptyList())
+    val contracts: StateFlow<List<ContractWithRoom>> = _contracts.asStateFlow()
 
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
@@ -38,7 +45,7 @@ class ContractListVM(
     private val landlordId: String? = authRepository.getCurrentUser()?.uid
 
     // Cache for each tab
-    private val contractCache = mutableMapOf<ContractTab, List<Contract>>()
+    private val contractCache = mutableMapOf<ContractTab, List<ContractWithRoom>>()
 
     // Store building IDs owned by the user
     private var userBuildingIds: List<String> = emptyList()
@@ -88,8 +95,18 @@ class ContractListVM(
                 }
                 val fetchedContracts = contractRepository.getContractsByStatus(landlordId, statusesToFetch)
                 val filteredContracts = fetchedContracts.filter { it.buildingId in userBuildingIds }
-                _contracts.value = filteredContracts
-                contractCache[_selectedTab.value] = filteredContracts
+
+                // Fetch room numbers for each contract
+                val contractsWithRooms = filteredContracts.map { contract ->
+                    val room = roomRepository.getById(contract.roomId)
+                    ContractWithRoom(
+                        contract = contract,
+                        roomNumber = room?.roomNumber ?: "N/A"
+                    )
+                }
+
+                _contracts.value = contractsWithRooms
+                contractCache[_selectedTab.value] = contractsWithRooms
             } catch (e: Exception) {
                 _error.value = e.message
                 _contracts.value = emptyList()

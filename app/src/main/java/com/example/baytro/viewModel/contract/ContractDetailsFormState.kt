@@ -2,6 +2,7 @@ package com.example.baytro.viewModel.contract
 
 import com.example.baytro.data.contract.Status
 import com.example.baytro.data.user.User
+import com.example.baytro.utils.Utils.formatCurrency
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -34,13 +35,4 @@ data class ContractDetailsFormState(
     val isPendingContract: Boolean
         get() = status == Status.PENDING
 
-    private fun formatCurrency(amount: String): String {
-        return try {
-            val numericAmount = amount.toDoubleOrNull() ?: 0.0
-            val formatter = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("vi-VN"))
-            formatter.format(numericAmount)
-        } catch (e: Exception) {
-            amount
-        }
-    }
 }

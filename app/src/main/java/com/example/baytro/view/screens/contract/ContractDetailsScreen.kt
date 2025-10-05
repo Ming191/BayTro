@@ -118,7 +118,8 @@ fun ContractDetailsScreenPreview() {
         decliningIds = emptySet(),
         onAddTenant = {},
         onConfirmTenant = {},
-        onDeclineTenant = {}
+        onDeclineTenant = {},
+        isLandlord = true
     )
 }
 
@@ -137,6 +138,7 @@ fun ContractDetailsScreen(
     val decliningIds by viewModel.decliningSessionIds.collectAsState()
     val error by viewModel.actionError.collectAsState()
     val loading by viewModel.loading.collectAsState()
+    val isLandlord by viewModel.isLandlord.collectAsState()
 
     var indicatorVisible by remember { mutableStateOf(true) }
     var contentVisible by remember { mutableStateOf(false) }
@@ -193,6 +195,7 @@ fun ContractDetailsScreen(
                 pendingSessions = pendingSessions,
                 confirmingIds = confirmingIds,
                 decliningIds = decliningIds,
+                isLandlord = isLandlord,
                 onAddTenant = viewModel::generateQrCode,
                 onConfirmTenant = viewModel::confirmTenant,
                 onDeclineTenant = viewModel::declineTenant
@@ -211,6 +214,7 @@ fun ContractDetailsContent(
     pendingSessions: List<PendingQrSession>,
     confirmingIds: Set<String>,
     decliningIds: Set<String>,
+    isLandlord: Boolean,
     onAddTenant: () -> Unit,
     onConfirmTenant: (String) -> Unit,
     onDeclineTenant: (String) -> Unit,
@@ -268,7 +272,7 @@ fun ContractDetailsContent(
                 )
 
                 AnimatedVisibility(
-                    visible = formState.isPendingContract && !formState.hasActiveTenants && pendingSessions.isEmpty(),
+                    visible = formState.isPendingContract && !formState.hasActiveTenants && pendingSessions.isEmpty() && isLandlord,
                     enter = fadeIn() + slideInVertically(),
                     exit = fadeOut() + slideOutVertically()
                 ) {
@@ -283,6 +287,7 @@ fun ContractDetailsContent(
                     TenantsSection(
                         tenants = formState.tenantList,
                         onAddTenantClick = onAddTenant,
+                        showAddButton = isLandlord
                     )
                 }
             }
@@ -290,7 +295,7 @@ fun ContractDetailsContent(
             // Animated ActionButtonsRow
             item {
                 AnimatedVisibility(
-                    visible = formState.isActiveContract,
+                    visible = formState.isActiveContract && isLandlord,
                     enter = fadeIn() + slideInVertically(),
                     exit = fadeOut() + slideOutVertically()
                 ) {

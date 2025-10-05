@@ -39,11 +39,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.Building
-import com.example.baytro.data.contract.Contract
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.ContractTab
+import com.example.baytro.viewModel.contract.ContractWithRoom
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -93,7 +93,7 @@ fun ContractListContent(
     selectedTabIndex: Int = 0,
     pagerState: PagerState,
     onTabSelected: (Int) -> Unit = { _ -> },
-    contracts: List<Contract> = emptyList(),
+    contracts: List<ContractWithRoom> = emptyList(),
     loading: Boolean = false,
     error: String? = null,
     ownedBuildings: List<Building> = emptyList(),
@@ -120,7 +120,7 @@ fun ContractListContent(
     val filteredContracts = if (selectedBuildingId.isNullOrEmpty()) {
         contracts
     } else {
-        contracts.filter { it.buildingId == selectedBuildingId }
+        contracts.filter { it.contract.buildingId == selectedBuildingId }
     }
 
     if (showNoBuildingsDialog) {
@@ -199,7 +199,7 @@ fun ContractListContent(
 @Composable
 fun ContractListPage(
     isLoading: Boolean,
-    contracts: List<Contract>,
+    contracts: List<ContractWithRoom>,
     emptyMessage: String,
     onContractClick: (String) -> Unit = {}
 ) {
@@ -216,7 +216,7 @@ fun ContractListPage(
 
 @Composable
 fun ContractList(
-    contracts: List<Contract>,
+    contracts: List<ContractWithRoom>,
     emptyMessage: String,
     isLoading: Boolean = false,
     onContractClick: (String) -> Unit = {}
@@ -231,18 +231,25 @@ fun ContractList(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(contracts) { contract ->
-                ContractListItem(contract = contract, onClick = {
-                    Log.d("NavigationCheck", "Navigating with contractId: '${contract.id}'")
-                    onContractClick(contract.id)
-                })
+            items(contracts) { contractWithRoom ->
+                ContractListItem(
+                    contractWithRoom = contractWithRoom,
+                    onClick = {
+                        Log.d("NavigationCheck", "Navigating with contractId: '${contractWithRoom.contract.id}'")
+                        onContractClick(contractWithRoom.contract.id)
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun ContractListItem(contract: Contract, onClick: () -> Unit = {}) {
+fun ContractListItem(
+    contractWithRoom: ContractWithRoom,
+    onClick: () -> Unit = {},
+) {
+    val contract = contractWithRoom.contract
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -252,7 +259,7 @@ fun ContractListItem(contract: Contract, onClick: () -> Unit = {}) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = "Contract number: ${contract.contractNumber}", style = MaterialTheme.typography.titleMedium)
-            Text(text = "Room: ${contract.roomNumber}", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Room: ${contractWithRoom.roomNumber}", style = MaterialTheme.typography.bodyMedium)
             Text(text = "Start: ${contract.startDate} - End: ${contract.endDate}", style = MaterialTheme.typography.bodyMedium)
         }
     }

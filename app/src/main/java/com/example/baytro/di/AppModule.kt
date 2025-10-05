@@ -18,6 +18,7 @@ import com.example.baytro.viewModel.contract.AddContractVM
 import com.example.baytro.viewModel.contract.ContractDetailsVM
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
+import com.example.baytro.viewModel.dashboard.TenantDashboardVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
@@ -154,9 +155,11 @@ val authModule = module {
         ContractListVM(
             get(),
             get(),
+            get(),
             get()
         )
     }
     viewModel { BuildingListVM(get(), get()) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
+    viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
 }

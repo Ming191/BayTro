@@ -81,7 +81,12 @@ class SignInVM(
                                 _signInUIState.value = AuthUIState.TenantNoContract(user)
                                 return@launch
                             }
+
+                            // Tenant with active contract - redirect to tenant dashboard
+                            _signInUIState.value = AuthUIState.TenantWithContract(user)
+                            return@launch
                         }
+                        // Landlord - redirect to main screen
                         _signInUIState.value = AuthUIState.Success(user)
                     }
                 } else {
