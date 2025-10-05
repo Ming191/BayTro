@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Service(
-    @kotlinx.serialization.Transient
     val id: String = "",
     val name: String = "",
     val description: String = "",

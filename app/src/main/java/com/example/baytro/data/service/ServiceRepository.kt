@@ -52,4 +52,9 @@ class ServiceRepository(
             }
         }
     }
+
+    suspend fun addService(service: Service): Service {
+        val docRef = collection.add(service)
+        return service.copy(id = docRef.id)
+    }
 }

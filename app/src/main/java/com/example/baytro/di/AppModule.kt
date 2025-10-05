@@ -8,6 +8,7 @@ import com.example.baytro.data.service.ServiceRepository
 import com.example.baytro.viewModel.SignInVM
 import com.example.baytro.viewModel.SignUpVM
 import com.example.baytro.viewModel.service.ServiceListVM
+import com.example.baytro.viewModel.service.AddServiceVM
 import com.google.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.FirebaseFirestore
@@ -31,4 +32,5 @@ val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }
     single<ServiceRepository> { ServiceRepository(get()) }
     viewModel { ServiceListVM(get(), get(), get()) }
+    viewModel { AddServiceVM(get(), get(), get(), get()) }
 }
