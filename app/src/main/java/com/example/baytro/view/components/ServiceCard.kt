@@ -23,7 +23,6 @@ fun ServiceActionButton(
     icon: ImageVector,
     contentDescription: String,
     backgroundColor: Color,
-    iconColor: Color,
     onClick: () -> Unit
 ) {
     IconButton(
@@ -31,14 +30,13 @@ fun ServiceActionButton(
         modifier = Modifier
             .size(40.dp)
             .background(
-                color = backgroundColor.copy(alpha = 0.2f),
+                color = backgroundColor.copy(alpha = 0.7f),
                 shape = CircleShape
             )
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = iconColor
         )
     }
 }
@@ -76,7 +74,7 @@ fun ServiceCard(
                     )
 
                     ServiceIconFrame(
-                        label = service.name.take(1)
+                        serviceName = service.name
                     )
 
                     Column(
@@ -105,8 +103,7 @@ fun ServiceCard(
                     ServiceActionButton(
                         icon = Icons.Filled.Edit,
                         contentDescription = "Edit",
-                        backgroundColor = MaterialTheme.colorScheme.tertiary,
-                        iconColor = MaterialTheme.colorScheme.tertiary,
+                        backgroundColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         onClick = { onEdit(service) }
                     )
 
@@ -118,16 +115,21 @@ fun ServiceCard(
                     ServiceActionButton(
                         icon = Icons.Filled.Delete,
                         contentDescription = "Delete",
-                        backgroundColor = MaterialTheme.colorScheme.primary,
-                        iconColor = MaterialTheme.colorScheme.primary,
+                        backgroundColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         onClick = { onDelete(service) }
+                    )
+
+                    Spacer(
+                        modifier = Modifier
+                            .width(16.dp)
                     )
                 }
             }
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Spacer(
@@ -150,7 +152,7 @@ fun ServiceCard(
 fun ServiceCardPreview() {
     val mockService = Service(
         id = "1",
-        name = "Electricity",
+        name = "Water",
         description = "Based on meter reading",
         price = "4.000 VND",
         unit = "kWh",
