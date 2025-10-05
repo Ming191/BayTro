@@ -15,7 +15,7 @@ import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.building.BuildingListScreen
 import com.example.baytro.view.screens.contract.ContractListScreen
 import com.example.baytro.view.screens.DashboardScreen
-import com.example.baytro.view.screens.EditBuildingScreen
+import com.example.baytro.view.screens.building.EditBuildingScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
@@ -125,15 +125,15 @@ fun AppNavigationController(
         }
         composable(
             route = Screens.AddRoom.route,
-            arguments = listOf(navArgument("buildingName") { type = NavType.StringType})
+            arguments = listOf(navArgument("buildingId") { type = NavType.StringType})
         ) { entry ->
             // Lấy tham số từ navigation
-            val buildingName = entry.arguments?.getString("buildingName") ?: ""
-            Log.d("AddRoomNav", "BuildingNameInNav: $buildingName")
-            // Gọi screen, truyền buildingName vào
+            val buildingId = entry.arguments?.getString("buildingId") ?: ""
+            Log.d("AddRoomNav", "BuildingIdInNav: $buildingId")
+            // Gọi screen, truyền buildingId vào
             AddRoomScreen(
                 navController = navHostController,
-                buildingName = buildingName
+                buildingId = buildingId
             )
         }
         composable (

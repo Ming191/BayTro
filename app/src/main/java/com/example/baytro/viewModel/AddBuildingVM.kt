@@ -35,13 +35,18 @@ class AddBuildingVM(
                     ?: throw IllegalStateException("No logged in user found")
                 
                 val buildingWithUserId = building.copy(userId = currentUser.uid)
-                buildingRepository.add(buildingWithUserId)
+                val newId = buildingRepository.add(buildingWithUserId)
+                
+                // Update the document to include its own ID
+                buildingRepository.updateFields(newId, mapOf("id" to newId))
+                
                 _addBuildingUIState.value = AuthUIState.Success(currentUser)
             } catch (e: Exception) {
                 _addBuildingUIState.value = AuthUIState.Error(e.message ?: "An unknown error occurred")
             }
         }
     }
+
     fun addBuildingWithImages(building: Building, imageUris: List<Uri>) {
         viewModelScope.launch {
             _addBuildingUIState.value = AuthUIState.Loading
@@ -49,9 +54,13 @@ class AddBuildingVM(
                 val currentUser = authRepository.getCurrentUser()
                     ?: throw IllegalStateException("No logged in user found")
 
-                // Tạo building trước để có ID
-                val buildingWithUserId = building.copy(userId = currentUser.uid, imageUrls = emptyList())
+                val buildingWithUserId = building.copy(
+                    userId = currentUser.uid,
+                    imageUrls = emptyList()
+                )
                 val newId = buildingRepository.add(buildingWithUserId)
+                
+                buildingRepository.updateFields(newId, mapOf("id" to newId))
                 Log.d("AddBuildingVM", "Building created with ID: $newId")
 
                 val limitedUris = imageUris.take(3)
@@ -59,7 +68,6 @@ class AddBuildingVM(
                 val startTime = System.currentTimeMillis()
                 
                 // Tối ưu: Compress và upload song song cho từng ảnh
-                // Thay vì compress tất cả rồi upload tất cả
                 val uploadedUrls = limitedUris.mapIndexed { index, uri ->
                     async {
                         val imageStartTime = System.currentTimeMillis()

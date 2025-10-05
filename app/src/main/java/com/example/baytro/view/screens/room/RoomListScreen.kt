@@ -58,7 +58,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.example.baytro.R
 import com.example.baytro.data.Building
-import com.example.baytro.data.Floor
+import com.example.baytro.data.room.Floor
 import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.ButtonComponent
 import com.example.baytro.view.components.CardComponent
@@ -100,7 +100,7 @@ fun ViewBuildingTabRow(
             verticalAlignment = Alignment.Top
         ) { index ->
             when (index) {
-                0 -> ViewRoomList(floors, navController,building?.name)
+                0 -> ViewRoomList(floors, navController, building?.id)
                 1 -> ViewBuildingDetails(navController, building)
             }
         }
@@ -111,16 +111,16 @@ fun ViewBuildingTabRow(
 fun ViewRoomList(
     floors : List<Floor>,
     navController : NavController,
-    buildingName: String?
+    buildingId: String?
 ) {
     var expandedFloorNumber by remember { mutableIntStateOf(-1) }
-    Log.d("RoomList", "BuildingNameInRoomList: $buildingName")
+    Log.d("RoomList", "BuildingIdInRoomList: $buildingId")
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
             horizontalAlignment = Alignment.Start,
             modifier = Modifier.fillMaxSize()
-        ) {
+            ) {
             items(floors) { floor ->
                 Column(
                     modifier = Modifier
@@ -183,7 +183,7 @@ fun ViewRoomList(
         }
         //add room
         FloatingActionButton(
-            onClick = {navController.navigate(Screens.AddRoom.createRoute(buildingName))},
+            onClick = {navController.navigate(Screens.AddRoom.createRoute(buildingId))},
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)

@@ -1,5 +1,6 @@
 package com.example.baytro.di
 
+import androidx.lifecycle.SavedStateHandle
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
 import com.example.baytro.data.BuildingRepository
@@ -69,7 +70,6 @@ val authModule = module {
     single<FptAiService> { FptAiService(get(), get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
-    single<RoomRepository> { RoomRepository(get()) }
     single { IdCardDataViewModel() }
 
     viewModel {
@@ -163,9 +163,9 @@ val authModule = module {
         )
     }
     viewModel { BuildingListVM(get(), get()) }
-    viewModel { AddRoomVM(get(), get()) }
-    viewModel { RoomListVM(get(), get(), get()) }
-    viewModel { RoomDetailsVM(get(), get()) }
-    viewModel { EditRoomVM(get(), get()) }
+    viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), get(), handle) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
 }

@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.baytro.data.Furniture
+import com.example.baytro.data.room.Furniture
 import com.example.baytro.view.components.ChoiceSelection
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.RequiredTextField
@@ -58,7 +58,7 @@ fun EditRoomScreen(
         item { DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Building information") }
         item {
             RequiredTextField(
-                value = room?.buildingName ?: "", // Bind to state
+                value = room?.buildingId ?: "", // Bind to state
                 onValueChange = buildingName, // Update state
                 label = "Building name",
                 isError = false, // You'll likely get this from ViewModel validation

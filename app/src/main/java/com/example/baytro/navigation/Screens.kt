@@ -33,7 +33,7 @@ sealed class Screens (val route : String) {
     object EditRoom : Screens("edit_room/{roomId}") {
         fun createRoute(roomId: String?) = "edit_room/$roomId"
     }
-    object AddRoom : Screens("addRoom_screen/{buildingName}") {
-        fun createRoute(buildingName: String?) = "addRoom_screen/$buildingName"
+    object AddRoom : Screens("addRoom_screen/{buildingId}") {
+        fun createRoute(buildingId: String?) = "addRoom_screen/$buildingId"
     }
 }

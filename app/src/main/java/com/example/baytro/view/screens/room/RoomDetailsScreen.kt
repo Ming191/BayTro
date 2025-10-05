@@ -53,7 +53,7 @@ fun RoomDetailsScreen(
     LaunchedEffect(Unit) {
         viewModel.loadRoom()
     }
-    Log.d("RoomDetailsScreen", "RoomID: ${room?.buildingName}")
+    Log.d("RoomDetailsScreen", "RoomID: ${room?.buildingId}")
     Column (
         modifier = Modifier
             .fillMaxWidth()

@@ -1,19 +1,22 @@
 package com.example.baytro.data.room
 
-import com.example.baytro.data.Repository
+import com.example.baytro.data.room.Room
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 class RoomRepository(
-    db: FirebaseFirestore
-) : Repository<Room> {
+    private val db: FirebaseFirestore
+) {
     private val collection = db.collection("rooms")
 
-    override suspend fun getAll(): List<Room> {
+    suspend fun getAll(): List<Room> {
         val snapshot = collection.get()
-        return snapshot.documents.map { it.data<Room>()}
+        return snapshot.documents.map { 
+            val room = it.data<Room>()
+            room.copy(id = it.id)
+        }
     }
 
-    override suspend fun getById(id: String): Room? {
+    suspend fun getById(id: String): Room? {
         val snapshot = collection.document(id).get()
         return if (snapshot.exists) {
             val room = snapshot.data<Room>()
@@ -23,36 +26,31 @@ class RoomRepository(
         }
     }
 
-    override suspend fun add(item: Room): String {
+    suspend fun add(item: Room): String {
         val docRef = collection.add(item)
         return docRef.id
     }
 
-    override suspend fun addWithId(id: String, item: Room) {
-        collection.document(id).set(item)
-    }
-
-    override suspend fun update(id: String, item: Room) {
-        collection.document(id).set(item, merge = true)
-    }
-
-    override suspend fun delete(id: String) {
-        collection.document(id).delete()
-    }
-    override suspend fun updateFields(id: String, fields: Map<String, Any?>) {
-        collection.document(id).update(fields)
-    }
-
-    suspend fun getRoomsByBuildingId(buildingId: String): List<Room> {
-        val snapshot = collection.where { "buildingId" equalTo buildingId }.get()
-        return snapshot.documents.mapNotNull { doc ->
-            try {
-                val room = doc.data<Room>()
-                room.copy(id = doc.id)
-            } catch (_: Exception) {
-                null
-            }
+    suspend fun update(id: String, item: Room): Boolean {
+        return try {
+            collection.document(id).set(item)
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 
+    suspend fun delete(id: String): Boolean {
+        return try {
+            collection.document(id).delete()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun getRoomsByBuildingId(buildingId: String): List<Room> {
+        val allRooms = getAll()
+        return allRooms.filter { it.buildingId == buildingId }
+    }
 }

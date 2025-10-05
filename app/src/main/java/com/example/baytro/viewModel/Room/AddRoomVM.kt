@@ -5,26 +5,44 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
-import com.example.baytro.data.Furniture
-import com.example.baytro.data.Room
-import com.example.baytro.data.RoomRepository
-import com.example.baytro.data.Status
+import com.example.baytro.data.room.Furniture
+import com.example.baytro.data.room.Room
+import com.example.baytro.data.room.RoomRepository
+import com.example.baytro.data.room.Status
 import com.example.baytro.utils.AddRoomValidator
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-
 class AddRoomVM(
     private val roomRepository: RoomRepository,
+    private val buildingRepository: BuildingRepository,
     private val savedStateHandle: SavedStateHandle
 ): ViewModel() {
-    val buildingName: String = checkNotNull(savedStateHandle["buildingName"])
+    val buildingId: String = checkNotNull(savedStateHandle["buildingId"])
     private val _addRoomUIState = MutableStateFlow<UiState<Room>>(UiState.Idle)
     val addRoomUIState: StateFlow<UiState<Room>> = _addRoomUIState
 
     private val _addRoomFormState = MutableStateFlow(AddRoomFormState())
     val addRoomFormState: StateFlow<AddRoomFormState> = _addRoomFormState
+    
+    private val _buildingName = MutableStateFlow<String>("")
+    val buildingName: StateFlow<String> = _buildingName
+    
+    init {
+        loadBuildingName()
+    }
+    
+    private fun loadBuildingName() {
+        viewModelScope.launch {
+            try {
+                val building = buildingRepository.getById(buildingId)
+                _buildingName.value = building?.name ?: "Unknown Building"
+            } catch (e: Exception) {
+                _buildingName.value = "Unknown Building"
+            }
+        }
+    }
 //    fun onBuildingNameChange(buildingName: String) {
 //        _addRoomFormState.value = _addRoomFormState.value.copy(
 //            buildingName = buildingName,
@@ -94,7 +112,7 @@ class AddRoomVM(
             val formState = _addRoomFormState.value
             val newRoom = Room(
                 id = "",
-                buildingName = buildingName,
+                buildingId = buildingId,
                 floor = formState.floor.toIntOrNull()?:0,
                 roomNumber = formState.roomNumber,
                 size = formState.size.toIntOrNull()?:0,

@@ -1,4 +1,4 @@
-package com.example.baytro.view.screens
+package com.example.baytro.view.screens.building
 
 import android.net.Uri
 import android.widget.Toast
@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
+import android.app.Activity
 import androidx.core.content.FileProvider
 import com.yalantis.ucrop.UCrop
 import java.io.File
@@ -163,7 +164,7 @@ fun EditBuildingScreen(
     val cropLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
+        if (result.resultCode == Activity.RESULT_OK) {
             result.data?.let { intent ->
                 val croppedUri = UCrop.getOutput(intent)
                 croppedUri?.let { uri ->
@@ -776,7 +777,7 @@ fun EditBuildingScreen(
                                 imageUrls = existingImages.toList()
                             )
                             
-                            android.util.Log.d("EditBuildingScreen", "Existing images: ${existingImages.size}, New images: ${selectedImages.size}")
+                            Log.d("EditBuildingScreen", "Existing images: ${existingImages.size}, New images: ${selectedImages.size}")
                             
                             if (selectedImages.isNotEmpty()) {
                                 viewModel.updateWithImages(building, selectedImages)

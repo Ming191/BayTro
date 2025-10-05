@@ -1,6 +1,6 @@
 package com.example.baytro.utils
 
-import com.example.baytro.data.Furniture
+import com.example.baytro.data.room.Furniture
 
 object AddRoomValidator {
     fun validateBuildingName(buildingName: String): String? {

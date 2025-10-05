@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Building(
-    @kotlinx.serialization.Transient
     @DocumentId val id: String = "",
     val name: String,
     val floor: Int,

@@ -3,19 +3,20 @@ package com.example.baytro.viewModel.Room
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.baytro.data.Furniture
-import com.example.baytro.data.Room
-import com.example.baytro.data.RoomRepository
-import com.example.baytro.data.Status
+import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.room.Furniture
+import com.example.baytro.data.room.Room
+import com.example.baytro.data.room.RoomRepository
+import com.example.baytro.data.room.Status
 import com.example.baytro.utils.AddRoomValidator
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-
 class EditRoomVM (
     private val roomRepository: RoomRepository,
+    private val buildingRepository: BuildingRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val roomId: String = checkNotNull(savedStateHandle["roomId"])
@@ -35,7 +36,7 @@ class EditRoomVM (
 
                 room?.let { // formstate copy default value of current room to display
                     _editRoomFormState.value = EditRoomFormState(
-                        buildingName = it.buildingName,
+                        buildingName = it.buildingId,
                         roomNumber = it.roomNumber,
                         floor = it.floor.toString(),
                         size = it.size.toString(),
@@ -119,7 +120,7 @@ class EditRoomVM (
             val formState = _editRoomFormState.value
             val updatedRoom = Room(
                 id = "",
-                buildingName = formState.buildingName,
+                buildingId = formState.buildingName,
                 floor = formState.floor.toIntOrNull()?:0,
                 roomNumber = formState.roomNumber,
                 size = formState.size.toIntOrNull()?:0,

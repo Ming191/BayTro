@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
         } else {
             Screens.SignIn.route
         }
+
         setContent {
             AppTheme {
                 Surface(

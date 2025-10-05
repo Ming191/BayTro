@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
-import com.example.baytro.data.Floor
-import com.example.baytro.data.RoomRepository
+import com.example.baytro.data.room.Floor
+import com.example.baytro.data.room.RoomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -42,7 +42,7 @@ class RoomListVM(
                 val building = _building.value?: buildingRepository.getById(buildingId)
                 _building.value = building
                 val rooms = roomRepository.getAll()
-                val filteredRooms = rooms.filter { it.buildingName == building?.name}
+                val filteredRooms = rooms.filter { it.buildingId == buildingId }
                 val roomsGroupByFloor = filteredRooms.groupBy { it.floor }
                 val floorsList = roomsGroupByFloor.map { (floorNumber, rooms) ->
                     Floor(number = floorNumber, rooms = rooms)

@@ -1,6 +1,6 @@
 package com.example.baytro.viewModel.Room
 
-import com.example.baytro.data.Furniture
+import com.example.baytro.data.room.Furniture
 
 data class AddRoomFormState(
     val buildingName: String = "",

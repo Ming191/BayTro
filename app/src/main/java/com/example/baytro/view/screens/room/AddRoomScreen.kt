@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.baytro.data.Furniture
+import com.example.baytro.data.room.Furniture
 import com.example.baytro.view.components.ChoiceSelection
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.RequiredTextField
@@ -36,9 +36,9 @@ import org.koin.compose.viewmodel.koinViewModel
 fun AddRoomScreen(
     navController: NavHostController,
     viewModel: AddRoomVM = koinViewModel(),
-    buildingName: String
+    buildingId: String
 ) {
-    Log.d("AddRoomScreen", "buildingNameInAddRoomScreen: $buildingName")
+    Log.d("AddRoomScreen", "buildingIdInAddRoomScreen: $buildingId")
     // --- State for each TextField ---
     val roomNumber: (String) -> Unit = viewModel::onRoomNumberChange
     val floor: (String) -> Unit = viewModel::onFloorChange
@@ -48,6 +48,7 @@ fun AddRoomScreen(
 
     val uiState by viewModel.addRoomUIState.collectAsState()
     val formState by viewModel.addRoomFormState.collectAsState()
+    val buildingName by viewModel.buildingName.collectAsState()
 
     LaunchedEffect(uiState) {
         if (uiState is UiState.Success) {
@@ -66,10 +67,10 @@ fun AddRoomScreen(
     ) {
         item { DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Building information") }
         item {
-            RequiredTextField( // buildingName is fixed
+            RequiredTextField( // building name is displayed
                 value = buildingName,
                 onValueChange = {},
-                label = "Building name",
+                label = "Building Name",
                 isError = false,
                 errorMessage = null   ,
                 modifier = Modifier
