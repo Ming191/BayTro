@@ -1,6 +1,4 @@
 package com.example.baytro.data.room
-
-import com.example.baytro.data.room.Room
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 class RoomRepository(

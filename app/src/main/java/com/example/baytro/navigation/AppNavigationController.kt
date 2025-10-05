@@ -101,9 +101,7 @@ fun AppNavigationController(
             route = Screens.RoomList.route, // route có {buildingId} bên trong
             arguments = listOf(navArgument("buildingId") { type = NavType.StringType})
         ) { entry ->
-            // Lấy tham số từ navigation
             val buildingId = entry.arguments?.getString("buildingId") ?: ""
-            // Gọi screen, truyền buildingName vào
             RoomListScreen(
                 navController = navHostController,
             )
