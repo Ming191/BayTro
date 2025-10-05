@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "658669527293",
+    "project_id": "baytro-473008",
+    "storage_bucket": "baytro-473008.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:658669527293:android:b42a698287a7fe43ef9e94",
+        "android_client_info": {
+          "package_name": "com.example.baytro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW3F4S97leeJ2GcBJzi9VYssrXd3S7Tg4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
