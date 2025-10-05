@@ -1,11 +1,16 @@
 package com.example.baytro.auth
 
+import android.util.Log
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.messaging.messaging
 import kotlinx.coroutines.tasks.await
 
 class FirebaseAuthRepository(
     private val auth: FirebaseAuth,
+    private val functions: FirebaseFunctions
 ) : AuthRepository {
 
     override suspend fun signUp(
@@ -28,6 +33,13 @@ class FirebaseAuthRepository(
         return try {
             val result = auth.signInWithEmailAndPassword(email, password).await()
             val firebaseUser = result.user ?: throw Exception("Sign in failed")
+            try {
+                val fcmToken = Firebase.messaging.token.await()
+                updateFcmToken(fcmToken)
+                Log.d("Auth", "FCM token updated on login.")
+            } catch (e: Exception) {
+                Log.e("Auth", "Failed to update FCM token on login", e)
+            }
             firebaseUser
         } catch (e: Exception) {
             throw e
@@ -60,5 +72,13 @@ class FirebaseAuthRepository(
 
     override suspend fun deleteCurrentUser() {
         auth.currentUser?.delete()?.await()
+    }
+
+    override suspend fun updateFcmToken(token: String) {
+        val data = hashMapOf("fcmToken" to token)
+        functions
+            .getHttpsCallable("updateFcmToken")
+            .call(data)
+            .await()
     }
 }

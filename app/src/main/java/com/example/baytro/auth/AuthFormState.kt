@@ -1,6 +1,5 @@
 package com.example.baytro.auth
 
-import com.example.baytro.data.RoleType
 import com.example.baytro.utils.ValidationResult
 
 data class SignInFormState(

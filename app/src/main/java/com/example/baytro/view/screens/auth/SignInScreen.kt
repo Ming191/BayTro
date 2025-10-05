@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,11 +21,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.runtime.remember
 import com.example.baytro.auth.SignInFormState
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.auth.SignInVM
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -36,7 +41,9 @@ fun SignInScreen(
     viewModel: SignInVM = koinViewModel(),
     onSignInSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit,
-    onFirstTimeUser: () -> Unit
+    onFirstTimeUser: () -> Unit,
+    onTenantNoContract: () -> Unit,
+    onTenantPendingSession: () -> Unit
 ) {
     val formState by viewModel.signInFormState.collectAsState()
     val loginUiState by viewModel.signInUIState.collectAsState()
@@ -57,6 +64,12 @@ fun SignInScreen(
             }
             is AuthUIState.FirstTimeUser -> {
                 onFirstTimeUser()
+            }
+            is AuthUIState.TenantNoContract -> {
+                onTenantNoContract()
+            }
+            is AuthUIState.TenantPendingSession -> {
+                onTenantPendingSession()
             }
             is AuthUIState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
@@ -79,6 +92,8 @@ fun SignInContent(
     onSignInClicked: () -> Unit,
     onNavigateToSignUp: () -> Unit
 ) {
+    val emailFocus = remember { FocusRequester() }
+    val passwordFocus = remember { FocusRequester() }
 
 
     Box(
@@ -102,33 +117,36 @@ fun SignInContent(
                 errorMessage = formState.emailError.let {
                     if (it is ValidationResult.Error) it.message else null
                 },
-                modifier = Modifier.fillMaxWidth()
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(
+                    onNext = { passwordFocus.requestFocus() }
+                ),
+                modifier = Modifier.fillMaxWidth().focusRequester(emailFocus)
             )
 
             PasswordTextField(
                 value = formState.password,
                 onValueChange = onPasswordChange,
                 label = "Password",
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(passwordFocus),
                 isError = formState.passwordError is ValidationResult.Error,
                 errorMessage = formState.passwordError.let {
                     if (it is ValidationResult.Error) it.message else null
-                }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = { onSignInClicked() }
+                )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
+            SubmitButton(
+                text = "Sign In",
+                isLoading = loginUiState is AuthUIState.Loading,
                 onClick = onSignInClicked,
-                enabled = loginUiState !is AuthUIState.Loading,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
-            ) {
-                if (loginUiState is AuthUIState.Loading) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text("Sign In")
-                }
-            }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            )
 
             TextButton(onClick = onNavigateToSignUp) {
                 Text("Don't have an account? Sign Up")

@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -16,7 +17,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PasswordTextField(
     modifier: Modifier = Modifier,
@@ -24,7 +24,9 @@ fun PasswordTextField(
     onValueChange: (String) -> Unit,
     label: String,
     isError: Boolean = false,
-    errorMessage: String? = null
+    errorMessage: String? = null,
+    keyboardOptions: KeyboardOptions? = null,
+    keyboardActions: KeyboardActions? = null
 ) {
     var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
     val rotationDegree by animateFloatAsState(targetValue = if (isPasswordVisible) 180f else 0f)
@@ -39,7 +41,8 @@ fun PasswordTextField(
             onValueChange = onValueChange,
             label = { Text(label) },
             visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            keyboardOptions = keyboardOptions ?: KeyboardOptions(keyboardType = KeyboardType.Password),
+            keyboardActions = keyboardActions ?: KeyboardActions.Default,
             singleLine = true,
             trailingIcon = {
                 val image = if (isPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility

@@ -6,12 +6,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
-import com.example.baytro.data.BankCode
-import com.example.baytro.data.Gender
+import com.example.baytro.data.user.BankCode
+import com.example.baytro.data.user.Gender
 import com.example.baytro.data.MediaRepository
-import com.example.baytro.data.Role
-import com.example.baytro.data.User
-import com.example.baytro.data.UserRepository
+import com.example.baytro.data.user.Role
+import com.example.baytro.data.user.User
+import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
@@ -64,9 +64,8 @@ class NewLandlordUserVM(
         _newLandlordUserFormState.value = _newLandlordUserFormState.value.copy(phoneNumber = phoneNumber, phoneNumberError = ValidationResult.Success)
     }
 
-    private fun validateInput(
-        formState: NewLandlordUserFormState
-    ): Boolean {
+    private fun validateInput(): Boolean {
+        val formState = _newLandlordUserFormState.value
         val fullNameValidator = Validator.validateNonEmpty(formState.fullName, "Full Name")
         val permanentAddressValidator = Validator.validateNonEmpty(formState.permanentAddress, "Permanent Address")
         val dateOfBirthValidator = Validator.validateNonEmpty(formState.dateOfBirth, "Date of Birth")
@@ -89,7 +88,7 @@ class NewLandlordUserVM(
             bankAccountNumberError = bankAccountNumberValidator,
             phoneNumberError = phoneNumberValidator,
             avatarUriError = avatarUriValidator
-            )
+        )
         return isValid
     }
 
@@ -115,7 +114,7 @@ class NewLandlordUserVM(
         val formState = _newLandlordUserFormState.value
         Log.d("NewLandlordUserVM", "Submit called with formState: $formState")
 
-        if (!validateInput(formState)) {
+        if (!validateInput()) {
             Log.w("NewLandlordUserVM", "Validation failed")
             _newLandlordUserUIState.value = UiState.Error("Please fix the errors in the form.")
             return
@@ -130,7 +129,7 @@ class NewLandlordUserVM(
                 Log.d("NewLandlordUserVM", "Auth user found: ${authUser.uid}")
 
                 Log.d("NewLandlordUserVM", "Compressing image: ${formState.avatarUri}")
-                val compressedFile = ImageProcessor.compressImageWithCoil(
+                val compressedFile = ImageProcessor.compressImage(
                     context = context,
                     uri = formState.avatarUri
                 )
@@ -138,9 +137,11 @@ class NewLandlordUserVM(
                 Log.d("NewLandlordUserVM", "Compressed image saved at: $compressedFileUri")
 
                 Log.d("NewLandlordUserVM", "Uploading profile image...")
-                val profileImgUrl = mediaRepository.uploadUserProfileImage(
+                val profileImgUrl = mediaRepository.uploadUserImage(
                     userId = authUser.uid,
-                    imageUri = compressedFileUri
+                    imageUri = compressedFileUri,
+                    subfolder = "profile",
+                    imageName = "profile"
                 )
                 Log.d("NewLandlordUserVM", "Profile image uploaded: $profileImgUrl")
 

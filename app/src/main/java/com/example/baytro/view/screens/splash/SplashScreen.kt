@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,12 +21,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.baytro.data.RoleType
+import com.example.baytro.data.user.RoleType
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.Logo
+import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
-import com.example.baytro.viewModel.splash.SplashScreenVM
 import com.example.baytro.viewModel.splash.SplashFormState
+import com.example.baytro.viewModel.splash.SplashScreenVM
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -45,6 +44,7 @@ fun SplashScreen(
         onSplashCompleted = viewModel::onComplete,
         formState = formState,
         onRoleChange = viewModel::onRoleChange,
+        splashUiState = splashUiState,
     )
 
     LaunchedEffect(key1 = splashUiState) {
@@ -54,6 +54,7 @@ fun SplashScreen(
                     RoleType.LANDLORD -> navigateToLandlordLogin()
                     RoleType.TENANT -> navigateToTenantLogin()
                 }
+                viewModel.clearError()
             }
             is UiState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
@@ -68,6 +69,7 @@ fun SplashScreenContent(
     onSplashCompleted: () -> Unit,
     formState : SplashFormState,
     onRoleChange: (RoleType) -> Unit,
+    splashUiState: UiState<RoleType>,
 ) {
     Box(
         modifier = Modifier
@@ -99,19 +101,14 @@ fun SplashScreenContent(
                 modifier = Modifier.fillMaxWidth(),
                 label = "You're a",
                 onOptionSelected = {onRoleChange(it)},
-                isLowerCased = true,
+                optionToString = { it.name.lowercase().replaceFirstChar { char -> char.uppercase() } }
             )
             Spacer(modifier = Modifier.padding(16.dp))
-            Button(
-                onClick = {
-                    onSplashCompleted()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text("Get Started")
-            }
+            SubmitButton(
+                text = "Continue",
+                isLoading = splashUiState is UiState.Loading,
+                onClick = onSplashCompleted,
+            )
         }
     }
 }

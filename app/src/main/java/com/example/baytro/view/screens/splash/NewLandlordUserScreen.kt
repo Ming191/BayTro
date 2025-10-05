@@ -1,10 +1,11 @@
 package com.example.baytro.view.screens.splash
 
-//import RequiredDateTextField
+import com.example.baytro.view.components.RequiredDateTextField
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,10 +42,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
 import coil3.compose.rememberAsyncImagePainter
-import com.example.baytro.data.BankCode
-import com.example.baytro.data.Gender
-import com.example.baytro.data.User
+import com.example.baytro.data.user.BankCode
+import com.example.baytro.data.user.Gender
+import com.example.baytro.data.user.User
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
@@ -64,20 +73,22 @@ fun NewLandlordUserScreen(
     val newLandlordUserUIState by viewModel.newLandlordUserUIState.collectAsState()
 
     val context = LocalContext.current
+    var isAvatarPickerOpen by remember { mutableStateOf(false) }
     val cropLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            result.data?.let { intent ->
-                val croppedUri = UCrop.getOutput(intent)
-                croppedUri?.let { viewModel.onAvatarUriChange(it) }
+            ) { result ->
+            isAvatarPickerOpen = false
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                result.data?.let { intent ->
+                    val croppedUri = UCrop.getOutput(intent)
+                    croppedUri?.let { viewModel.onAvatarUriChange(it) }
+                }
             }
         }
-    }
-
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
+        isAvatarPickerOpen = false
         uri?.let {
             val destinationUri = Uri.fromFile(
                 File(context.cacheDir, "avatar_cropped_${System.currentTimeMillis()}.jpg")
@@ -93,9 +104,14 @@ fun NewLandlordUserScreen(
     NewLandlordUserScreenContent(
         formState = formState,
         avatarUri = formState.avatarUri,
-        onAvatarClick = { photoPickerLauncher.launch(
-            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-        ) },
+        onAvatarClick = {
+            if (!isAvatarPickerOpen) {
+                isAvatarPickerOpen = true
+                photoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }
+        },
         onFullNameChange = viewModel::onFullNameChange,
         onAddressChange = viewModel::onPermanentAddressChange,
         onGenderChange = viewModel::onGenderChange,
@@ -134,6 +150,11 @@ fun NewLandlordUserScreenContent(
     onPhoneNumberChange: (String) -> Unit,
     newLandlordUserUIState: UiState<User>
 ) {
+    val fullNameFocus = remember { FocusRequester() }
+    val phoneNumberFocus = remember { FocusRequester() }
+    val addressFocus = remember { FocusRequester() }
+    val bankAccountFocus = remember { FocusRequester() }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -172,7 +193,10 @@ fun NewLandlordUserScreenContent(
         ) {
             // Avatar
             item {
-                DividerWithSubhead("Profile image")
+                DividerWithSubhead(
+                    subhead = "Profile image",
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
                 Box(
                     modifier = Modifier
                         .size(150.dp)
@@ -181,7 +205,7 @@ fun NewLandlordUserScreenContent(
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (avatarUri != Uri.EMPTY) {
+                    if (avatarUri != null && avatarUri != Uri.EMPTY) {
                         Image(
                             painter = rememberAsyncImagePainter(avatarUri),
                             contentDescription = "Profile photo",
@@ -197,24 +221,37 @@ fun NewLandlordUserScreenContent(
                         )
                     }
                 }
+                AnimatedVisibility(visible = formState.avatarUriError is ValidationResult.Error) {
+                    (formState.avatarUriError as? ValidationResult.Error)?.let { error ->
+                        Text(
+                            text = error.message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
             }
 
             // Personal info
             item { DividerWithSubhead(
+                modifier = Modifier.padding(vertical = 8.dp),
                 "Personal information",
-                modifier = Modifier.padding(vertical = 8.dp)
             ) }
 
             item {
                 RequiredTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(fullNameFocus),
                     value = formState.fullName,
                     onValueChange = onFullNameChange,
                     label = "Full name",
                     isError = formState.fullNameError is ValidationResult.Error,
                     errorMessage = formState.fullNameError.let {
                         if (it is ValidationResult.Error) it.message else null
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { phoneNumberFocus.requestFocus() }
+                    )
                 )
             }
 
@@ -233,28 +270,36 @@ fun NewLandlordUserScreenContent(
 
             item {
                 RequiredTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(phoneNumberFocus),
                     value = formState.phoneNumber,
                     onValueChange = onPhoneNumberChange,
                     label = "Phone number",
                     isError = formState.phoneNumberError is ValidationResult.Error,
                     errorMessage = formState.phoneNumberError.let {
                         if (it is ValidationResult.Error) it.message else null
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { addressFocus.requestFocus() }
+                    )
                 )
             }
 
             item {
                 RequiredTextField(
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth().focusRequester(addressFocus),
                     value = formState.permanentAddress,
                     onValueChange = onAddressChange,
                     label = "Permanent address",
                     isError = formState.permanentAddressError is ValidationResult.Error,
                     errorMessage = formState.permanentAddressError.let {
                         if (it is ValidationResult.Error) it.message else null
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { bankAccountFocus.requestFocus() }
+                    )
                 )
             }
 
@@ -270,7 +315,8 @@ fun NewLandlordUserScreenContent(
                         label = "Gender",
                         options = Gender.entries.toList(),
                         selectedOption = formState.gender,
-                        onOptionSelected = { onGenderChange(it) }
+                        onOptionSelected = { onGenderChange(it) },
+                        optionToString = { it.name.lowercase().replaceFirstChar { char -> char.uppercase() } }
                     )
                     DropdownSelectField(
                         modifier = Modifier.fillMaxWidth().weight(1f),
@@ -278,21 +324,26 @@ fun NewLandlordUserScreenContent(
                         options = BankCode.entries.toList(),
                         selectedOption = formState.bankCode,
                         onOptionSelected = { onBankCodeChange(it) },
-                        isLowerCased = false
+                        optionToString = { it.name.lowercase().replaceFirstChar { char -> char.uppercase() } }
+
                     )
                 }
             }
 
             item {
                 RequiredTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(bankAccountFocus),
                     value = formState.bankAccountNumber,
                     onValueChange = onBankAccountNumberChange,
                     label = "Bank account number",
                     isError = formState.bankAccountNumberError is ValidationResult.Error,
                     errorMessage = formState.bankAccountNumberError.let {
                         if (it is ValidationResult.Error) it.message else null
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { bankAccountFocus.freeFocus() }
+                    )
                 )
             }
         }

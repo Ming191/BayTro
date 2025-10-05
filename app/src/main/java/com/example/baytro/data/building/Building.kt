@@ -14,5 +14,6 @@ data class Building(
     val billingDate: Int,
     val paymentStart: Int,
     val paymentDue: Int,
-    val userId: String, // ID of landlord owner
+    val imageUrls: List<String> = emptyList(),
+    val userId: String = "", // ID of landlord owner
 )

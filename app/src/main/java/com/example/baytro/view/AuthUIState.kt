@@ -8,6 +8,7 @@ sealed class AuthUIState {
     data class Success(val user : FirebaseUser) : AuthUIState()
     data class Error(val message: String) : AuthUIState()
     data class NeedVerification(val message: String) : AuthUIState()
-
     data class FirstTimeUser(val user : FirebaseUser) : AuthUIState()
+    data class TenantNoContract(val user : FirebaseUser) : AuthUIState()
+    data class TenantPendingSession(val user : FirebaseUser) : AuthUIState()
 }
