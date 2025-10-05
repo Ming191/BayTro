@@ -2,6 +2,7 @@ package com.example.baytro.view.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -51,7 +52,6 @@ fun ServiceCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
             .background(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(8.dp)
@@ -59,57 +59,82 @@ fun ServiceCard(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .padding(all = 8.dp),
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                ServiceIconFrame(
-                    label = service.name.take(1)
-                )
+                Row(
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth(),
                 ) {
-                    Text(
-                        text = service.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                    Spacer(
+                        modifier = Modifier
+                            .height(8.dp)
                     )
-                    Text(
-                        text = service.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                    ServiceIconFrame(
+                        label = service.name.take(1)
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .padding(8.dp),
+                    ) {
+                        Text(
+                            text = service.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = service.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    ServiceActionButton(
+                        icon = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        backgroundColor = MaterialTheme.colorScheme.tertiary,
+                        iconColor = MaterialTheme.colorScheme.tertiary,
+                        onClick = { onEdit(service) }
+                    )
+
+                    Spacer(
+                        modifier = Modifier
+                            .width(16.dp)
+                    )
+
+                    ServiceActionButton(
+                        icon = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        backgroundColor = MaterialTheme.colorScheme.primary,
+                        iconColor = MaterialTheme.colorScheme.primary,
+                        onClick = { onDelete(service) }
                     )
                 }
-
-                ServiceActionButton(
-                    icon = Icons.Default.Edit,
-                    contentDescription = "Edit",
-                    backgroundColor = MaterialTheme.colorScheme.tertiary,
-                    iconColor = MaterialTheme.colorScheme.tertiary,
-                    onClick = { onEdit(service) }
-                )
-                ServiceActionButton(
-                    icon = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    backgroundColor = MaterialTheme.colorScheme.primary,
-                    iconColor = MaterialTheme.colorScheme.primary,
-                    onClick = { onDelete(service) }
-                )
             }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(
+                    modifier = Modifier
+                        .height(8.dp)
+                )
+
                 Text(
                     text = "Price: ${service.price} VND/${service.unit}",
                     style = MaterialTheme.typography.bodyMedium,
