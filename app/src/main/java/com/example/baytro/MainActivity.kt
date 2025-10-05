@@ -1,6 +1,5 @@
 package com.example.baytro
 
-//import com.example.baytro.navigation.ContentType
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,6 +17,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        FirebaseAuth.getInstance().signOut()
+        //FirebaseAuth.getInstance().signInWithEmailAndPassword("yeahboy201205@gmail.com", "Minh0108")
         val currentUser = FirebaseAuth.getInstance().currentUser
         val startDestination = if (currentUser != null) {
             Screens.MainScreen.route

@@ -1,4 +1,4 @@
-package com.example.baytro.view.screens
+package com.example.baytro.view.screens.building
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -116,7 +116,7 @@ fun AddBuildingScreen(
     val dueFocus = remember { FocusRequester() }
     val selectedImages = remember { mutableStateOf<List<Uri>>(emptyList()) }
     val cameraImageUri = remember { mutableStateOf<Uri?>(null) }
-    
+
     // Image viewer state
     var showImageViewer by remember { mutableStateOf(false) }
     var imageViewerIndex by remember { mutableIntStateOf(0) }
@@ -149,7 +149,7 @@ fun AddBuildingScreen(
                     .withAspectRatio(16f, 9f)
                     .withMaxResultSize(1080, 608)
                     .getIntent(context)
-                
+
                 cropLauncher.launch(uCropIntent)
             }
         }
@@ -187,12 +187,12 @@ fun AddBuildingScreen(
                 val destinationUri = Uri.fromFile(
                     File(context.cacheDir, "building_cropped_${System.currentTimeMillis()}.jpg")
                 )
-                
+
                 val uCropIntent = UCrop.of(selectedUri, destinationUri)
                     .withAspectRatio(16f, 9f) // Tỷ lệ 16:9 cho ảnh building
                     .withMaxResultSize(1080, 608) // Max size tương ứng
                     .getIntent(context)
-                
+
                 cropLauncher.launch(uCropIntent)
             }
         }
@@ -217,7 +217,6 @@ fun AddBuildingScreen(
                     Toast.LENGTH_SHORT
                 ).show()
             }
-
             else -> Unit
         }
     }
@@ -436,7 +435,7 @@ fun AddBuildingScreen(
                             )
                         }
                     }
-                    
+
                     // Image action buttons
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -456,7 +455,7 @@ fun AddBuildingScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Gallery")
                         }
-                        
+
                         // Camera button
                         OutlinedButton(
                             onClick = {
@@ -496,7 +495,7 @@ fun AddBuildingScreen(
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize()
                                         )
-                                        
+
                                         // Delete button in top-left corner
                                         IconButton(
                                             onClick = {
@@ -668,7 +667,7 @@ fun AddBuildingScreen(
             }
         }
     }
-    
+
     // Image Viewer
     if (showImageViewer) {
         FullScreenImageViewer(

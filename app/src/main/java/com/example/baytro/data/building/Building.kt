@@ -1,10 +1,12 @@
 package com.example.baytro.data
 
+import com.google.firebase.firestore.DocumentId
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class Building(
-    val id: String = "",
+    @kotlinx.serialization.Transient
+    @DocumentId val id: String = "",
     val name: String,
     val floor: Int,
     val address: String,

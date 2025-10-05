@@ -24,4 +24,16 @@ sealed class Screens (val route : String) {
             return "contract_details_screen/$contractId"
         }
     }
+    object RoomList : Screens("room_screen/{buildingId}") {
+        fun createRoute(buildingId: String) = "room_screen/$buildingId"
+    }
+    object RoomDetails : Screens("room_details/{roomId}") {
+        fun createRoute(roomId: String) = "room_details/$roomId"
+    }
+    object EditRoom : Screens("edit_room/{roomId}") {
+        fun createRoute(roomId: String?) = "edit_room/$roomId"
+    }
+    object AddRoom : Screens("addRoom_screen/{buildingName}") {
+        fun createRoute(buildingName: String?) = "addRoom_screen/$buildingName"
+    }
 }

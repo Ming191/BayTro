@@ -4,13 +4,17 @@ import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
+import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
-import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.service.FptAiService
 import com.example.baytro.viewModel.AddBuildingVM
 import com.example.baytro.viewModel.BuildingListVM
+import com.example.baytro.viewModel.Room.AddRoomVM
+import com.example.baytro.viewModel.Room.EditRoomVM
+import com.example.baytro.viewModel.Room.RoomDetailsVM
+import com.example.baytro.viewModel.Room.RoomListVM
 import com.example.baytro.viewModel.EditBuildingVM
 import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
@@ -61,6 +65,7 @@ val authModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }
     single<AuthRepository> { FirebaseAuthRepository(get(), get()) }
     single<MediaRepository> { MediaRepository(get()) }
+    single<RoomRepository> { RoomRepository(get()) }
     single<FptAiService> { FptAiService(get(), get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
@@ -158,5 +163,9 @@ val authModule = module {
         )
     }
     viewModel { BuildingListVM(get(), get()) }
+    viewModel { AddRoomVM(get(), get()) }
+    viewModel { RoomListVM(get(), get(), get()) }
+    viewModel { RoomDetailsVM(get(), get()) }
+    viewModel { EditRoomVM(get(), get()) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
 }

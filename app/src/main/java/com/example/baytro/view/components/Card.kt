@@ -12,27 +12,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
-@Preview(showBackground = true)
 @Composable
-fun ContractCardPreview() {
-    ContractCard(
-        infoMap = mapOf(
-            "Contract ID" to "123456",
-            "Property Address" to "123 Main St, Springfield",
-            "Landlord Name" to "John Doe",
-            "Tenant Name" to "Jane Smith",
-            "Start Date" to "2023-01-01",
-            "End Date" to "2023-12-31",
-            "Rent Amount" to "$1200/month"
-        )
-    )
-}
-
-@Composable
-fun ContractCard(infoMap: Map<String, String> = emptyMap()) {
+fun CardComponent(
+    infoMap: Map<String, String> = emptyMap(),
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth(),
@@ -44,14 +29,14 @@ fun ContractCard(infoMap: Map<String, String> = emptyMap()) {
             modifier = Modifier.padding(16.dp)
         ) {
             for (entry in infoMap) {
-              ContractInfoRow(label = entry.key, value = entry.value)
+                InfoRow(label = entry.key, value = entry.value)
             }
         }
     }
 }
 
 @Composable
-fun ContractInfoRow(label: String, value: String) {
+fun InfoRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
