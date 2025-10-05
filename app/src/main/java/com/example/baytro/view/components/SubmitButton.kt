@@ -1,6 +1,5 @@
 package com.example.baytro.view.components
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,7 +23,7 @@ fun SubmitButton(
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.size(24.dp),
                 color = MaterialTheme.colorScheme.onPrimary,
                 strokeWidth = 2.dp
             )

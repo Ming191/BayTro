@@ -10,4 +10,5 @@ interface AuthRepository {
     fun checkVerification(): Boolean
     fun getCurrentUser(): FirebaseUser?
     suspend fun deleteCurrentUser()
+    suspend fun updateFcmToken(token: String)
 }

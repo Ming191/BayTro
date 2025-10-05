@@ -44,7 +44,7 @@ fun ContractCard(infoMap: Map<String, String> = emptyMap()) {
             modifier = Modifier.padding(16.dp)
         ) {
             for (entry in infoMap) {
-                ContractInfoRow(label = entry.key, value = entry.value)
+              ContractInfoRow(label = entry.key, value = entry.value)
             }
         }
     }

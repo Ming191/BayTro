@@ -19,9 +19,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.baytro.data.building.Building
+import com.example.baytro.data.Building
 import com.example.baytro.data.service.Service
-import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.service.AddServiceVM
@@ -61,12 +60,13 @@ fun AddServiceScreen(
         UiState.Loading -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = androidx.compose.ui.Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
         }
         UiState.Idle -> Unit
+        UiState.Waiting -> TODO()
     }
 
     AddServiceContent(

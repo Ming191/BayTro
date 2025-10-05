@@ -1,14 +1,11 @@
-package com.example.baytro.data.building
+package com.example.baytro.data
 
 import com.google.firebase.firestore.DocumentId
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
 data class Building(
-    @Transient
     @DocumentId val id: String = "",
-
     val name: String,
     val floor: Int,
     val address: String,
@@ -16,5 +13,6 @@ data class Building(
     val billingDate: Int,
     val paymentStart: Int,
     val paymentDue: Int,
+    val imageUrls: List<String> = emptyList(),
     val userId: String = "", // ID of landlord owner
 )

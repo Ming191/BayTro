@@ -1,6 +1,6 @@
 package com.example.baytro.viewModel.service
 
-import com.example.baytro.data.building.Building
+import com.example.baytro.data.Building
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.service.Service
 

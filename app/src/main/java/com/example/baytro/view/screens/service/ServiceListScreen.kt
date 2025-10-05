@@ -26,7 +26,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import com.example.baytro.data.service.Service
-import com.example.baytro.data.building.Building
 import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.ServiceCard
@@ -36,7 +35,8 @@ import com.example.baytro.viewModel.service.ServiceListVM
 import org.koin.compose.viewmodel.koinViewModel
 import com.example.baytro.data.room.Room
 import androidx.compose.ui.tooling.preview.Preview
-
+import com.example.baytro.data.Building
+import kotlin.collections.isNotEmpty
 @Composable
 fun ServiceListScreen(
     navController: NavHostController,
@@ -69,6 +69,7 @@ fun ServiceListScreen(
         }
         is UiState.Success<*> -> Unit
         UiState.Idle -> Unit
+        UiState.Waiting -> TODO()
     }
 
     ServiceListContent(

@@ -56,20 +56,5 @@ fun RoomSelectionList(
 @Preview(showBackground = true)
 @Composable
 fun RoomSelectionListPreview() {
-    val rooms = listOf(
-        Room("1", "101", "101"),
-        Room("2", "102", "102"),
-        Room("3", "103", "103"),
-        Room("4", "201", "201"),
-        Room("5", "202", "202"),
-        Room("6", "203", "203"),
-        Room("7", "301", "301"),
-        Room("8", "302", "302"),
-        Room("9", "303", "303")
-    )
-    RoomSelectionList(
-        rooms = rooms,
-        selectedRooms = setOf("1", "2", "4"), // các phòng đang được tick
-        onRoomToggle = {}
-    )
+
 }

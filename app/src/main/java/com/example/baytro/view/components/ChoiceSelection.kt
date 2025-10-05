@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.baytro.data.RoleType
+import com.example.baytro.data.user.RoleType
 
 @Composable
 fun<T : Enum<T>> ChoiceSelection(
