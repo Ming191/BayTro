@@ -1,7 +1,6 @@
 package com.example.baytro.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -12,9 +11,10 @@ import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.PropertyListScreen
 import com.example.baytro.view.screens.TenantListScreen
-import com.example.baytro.view.screens.ServiceListScreen
+import com.example.baytro.view.screens.service.ServiceListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
+import com.example.baytro.view.screens.service.AddServiceScreen
 
 @Composable
 fun AppNavigationController(
@@ -58,7 +58,12 @@ fun AppNavigationController(
         composable(
             Screens.ServiceList.route
         ) {
-            ServiceListScreen()
+            ServiceListScreen(navController = navHostController)
+        }
+        composable(
+            Screens.AddService.route
+        ) {
+            AddServiceScreen(navController = navHostController)
         }
         composable (
             Screens.MainScreen.route

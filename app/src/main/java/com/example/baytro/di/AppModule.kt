@@ -4,6 +4,7 @@ import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
 import com.example.baytro.data.UserRepository
 import com.example.baytro.data.building.BuildingRepository
+import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.service.ServiceRepository
 import com.example.baytro.viewModel.SignInVM
 import com.example.baytro.viewModel.SignUpVM
@@ -31,6 +32,7 @@ val authModule = module {
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }
     single<ServiceRepository> { ServiceRepository(get()) }
+    single<RoomRepository> { RoomRepository(get()) }
     viewModel { ServiceListVM(get(), get(), get()) }
     viewModel { AddServiceVM(get(), get(), get(), get()) }
 }

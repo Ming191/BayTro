@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.service
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,10 +11,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.example.baytro.data.building.Building
+import com.example.baytro.data.service.Service
 import com.example.baytro.view.components.DropdownSelectField
+import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.AddServiceFormState
 import org.koin.compose.viewmodel.koinViewModel
@@ -21,12 +26,19 @@ import com.example.baytro.view.screens.UiState
 
 @Composable
 fun AddServiceScreen(
+    navController: NavHostController,
     viewModel: AddServiceVM = koinViewModel(),
 ) {
     val formState by viewModel.formState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
     when (uiState) {
+        is UiState.Success -> {
+            Toast.makeText(
+                LocalContext.current, "Thêm dịch vụ thành công!", Toast.LENGTH_SHORT).show()
+            navController.popBackStack()
+            viewModel.clearError()
+        }
         is UiState.Error -> {
             val message = (uiState as UiState.Error).message
             AlertDialog(
@@ -49,12 +61,11 @@ fun AddServiceScreen(
                 CircularProgressIndicator()
             }
         }
-
-        is UiState.Success<*> -> Unit
         UiState.Idle -> Unit
     }
 
     AddServiceContent(
+        uiState = uiState,
         formState = formState,
         onNameChange = viewModel::onNameChange,
         onDescriptionChange = viewModel::onDescriptionChange,
@@ -70,6 +81,7 @@ fun AddServiceScreen(
 // --- CONTENT ---
 @Composable
 fun AddServiceContent(
+    uiState: UiState<Service>,
     formState: AddServiceFormState,
     onNameChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
@@ -163,13 +175,10 @@ fun AddServiceContent(
                 }
             }
         }
-
-        Button(
-            onClick = onConfirm,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Confirm")
-        }
+        SubmitButton(
+            isLoading = uiState is UiState.Loading,
+            onClick = { onConfirm() }
+        )
     }
 }
 
@@ -194,6 +203,7 @@ fun AddServiceContentPreview() {
         onBuildingSelected = {},
         onToggleRoom = {},
         onToggleSelectAll = {},
-        onConfirm = {}
+        onConfirm = {},
+        uiState = UiState.Idle
     )
 }

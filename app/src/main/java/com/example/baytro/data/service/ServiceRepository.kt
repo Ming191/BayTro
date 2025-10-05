@@ -1,5 +1,6 @@
 package com.example.baytro.data.service
 
+import android.util.Log
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 /**
@@ -42,6 +43,7 @@ class ServiceRepository(
     }
 
     suspend fun getServicesByBuildingId(buildingId: String): List<Service> {
+        Log.d("ServiceRepository", "Fetching services for building $buildingId")
         val snapshot = collection.where { "buildingID" equalTo buildingId }.get()
         return snapshot.documents.mapNotNull { doc ->
             try {
@@ -51,10 +53,5 @@ class ServiceRepository(
                 null
             }
         }
-    }
-
-    suspend fun addService(service: Service): Service {
-        val docRef = collection.add(service)
-        return service.copy(id = docRef.id)
     }
 }

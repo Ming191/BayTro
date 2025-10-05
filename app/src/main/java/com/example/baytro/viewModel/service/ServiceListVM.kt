@@ -63,8 +63,8 @@ class ServiceListVM(
             try {
                 _serviceListUiState.value = UiState.Loading
                 val services = serviceRepo.getServicesByBuildingId(buildingId)
-                _serviceListFormState.value =
-                    _serviceListFormState.value.copy(availableServices = services)
+                Log.d("ServiceListVM", "fetchServices: fetched ${services.size} services")
+                _serviceListFormState.value = _serviceListFormState.value.copy(availableServices = services)
                 _serviceListUiState.value = UiState.Success(services)
             } catch (e: Exception) {
                 Log.e(TAG, "fetchServices error", e)

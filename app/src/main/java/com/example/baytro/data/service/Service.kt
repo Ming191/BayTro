@@ -10,5 +10,5 @@ data class Service(
     val price: String = "",
     val unit: String = "",
     val icon: String = "",
-    val buildingID: String = ""
+    val buildingID: String = "",
 )

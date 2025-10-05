@@ -25,8 +25,8 @@ class AddServiceVM(
         private const val TAG = "AddServiceVM"
     }
 
-    private val _uiState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
-    val uiState: StateFlow<UiState<Unit>> = _uiState
+    private val _uiState = MutableStateFlow<UiState<Service>>(UiState.Idle)
+    val uiState: StateFlow<UiState<Service>> = _uiState
 
     private val _formState = MutableStateFlow(AddServiceFormState())
     val formState: StateFlow<AddServiceFormState> = _formState
@@ -113,7 +113,7 @@ class AddServiceVM(
                     buildingID = state.selectedBuilding.id
                 )
                 serviceRepo.add(newService)
-                _uiState.value = UiState.Success(Unit)
+                _uiState.value = UiState.Success(newService)
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Error while adding service")
             }
