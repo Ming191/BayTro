@@ -64,7 +64,7 @@ fun AddRoomScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        item { DividerWithSubhead("Building information ", Modifier.padding(start = 16.dp, end = 16.dp)) }
+        item { DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Building information") }
         item {
             RequiredTextField( // buildingName is fixed
                 value = buildingName,
@@ -132,7 +132,7 @@ fun AddRoomScreen(
         }
 
         item {
-            DividerWithSubhead("Interior condition ", Modifier.padding(start = 16.dp, end = 16.dp))
+            DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Interior condition")
             ChoiceSelection(
                 options = Furniture.entries.toList().dropLast(1), //hide the last options Unknow
                 selectedOption = formState.interior,
@@ -143,7 +143,7 @@ fun AddRoomScreen(
         }
 
         item {
-            DividerWithSubhead("Services ", Modifier.padding(start = 16.dp, end = 16.dp))
+            DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Services")
             Card(
                 Modifier
                     .width(380.dp)

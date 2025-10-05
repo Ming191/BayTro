@@ -207,7 +207,7 @@ fun ViewBuildingDetails(
             .wrapContentHeight()
             .padding(16.dp)
     ) {
-        DividerWithSubhead("Information")
+        DividerWithSubhead(subhead = "Information")
         CardComponent(
             infoMap = mapOf(
                 "Num.Rooms" to "12",
@@ -219,7 +219,7 @@ fun ViewBuildingDetails(
                 "Payment due" to building?.paymentDue.toString()
             )
         )
-        DividerWithSubhead("Building photo")
+        DividerWithSubhead(subhead = "Building photo")
         Image(
             painter = painterResource(id = R.drawable.building_img),
             contentDescription = "image description",

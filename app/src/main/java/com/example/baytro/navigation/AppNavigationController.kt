@@ -2,7 +2,6 @@ package com.example.baytro.navigation
 
 import android.util.Log
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
@@ -14,9 +13,7 @@ import com.example.baytro.MainScreen
 import com.example.baytro.view.screens.building.AddBuildingScreen
 import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.building.BuildingListScreen
-import com.example.baytro.view.screens.ContractListScreen
-import com.example.baytro.view.screens.BuildingListScreen
-import com.example.baytro.view.screens.AddBuildingScreen
+import com.example.baytro.view.screens.contract.ContractListScreen
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.EditBuildingScreen
 import com.example.baytro.view.screens.MaintenanceScreen
@@ -29,7 +26,6 @@ import com.example.baytro.view.screens.room.RoomDetailsScreen
 import com.example.baytro.view.screens.room.RoomListScreen
 import com.example.baytro.view.screens.contract.AddContractScreen
 import com.example.baytro.view.screens.contract.ContractDetailsScreen
-import com.example.baytro.view.screens.contract.ContractListScreen
 import com.example.baytro.view.screens.contract.TenantEmptyContractView
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.NewTenantUserScreen

@@ -4,11 +4,9 @@ import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
-import com.example.baytro.data.RoomRepository
-import com.example.baytro.data.UserRepository
+import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
-import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.service.FptAiService
 import com.example.baytro.viewModel.AddBuildingVM

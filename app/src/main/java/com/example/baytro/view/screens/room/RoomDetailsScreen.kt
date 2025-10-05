@@ -60,7 +60,7 @@ fun RoomDetailsScreen(
             .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        DividerWithSubhead("Room information")
+        DividerWithSubhead(subhead = "Room information")
         CardComponent(
             infoMap = mapOf(
                 "Status" to room?.status.toString(),
@@ -70,7 +70,7 @@ fun RoomDetailsScreen(
                 "Interior" to room?.interior.toString()
             )
         )
-        DividerWithSubhead("Contract", Modifier.padding(top = 16.dp, bottom = 16.dp))
+        DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Contract")
         Card(
             modifier = Modifier
                 .fillMaxWidth(),
@@ -103,8 +103,8 @@ fun RoomDetailsScreen(
                 )
             )
         }
-        DividerWithSubhead("Service", Modifier.padding(top = 16.dp, bottom = 16.dp))
-        DividerWithSubhead("Tenants", Modifier.padding(top = 16.dp, bottom = 16.dp))
+        DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Service")
+        DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Tenants")
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
