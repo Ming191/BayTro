@@ -18,6 +18,7 @@ import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.building.EditBuildingScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
+import com.example.baytro.view.screens.service.ServiceListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
 import com.example.baytro.view.screens.room.AddRoomScreen
@@ -31,6 +32,7 @@ import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.NewTenantUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
 import com.example.baytro.view.screens.splash.UploadIdCardScreen
+import com.example.baytro.view.screens.service.AddServiceScreen
 
 @SuppressLint("RestrictedApi")
 @Composable
@@ -133,6 +135,16 @@ fun AppNavigationController(
                 navController = navHostController,
                 buildingId = buildingId
             )
+        }
+        composable(
+            Screens.ServiceList.route
+        ) {
+            ServiceListScreen(navController = navHostController)
+        }
+        composable(
+            Screens.AddService.route
+        ) {
+            AddServiceScreen(navController = navHostController)
         }
         composable (
             Screens.MainScreen.route

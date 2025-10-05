@@ -182,7 +182,7 @@ fun NewTenantUserScreenContent(
             item {
                 DividerWithSubhead(
                     modifier = Modifier.padding(vertical = 8.dp),
-                    "Personal information",
+                    subhead = "Personal information",
                 )
             }
 
@@ -252,7 +252,7 @@ fun NewTenantUserScreenContent(
             item {
                 DividerWithSubhead(
                     modifier = Modifier.padding(vertical = 8.dp),
-                    "Tenant information",
+                    subhead = "Tenant information",
                 )
             }
 

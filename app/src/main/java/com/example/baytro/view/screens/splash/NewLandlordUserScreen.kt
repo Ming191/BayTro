@@ -235,7 +235,7 @@ fun NewLandlordUserScreenContent(
             // Personal info
             item { DividerWithSubhead(
                 modifier = Modifier.padding(vertical = 8.dp),
-                "Personal information",
+                subhead = "Personal information",
             ) }
 
             item {

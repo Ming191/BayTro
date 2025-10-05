@@ -1,5 +1,5 @@
 package com.example.baytro.di
-
+import com.example.baytro.viewModel.service.AddServiceVM
 import androidx.lifecycle.SavedStateHandle
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
@@ -8,6 +8,7 @@ import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
+import com.example.baytro.data.service.ServiceRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.service.FptAiService
 import com.example.baytro.viewModel.AddBuildingVM
@@ -23,6 +24,7 @@ import com.example.baytro.viewModel.contract.AddContractVM
 import com.example.baytro.viewModel.contract.ContractDetailsVM
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
+import com.example.baytro.viewModel.service.ServiceListVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
@@ -168,4 +170,11 @@ val authModule = module {
     viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }
     viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), get(), handle) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
+}
+val serviceModule = module {
+    single<BuildingRepository> { BuildingRepository(get()) }
+    single<ServiceRepository> { ServiceRepository(get()) }
+    single<RoomRepository> { RoomRepository(get()) }
+    viewModel { ServiceListVM(get(), get(), get()) }
+    viewModel { AddServiceVM(get(), get(), get(), get()) }
 }

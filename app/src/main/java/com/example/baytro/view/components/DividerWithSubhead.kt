@@ -11,8 +11,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun DividerWithSubhead(
-        modifier: Modifier = Modifier,
     subhead: String = "Subhead",
+    modifier: Modifier = Modifier
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
