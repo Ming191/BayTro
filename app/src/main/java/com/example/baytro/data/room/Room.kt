@@ -1,18 +1,20 @@
 package com.example.baytro.data.room
 
+import com.example.baytro.data.service.Service
 import com.google.firebase.firestore.DocumentId
 import kotlinx.serialization.Serializable
 
 @Serializable
 enum class Status {
-    Available, Rented
+    AVAILABLE,
+    OCCUPIED,
+    MAINTENANCE
 }
 
 @Serializable
 enum class Furniture {
-    Furnished,
-    Unfurnished,
-    Unknow
+    FURNISHED,
+    UNFURNISHED
 }
 
 @Serializable
@@ -30,5 +32,5 @@ data class Room(
     val status: Status,
     val rentalFee : Int,
     val interior : Furniture,
-    val note : String = ""
+    val extraService: List<Service> = emptyList()
 )

@@ -18,6 +18,6 @@ data class AddRoomFormState(
     val rentalFee: String = "",
     val rentalFeeError: String? = null,
 
-    val interior: Furniture = Furniture.Unknow,
+    val interior: Furniture = Furniture.FURNISHED,
     val interiorError: String? = null
 )

@@ -8,12 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -21,10 +15,18 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.baytro.data.Building
 import com.example.baytro.data.service.Service
 import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.DropdownSelectField
@@ -33,10 +35,7 @@ import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.service.ServiceListFormState
 import com.example.baytro.viewModel.service.ServiceListVM
 import org.koin.compose.viewmodel.koinViewModel
-import com.example.baytro.data.room.Room
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.baytro.data.Building
-import kotlin.collections.isNotEmpty
+
 @Composable
 fun ServiceListScreen(
     navController: NavHostController,
@@ -45,40 +44,50 @@ fun ServiceListScreen(
     val uiState by viewModel.serviceListUiState.collectAsState()
     val formState by viewModel.serviceListFormState.collectAsState()
 
-    when (uiState) {
-        is UiState.Error -> {
-            val message = (uiState as UiState.Error).message
-            AlertDialog(
-                onDismissRequest = { viewModel.clearError() },
-                title = { Text("Notice") },
-                text = { Text(message) },
-                confirmButton = {
-                    TextButton(onClick = { viewModel.clearError() }) {
-                        Text("OK")
-                    }
-                }
+    Scaffold { paddingValues ->
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Show content
+            ServiceListContent(
+                formState = formState,
+                onBuildingSelected = viewModel::onBuildingChange,
+                onEdit = viewModel::onEditService,
+                onDelete = viewModel::onDeleteService,
+                navController = navController,
+                isLoading = uiState is UiState.Loading
             )
-        }
-        is UiState.Loading -> {
-            Box(
-                Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+
+            // Show loading overlay
+            if (uiState is UiState.Loading) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            // Show error dialog
+            if (uiState is UiState.Error) {
+                val message = (uiState as UiState.Error).message
+                AlertDialog(
+                    onDismissRequest = { viewModel.clearError() },
+                    title = { Text("Notice") },
+                    text = { Text(message) },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.clearError() }) {
+                            Text("OK")
+                        }
+                    }
+                )
             }
         }
-        is UiState.Success<*> -> Unit
-        UiState.Idle -> Unit
-        UiState.Waiting -> TODO()
     }
-
-    ServiceListContent(
-        formState = formState,
-        onBuildingSelected = viewModel::onBuildingChange,
-        onEdit = viewModel::onEditService,
-        onDelete = viewModel::onDeleteService,
-        navController = navController
-    )
 }
 
 @Composable
@@ -87,34 +96,48 @@ fun ServiceListContent (
     onEdit: (Service) -> Unit,
     onDelete: (Service) -> Unit,
     onBuildingSelected: (Building) -> Unit,
-    navController: NavHostController
+    navController: NavHostController,
+    isLoading: Boolean = false
 ) {
-    Scaffold { paddingValues ->
-        Box(Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                item {
+                    DropdownSelectField(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        label = "Select building",
+                        options = formState.availableBuildings,
+                        selectedOption = formState.selectedBuilding,
+                        onOptionSelected = onBuildingSelected,
+                        optionToString = { it.name },
+                        enabled = formState.availableBuildings.isNotEmpty() && !isLoading
+                    )
+                }
+
+                if (formState.availableServices.isEmpty() && !isLoading) {
                     item {
-                        DropdownSelectField(
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            label = "Select building",
-                            options = formState.availableBuildings,
-                            selectedOption = formState.selectedBuilding,
-                            onOptionSelected = onBuildingSelected,
-                            optionToString = { it.name },
-                            enabled = formState.availableBuildings.isNotEmpty()
-                        )
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No services available",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-
+                } else {
                     items(formState.availableServices) { service ->
                         ServiceCard(
                             service = service,
@@ -124,18 +147,18 @@ fun ServiceListContent (
                     }
                 }
             }
-            FloatingActionButton(
-                onClick = { navController.navigate(Screens.AddService.route) },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd) // OK
-                    .padding(32.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add service")
-            }
+        }
+        FloatingActionButton(
+            onClick = { navController.navigate(Screens.AddService.route) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(32.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add service")
         }
     }
-
 }
+
 
 //@Preview
 //@Composable

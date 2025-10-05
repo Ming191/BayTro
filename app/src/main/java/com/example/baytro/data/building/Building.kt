@@ -1,5 +1,6 @@
 package com.example.baytro.data
 
+import com.example.baytro.data.service.Service
 import com.google.firebase.firestore.DocumentId
 import kotlinx.serialization.Serializable
 
@@ -14,5 +15,6 @@ data class Building(
     val paymentStart: Int,
     val paymentDue: Int,
     val imageUrls: List<String> = emptyList(),
-    val userId: String = "", // ID of landlord owner
+    val userId: String = "",
+    val services: List<Service> = emptyList(),
 )

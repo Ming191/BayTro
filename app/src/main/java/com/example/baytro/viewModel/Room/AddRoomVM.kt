@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 class AddRoomVM(
     private val roomRepository: RoomRepository,
     private val buildingRepository: BuildingRepository,
-    private val savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle
 ): ViewModel() {
     val buildingId: String = checkNotNull(savedStateHandle["buildingId"])
     private val _addRoomUIState = MutableStateFlow<UiState<Room>>(UiState.Idle)
@@ -37,7 +37,7 @@ class AddRoomVM(
             try {
                 val building = buildingRepository.getById(buildingId)
                 _buildingName.value = building?.name ?: "Unknown Building"
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _buildingName.value = "Unknown Building"
             }
         }
@@ -116,7 +116,7 @@ class AddRoomVM(
                 roomNumber = formState.roomNumber,
                 size = formState.size.toIntOrNull()?:0,
                 rentalFee = formState.rentalFee.toIntOrNull()?:0,
-                status = Status.Available,
+                status = Status.AVAILABLE,
                 interior = formState.interior,
             )
             viewModelScope.launch {

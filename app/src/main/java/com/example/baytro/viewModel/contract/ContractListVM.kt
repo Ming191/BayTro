@@ -4,15 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
+import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.contract.Contract
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.contract.Status
-import com.example.baytro.data.BuildingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.text.get
 
 enum class ContractTab {
     ACTIVE, PENDING, ENDED

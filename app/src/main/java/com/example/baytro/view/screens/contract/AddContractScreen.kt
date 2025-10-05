@@ -40,7 +40,7 @@ import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.contract.AddContractFormState
 import com.example.baytro.viewModel.contract.AddContractVM
 import org.koin.compose.viewmodel.koinViewModel
-import kotlin.collections.isNotEmpty
+
 @Composable
 fun AddContractScreen(
     viewModel: AddContractVM = koinViewModel(),

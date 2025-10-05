@@ -3,17 +3,13 @@ package com.example.baytro.view.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.Security
@@ -22,9 +18,12 @@ import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.baytro.ui.theme.*
+import androidx.compose.ui.unit.dp
 
 val serviceIconMap: Map<String, ImageVector> = mapOf(
     "Electricity" to Icons.Filled.Bolt,
@@ -37,7 +36,7 @@ val serviceIconMap: Map<String, ImageVector> = mapOf(
     "Trash" to Icons.Filled.Delete,
     "TV" to Icons.Filled.Tv,
     "Maintenance" to Icons.Filled.Build,
-    "Other" to Icons.Filled.HelpOutline
+    "Other" to Icons.AutoMirrored.Filled.Help
 )
 @Composable
 fun ServiceIconFrame(
@@ -48,13 +47,17 @@ fun ServiceIconFrame(
         modifier = modifier
             .size(48.dp)
             .background(
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(8.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
         val icon = serviceIconMap[serviceName] ?: serviceIconMap["Other"]
-        Icon(imageVector = icon!!, contentDescription = serviceName)
+        Icon(
+            imageVector = icon!!,
+            contentDescription = serviceName,
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
     }
 }
 
