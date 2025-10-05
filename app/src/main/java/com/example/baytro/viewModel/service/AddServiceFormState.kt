@@ -8,7 +8,6 @@ data class AddServiceFormState(
     val description: String = "",
     val price: String = "",
     val unit: String = "",
-    val icon: String = "",
     val searchText: String = "",
 
     val availableBuildings: List<Building> = emptyList(),

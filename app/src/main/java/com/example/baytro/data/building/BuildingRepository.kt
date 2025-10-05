@@ -1,6 +1,9 @@
 package com.example.baytro.data
 
+import com.example.baytro.data.service.Service
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class BuildingRepository(
     db: FirebaseFirestore
@@ -51,8 +54,20 @@ class BuildingRepository(
             try {
                 val b = doc.data<Building>()
                 b.copy(id = doc.id)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
+            }
+        }
+    }
+
+    // Listen to real-time updates for building services
+    fun listenToBuildingServices(buildingId: String): Flow<List<Service>> {
+        return collection.document(buildingId).snapshots.map { snapshot ->
+            if (snapshot.exists) {
+                val building = snapshot.data<Building>()
+                building.services
+            } else {
+                emptyList()
             }
         }
     }

@@ -48,11 +48,11 @@ fun AddRoomScreen(
     LaunchedEffect(uiState) {
         if (uiState is UiState.Success) {
             Toast.makeText(
-                navController?.context,
+                navController.context,
                 "Room added successfully!",
                 Toast.LENGTH_SHORT
             ).show()
-            navController?.popBackStack()
+            navController.popBackStack()
         }
     }
 
@@ -90,7 +90,7 @@ fun AddRoomScreen(
 
         item {
             RequiredTextField(
-                value = formState.floor.toString(),
+                value = formState.floor,
                 onValueChange = floor,
                 label = "Floor",
                 isError = formState.floorError != null,
@@ -103,7 +103,7 @@ fun AddRoomScreen(
 
         item {
             RequiredTextField(
-                value = formState.size.toString(),
+                value = formState.size,
                 onValueChange = size,
                 label = "Size",
                 isError = formState.sizeError != null,
@@ -130,7 +130,7 @@ fun AddRoomScreen(
         item {
             DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Interior condition")
             ChoiceSelection(
-                options = Furniture.entries.toList().dropLast(1), //hide the last options Unknow
+                options = Furniture.entries.toList(),
                 selectedOption = formState.interior,
                 onOptionSelected = interior,
                 isError = formState.interiorError != null,
@@ -162,7 +162,10 @@ fun AddRoomScreen(
                 isLoading = uiState is UiState.Loading,
                 onClick = {
                     viewModel.addRoom()
-                }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
             )
         }
     }

@@ -16,19 +16,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.ButtonComponent
+import com.example.baytro.view.components.CardComponent
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.viewModel.Room.RoomDetailsVM
 import org.koin.compose.viewmodel.koinViewModel
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import com.example.baytro.navigation.Screens
-import com.example.baytro.view.components.CardComponent
 import java.text.NumberFormat
 import java.util.Locale
 

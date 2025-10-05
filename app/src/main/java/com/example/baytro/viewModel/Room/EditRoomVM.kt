@@ -3,7 +3,6 @@ package com.example.baytro.viewModel.Room
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
@@ -16,8 +15,7 @@ import kotlinx.coroutines.launch
 
 class EditRoomVM (
     private val roomRepository: RoomRepository,
-    private val buildingRepository: BuildingRepository,
-    private val savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val roomId: String = checkNotNull(savedStateHandle["roomId"])
     private val _room = MutableStateFlow<Room?>(null)
@@ -125,7 +123,7 @@ class EditRoomVM (
                 roomNumber = formState.roomNumber,
                 size = formState.size.toIntOrNull()?:0,
                 rentalFee = formState.rentalFee.toIntOrNull()?:0,
-                status = Status.Available,
+                status = Status.AVAILABLE,
                 interior = formState.interior,
             )
             viewModelScope.launch {
