@@ -264,7 +264,7 @@ fun AppNavigationController(
         ) {
             NewTenantUserScreen(
                 onComplete = {
-                    navHostController.navigate(Screens.MainScreen.route) {
+                    navHostController.navigate(Screens.TenantEmptyContract.route) {
                         popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
                     }
                 }

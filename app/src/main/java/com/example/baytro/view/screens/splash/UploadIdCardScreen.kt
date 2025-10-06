@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -120,7 +121,8 @@ fun UploadIdCardScreen(
             SubmitButton(
                 text = "Submit ID Card",
                 isLoading = uiState is UiState.Loading,
-                onClick = viewModel::onSubmit
+                onClick = viewModel::onSubmit,
+                modifier = Modifier.fillMaxWidth().height(50.dp)
             )
         }
     }

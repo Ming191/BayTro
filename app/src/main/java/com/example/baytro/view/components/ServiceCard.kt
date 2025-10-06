@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.service.Service
+import com.example.baytro.utils.Utils
 
 @Composable
 fun ServiceActionButton(
@@ -142,7 +143,7 @@ fun ServiceCard(
                 )
 
                 Text(
-                    text = "Price: ${service.price} VND/${service.metric}",
+                    text = "Price: ${Utils.formatCurrency(service.price)}/${service.metric.toString().lowercase()}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
