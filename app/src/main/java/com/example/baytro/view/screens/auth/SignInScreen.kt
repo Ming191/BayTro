@@ -43,7 +43,8 @@ fun SignInScreen(
     onNavigateToSignUp: () -> Unit,
     onFirstTimeUser: () -> Unit,
     onTenantNoContract: () -> Unit,
-    onTenantPendingSession: () -> Unit
+    onTenantPendingSession: () -> Unit,
+    onTenantWithContract: () -> Unit
 ) {
     val formState by viewModel.signInFormState.collectAsState()
     val loginUiState by viewModel.signInUIState.collectAsState()
@@ -61,6 +62,9 @@ fun SignInScreen(
         when (val state = loginUiState) {
             is AuthUIState.Success -> {
                 onSignInSuccess()
+            }
+            is AuthUIState.TenantWithContract -> {
+                onTenantWithContract()
             }
             is AuthUIState.FirstTimeUser -> {
                 onFirstTimeUser()
@@ -101,7 +105,7 @@ fun SignInContent(
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.padding(32.dp).fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {

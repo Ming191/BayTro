@@ -40,6 +40,7 @@ class ContractDetailsVM(
         contractId = id
         listenForContractUpdates()
         listenForPendingSessions()
+        checkUserRole()
     }
 
     private val _formState = MutableStateFlow(ContractDetailsFormState())
@@ -56,6 +57,22 @@ class ContractDetailsVM(
     val actionError: StateFlow<String?> = _actionError
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading
+    private val _isLandlord = MutableStateFlow(false)
+    val isLandlord: StateFlow<Boolean> = _isLandlord
+
+    private fun checkUserRole() {
+        viewModelScope.launch {
+            try {
+                val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                if (currentUserId != null) {
+                    val user = userRepository.getById(currentUserId)
+                    _isLandlord.value = user?.role is com.example.baytro.data.user.Role.Landlord
+                }
+            } catch (e: Exception) {
+                Log.e("ContractDetailsVM", "Error checking user role: ${e.message}", e)
+            }
+        }
+    }
 
     private fun listenForContractUpdates() {
         viewModelScope.launch {

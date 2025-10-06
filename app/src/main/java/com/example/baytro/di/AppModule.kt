@@ -24,6 +24,7 @@ import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
+import com.example.baytro.viewModel.dashboard.TenantDashboardVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
@@ -71,6 +72,7 @@ val authModule = module {
     single<FptAiService> { FptAiService(get(), get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
+    single<RoomRepository> { RoomRepository(get()) }
     single { IdCardDataViewModel() }
 
     viewModel {
@@ -160,6 +162,7 @@ val authModule = module {
         ContractListVM(
             get(),
             get(),
+            get(),
             get()
         )
     }
@@ -169,6 +172,7 @@ val authModule = module {
     viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }
     viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), handle) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
+    viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }

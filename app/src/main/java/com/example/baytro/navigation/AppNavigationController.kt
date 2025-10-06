@@ -33,6 +33,7 @@ import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.NewTenantUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
 import com.example.baytro.view.screens.splash.UploadIdCardScreen
+import com.example.baytro.view.screens.dashboard.TenantDashboard
 
 @SuppressLint("RestrictedApi")
 @Composable
@@ -169,6 +170,13 @@ fun AppNavigationController(
                         }
                     }
                 },
+                onTenantWithContract = {
+                    navHostController.navigate(Screens.TenantDashboard.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                    }
+                },
                 onTenantNoContract = {
                     navHostController.navigate(Screens.TenantEmptyContract.route) {
                         popUpTo(0) {
@@ -256,7 +264,7 @@ fun AppNavigationController(
         ) {
             NewTenantUserScreen(
                 onComplete = {
-                    navHostController.navigate(Screens.MainScreen.route) {
+                    navHostController.navigate(Screens.TenantEmptyContract.route) {
                         popUpTo(navHostController.graph.startDestinationId) { inclusive = true }
                     }
                 }
@@ -279,6 +287,12 @@ fun AppNavigationController(
             Screens.TenantEmptyContract.route
         ) {
             TenantEmptyContractView()
+        }
+
+        composable(
+            Screens.TenantDashboard.route
+        ) {
+            TenantDashboard(navController = navHostController)
         }
     }
 }

@@ -1,12 +1,13 @@
 package com.example.baytro.data.room
 
 import android.util.Log
+import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 class RoomRepository(
     db: FirebaseFirestore
 ) {
-    private val collection = db.collection("rooms")
+    private val collection = db.collection("rooms_test")
 
     companion object {
         private const val TAG = "RoomRepository"

@@ -11,4 +11,5 @@ sealed class AuthUIState {
     data class FirstTimeUser(val user : FirebaseUser) : AuthUIState()
     data class TenantNoContract(val user : FirebaseUser) : AuthUIState()
     data class TenantPendingSession(val user : FirebaseUser) : AuthUIState()
+    data class TenantWithContract(val user : FirebaseUser) : AuthUIState()
 }
