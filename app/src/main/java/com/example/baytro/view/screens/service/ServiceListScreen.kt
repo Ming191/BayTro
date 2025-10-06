@@ -1,5 +1,8 @@
 package com.example.baytro.view.screens.service
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +23,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -34,6 +41,7 @@ import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.service.ServiceListFormState
 import com.example.baytro.viewModel.service.ServiceListVM
+import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -44,35 +52,59 @@ fun ServiceListScreen(
     val uiState by viewModel.serviceListUiState.collectAsState()
     val formState by viewModel.serviceListFormState.collectAsState()
 
+    var indicatorVisible by remember { mutableStateOf(true) }
+    var contentVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState) {
+        if (uiState is UiState.Loading) {
+            indicatorVisible = true
+            contentVisible = false
+        } else {
+            indicatorVisible = false
+        }
+    }
+
+    LaunchedEffect(indicatorVisible) {
+        if (!indicatorVisible) {
+            delay(300)
+            contentVisible = true
+        }
+    }
+
     Scaffold { paddingValues ->
         Box(
             Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Show content
-            ServiceListContent(
-                formState = formState,
-                onBuildingSelected = viewModel::onBuildingChange,
-                onEdit = viewModel::onEditService,
-                onDelete = viewModel::onDeleteService,
-                navController = navController,
-                isLoading = uiState is UiState.Loading
-            )
-
-            // Show loading overlay
-            if (uiState is UiState.Loading) {
+            AnimatedVisibility(
+                visible = indicatorVisible,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
                 Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
                 }
             }
 
-            // Show error dialog
+            AnimatedVisibility(
+                visible = contentVisible,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                ServiceListContent(
+                    formState = formState,
+                    onBuildingSelected = viewModel::onBuildingChange,
+                    onEdit = viewModel::onEditService,
+                    onDelete = viewModel::onDeleteService,
+                    navController = navController,
+                    isLoading = uiState is UiState.Loading
+                )
+            }
+
             if (uiState is UiState.Error) {
                 val message = (uiState as UiState.Error).message
                 AlertDialog(
@@ -89,6 +121,7 @@ fun ServiceListScreen(
         }
     }
 }
+
 
 @Composable
 fun ServiceListContent (
@@ -158,43 +191,3 @@ fun ServiceListContent (
         }
     }
 }
-
-
-//@Preview
-//@Composable
-//fun ServiceListPreview(
-//) {
-//    val buildings = listOf(
-//        Building("1", "Building A", 1,"123 Main St", "active", 1, 2, 3),
-//        Building("2", "Building 2", 1,"123 Main St", "active", 1, 2, 3),
-//    )
-//    val services = listOf(
-//        Service("1", "Electricity", "Based on meter reading", "4.000", "kWh", "electricity", "1"),
-//        Service("2", "Water", "Monthly water fee", "2.000", "m³", "water", "1"),
-//        Service("3", "Internet", "High speed fiber", "200.000", "month", "internet", "1"),
-//        Service("4", "Cleaning", "Apartment cleaning service", "50.000", "time", "cleaning", "1"),
-//        Service("5", "Gas", "Monthly gas fee", "1.500", "m³", "gas", "1"),
-//        Service("6", "Parking", "Monthly parking fee", "100.000", "month", "parking", "2"),
-//        Service("7", "Security", "24/7 security service", "150.000", "month", "security","2")
-//    )
-//    val rooms = listOf(
-//        Room("1", "101", "1"),
-//        Room("2", "102", "1"),
-//        Room("3", "201", "2")
-//    )
-//    ServiceListContent(
-//        formState = ServiceListFormState(
-//            availableBuildings = buildings,
-//            selectedBuilding = buildings[0],
-//            availableRooms = rooms,
-//            selectedRoom = rooms[0],
-//            availableServices = services,
-//            selectedService = services[0]
-//        ),
-//
-//        onBuildingSelected = {},
-//        onEdit = {},
-//        onDelete = {},
-//        navController = NavHostController
-//    )
-//}

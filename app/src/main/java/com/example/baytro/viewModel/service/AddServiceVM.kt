@@ -116,9 +116,8 @@ class AddServiceVM(
     }
 
     fun onNameChange(value: String) { _formState.value = _formState.value.copy(name = value) }
-    fun onDescriptionChange(value: String) { _formState.value = _formState.value.copy(description = value) }
     fun onPriceChange(value: String) { _formState.value = _formState.value.copy(price = value) }
-    fun onUnitChange(value: String) { _formState.value = _formState.value.copy(unit = value) }
+    fun onUnitChange(value: Metric) { _formState.value = _formState.value.copy(metrics = value) }
 
     fun onSearchTextChange(value: String) {
         _formState.value = _formState.value.copy(searchText = value)
@@ -127,7 +126,7 @@ class AddServiceVM(
     fun onConfirm() {
         viewModelScope.launch {
             val state = _formState.value
-            if (state.name.isBlank() || state.price.isBlank() || state.unit.isBlank() || state.selectedBuilding == null) {
+            if (state.name.isBlank() || state.price.isBlank() || state.selectedBuilding == null) {
                 _uiState.value = UiState.Error("Please fill all required fields")
                 return@launch
             }
@@ -137,36 +136,22 @@ class AddServiceVM(
 
             _uiState.value = UiState.Loading
 
-            // Add delay for better UX
-            kotlinx.coroutines.delay(300)
-
             try {
-                // Convert unit string to Metric enum
-                val metric = when (state.unit.lowercase()) {
-                    "person" -> Metric.PERSON
-                    "room" -> Metric.ROOM
-                    "kwh" -> Metric.KWH
-                    "m³", "m3" -> Metric.M3
-                    else -> Metric.OTHER
-                }
-
                 val newService = Service(
                     name = state.name,
                     price = state.price,
-                    metric = metric,
+                    metric = state.metrics,
                     status = Status.ACTIVE
                 )
 
                 val building = state.selectedBuilding
 
-                // If no rooms selected OR all rooms selected, add to building services (apply to all)
                 val allRoomsSelected = state.selectedRooms.size == state.availableRooms.size && state.availableRooms.isNotEmpty()
 
                 if (state.selectedRooms.isEmpty() || allRoomsSelected) {
                     val updatedServices = building.services.toMutableList()
                     updatedServices.add(newService)
 
-                    // Update building with new services list
                     buildingRepo.updateFields(building.id, mapOf("services" to updatedServices))
 
                     if (allRoomsSelected) {
@@ -176,7 +161,6 @@ class AddServiceVM(
                     }
                     _uiState.value = UiState.Success(newService)
                 } else {
-                    // Add to extraService for selected rooms only (partial selection)
                     var successCount = 0
                     var failCount = 0
 

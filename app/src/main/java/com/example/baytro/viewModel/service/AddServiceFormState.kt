@@ -2,12 +2,12 @@ package com.example.baytro.viewModel.service
 
 import com.example.baytro.data.Building
 import com.example.baytro.data.room.Room
+import com.example.baytro.data.service.Metric
 
 data class AddServiceFormState(
     val name: String = "",
-    val description: String = "",
     val price: String = "",
-    val unit: String = "",
+    val metrics: Metric = Metric.entries[0],
     val searchText: String = "",
 
     val availableBuildings: List<Building> = emptyList(),

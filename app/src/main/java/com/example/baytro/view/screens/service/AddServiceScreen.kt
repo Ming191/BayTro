@@ -1,6 +1,8 @@
 package com.example.baytro.view.screens.service
 
 import android.widget.Toast
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,13 +16,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -32,11 +33,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
+import com.example.baytro.data.service.Metric
 import com.example.baytro.data.service.Service
+import com.example.baytro.view.components.CompactSearchBar
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
@@ -52,30 +56,39 @@ fun AddServiceScreen(
     val formState by viewModel.formState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Show content
-        AddServiceContent(
-            uiState = uiState,
-            formState = formState,
-            onNameChange = viewModel::onNameChange,
-            onDescriptionChange = viewModel::onDescriptionChange,
-            onPriceChange = viewModel::onPriceChange,
-            onUnitSelected = viewModel::onUnitChange,
-            onBuildingSelected = viewModel::onBuildingSelected,
-            onToggleRoom = viewModel::onToggleRoom,
-            onToggleSelectAll = viewModel::onToggleSelectAll,
-            onSearchTextChange = viewModel::onSearchTextChange,
-            onConfirm = viewModel::onConfirm,
-            isLoading = uiState is UiState.Loading
-        )
+    val loading = uiState is UiState.Loading
 
-        // Show loading overlay
-        if (uiState is UiState.Loading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Crossfade between loading and content
+        Crossfade(
+            targetState = loading,
+            animationSpec = tween(durationMillis = 300),
+            label = "loadingCrossfade"
+        ) { isLoading ->
+            if (isLoading) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            } else {
+                AddServiceContent(
+                    uiState = uiState,
+                    formState = formState,
+                    onNameChange = viewModel::onNameChange,
+                    onPriceChange = viewModel::onPriceChange,
+                    onUnitSelected = viewModel::onUnitChange,
+                    onBuildingSelected = viewModel::onBuildingSelected,
+                    onToggleRoom = viewModel::onToggleRoom,
+                    onToggleSelectAll = viewModel::onToggleSelectAll,
+                    onSearchTextChange = viewModel::onSearchTextChange,
+                    onConfirm = viewModel::onConfirm,
+                    isLoading = loading
+                )
             }
         }
 
@@ -112,9 +125,8 @@ fun AddServiceContent(
     uiState: UiState<Service>,
     formState: AddServiceFormState,
     onNameChange: (String) -> Unit,
-    onDescriptionChange: (String) -> Unit,
     onPriceChange: (String) -> Unit,
-    onUnitSelected: (String) -> Unit,
+    onUnitSelected: (Metric) -> Unit,
     onBuildingSelected: (Building) -> Unit,
     onToggleRoom: (String) -> Unit,
     onToggleSelectAll: () -> Unit,
@@ -146,9 +158,10 @@ fun AddServiceContent(
 
         DropdownSelectField(
             label = "Metrics",
-            options = listOf("Person", "Room", "kWh", "m³"),
-            selectedOption = formState.unit,
+            options = Metric.entries.toList(),
+            selectedOption = formState.metrics,
             onOptionSelected = onUnitSelected,
+            optionToString = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading
         )
@@ -163,56 +176,22 @@ fun AddServiceContent(
             enabled = !isLoading && formState.availableBuildings.isNotEmpty()
         )
 
-        // Show room selection only if building has rooms
         if (formState.availableRooms.isNotEmpty()) {
             Column {
                 HorizontalDivider(
                     thickness = 2.dp,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
-
-                Surface(
-                    color = if (formState.selectedRooms.isEmpty()) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    },
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                ) {
-                    Text(
-                        text = if (formState.selectedRooms.isEmpty()) {
-                            "✓ Apply to all rooms in building"
-                        } else {
-                            "⚠ Apply to ${formState.selectedRooms.size} selected room(s) only"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (formState.selectedRooms.isEmpty()) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        },
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedTextField(
+                    CompactSearchBar(
                         value = formState.searchText,
                         onValueChange = onSearchTextChange,
-                        placeholder = { Text("Search rooms...") },
+                        placeholderText = "Search rooms...",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null)
-                        },
                         enabled = !isLoading
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -239,26 +218,41 @@ fun AddServiceContent(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredRooms) { room ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                    Card(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
+                            .fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        onClick = {onToggleRoom(room.id)},
+                        enabled = !isLoading
                     ) {
-                        Text(room.roomNumber)
-                        Checkbox(
-                            checked = formState.selectedRooms.contains(room.id),
-                            onCheckedChange = { onToggleRoom(room.id) },
-                            enabled = !isLoading
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                text = room.roomNumber,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Checkbox(
+                                checked = formState.selectedRooms.contains(room.id),
+                                onCheckedChange = { onToggleRoom(room.id) },
+                                enabled = !isLoading
+                            )
+                        }
                     }
                 }
             }
         } else if (formState.selectedBuilding != null) {
-            // Show message when building has no rooms
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -294,31 +288,4 @@ fun AddServiceContent(
             onClick = { onConfirm() }
         )
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AddServiceContentPreview() {
-    AddServiceContent(
-        formState = AddServiceFormState(
-            name = "",
-            description = "",
-            price = "",
-            unit = "",
-            availableBuildings = listOf(),
-            availableRooms = listOf(),
-            selectedRooms = setOf(),
-            searchText = ""
-        ),
-        onNameChange = {},
-        onDescriptionChange = {},
-        onPriceChange = {},
-        onUnitSelected = {},
-        onBuildingSelected = {},
-        onToggleRoom = {},
-        onToggleSelectAll = {},
-        onSearchTextChange = {},
-        onConfirm = {},
-        uiState = UiState.Idle
-    )
 }

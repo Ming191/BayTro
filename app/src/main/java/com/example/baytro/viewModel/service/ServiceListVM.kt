@@ -41,6 +41,7 @@ class ServiceListVM(
         }
         val userId = currentUser.uid
         viewModelScope.launch {
+            _serviceListUiState.value = UiState.Loading // Set loading state once here
             try {
                 val buildings = buildingRepo.getBuildingsByUserId(userId)
                 _serviceListFormState.value = _serviceListFormState.value.copy(
@@ -60,11 +61,9 @@ class ServiceListVM(
     private fun listenToServicesRealtime(buildingId: String) {
         viewModelScope.launch {
             try {
-                _serviceListUiState.value = UiState.Loading
-
+                // Removed redundant loading state here
                 // Add small delay for better UX
                 kotlinx.coroutines.delay(250)
-
                 // Listen to real-time updates from building document
                 buildingRepo.listenToBuildingServices(buildingId)
                     .catch { e ->
@@ -85,8 +84,13 @@ class ServiceListVM(
     }
 
     fun onBuildingChange(building: Building) {
+        val current = _serviceListFormState.value.selectedBuilding
+
+        if (current?.id == building.id) return
+
         _serviceListFormState.value =
             _serviceListFormState.value.copy(selectedBuilding = building)
+
         if (building.id.isNotBlank()) {
             listenToServicesRealtime(building.id)
         }
