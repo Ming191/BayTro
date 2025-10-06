@@ -11,11 +11,11 @@ import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.view.AuthUIState
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 
 class EditBuildingVM(
     private val context: Context,

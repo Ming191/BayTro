@@ -76,7 +76,7 @@ dependencies {
 
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation("com.google.firebase:firebase-storage")
-
+    implementation("com.google.android.gms:play-services-base:18.2.0")
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
@@ -96,6 +96,8 @@ dependencies {
 
     implementation (libs.androidx.compose.material.icons.core)
     implementation (libs.androidx.compose.material.icons.extended)
+    implementation("androidx.compose.foundation:foundation")
+
 
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")

@@ -11,18 +11,24 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.baytro.MainScreen
 import com.example.baytro.view.screens.BillListScreen
-import com.example.baytro.view.screens.BuildingListScreen
-import com.example.baytro.view.screens.AddBuildingScreen
 import com.example.baytro.view.screens.DashboardScreen
-import com.example.baytro.view.screens.EditBuildingScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
+import com.example.baytro.view.screens.building.AddBuildingScreen
+import com.example.baytro.view.screens.building.BuildingListScreen
+import com.example.baytro.view.screens.building.EditBuildingScreen
 import com.example.baytro.view.screens.contract.AddContractScreen
 import com.example.baytro.view.screens.contract.ContractDetailsScreen
 import com.example.baytro.view.screens.contract.ContractListScreen
 import com.example.baytro.view.screens.contract.TenantEmptyContractView
+import com.example.baytro.view.screens.room.AddRoomScreen
+import com.example.baytro.view.screens.room.EditRoomScreen
+import com.example.baytro.view.screens.room.RoomDetailsScreen
+import com.example.baytro.view.screens.room.RoomListScreen
+import com.example.baytro.view.screens.service.AddServiceScreen
+import com.example.baytro.view.screens.service.ServiceListScreen
 import com.example.baytro.view.screens.splash.NewLandlordUserScreen
 import com.example.baytro.view.screens.splash.NewTenantUserScreen
 import com.example.baytro.view.screens.splash.SplashScreen
@@ -93,6 +99,53 @@ fun AppNavigationController(
                     navHostController.navigate(Screens.ContractDetails.passContractId(contractId))
                 }
             )
+        }
+        composable(
+            route = Screens.RoomList.route, // route có {buildingId} bên trong
+            arguments = listOf(navArgument("buildingId") { type = NavType.StringType})
+        ) { entry ->
+            val buildingId = entry.arguments?.getString("buildingId") ?: ""
+            RoomListScreen(
+                navController = navHostController,
+            )
+        }
+        composable(
+            route = Screens.RoomDetails.route,
+            arguments = listOf(navArgument("roomId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+            RoomDetailsScreen(
+                navController = navHostController)
+        }
+        composable(
+            route = Screens.EditRoom.route,
+            arguments = listOf(navArgument("roomId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+            EditRoomScreen(navController = navHostController)
+        }
+        composable(
+            route = Screens.AddRoom.route,
+            arguments = listOf(navArgument("buildingId") { type = NavType.StringType})
+        ) { entry ->
+            // Lấy tham số từ navigation
+            val buildingId = entry.arguments?.getString("buildingId") ?: ""
+            Log.d("AddRoomNav", "BuildingIdInNav: $buildingId")
+            // Gọi screen, truyền buildingId vào
+            AddRoomScreen(
+                navController = navHostController,
+                buildingId = buildingId
+            )
+        }
+        composable(
+            Screens.ServiceList.route
+        ) {
+            ServiceListScreen(navController = navHostController)
+        }
+        composable(
+            Screens.AddService.route
+        ) {
+            AddServiceScreen(navController = navHostController)
         }
         composable (
             Screens.MainScreen.route

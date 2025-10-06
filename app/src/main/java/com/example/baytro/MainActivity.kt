@@ -1,6 +1,5 @@
 package com.example.baytro
 
-//import com.example.baytro.navigation.ContentType
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,6 +23,7 @@ class MainActivity : ComponentActivity() {
         } else {
             Screens.SignIn.route
         }
+
         setContent {
             AppTheme {
                 Surface(

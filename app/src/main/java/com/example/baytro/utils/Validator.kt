@@ -1,8 +1,8 @@
 package com.example.baytro.utils
 
 import java.time.LocalDate
-import java.time.format.DateTimeParseException
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 sealed class ValidationResult {
     object Success : ValidationResult()

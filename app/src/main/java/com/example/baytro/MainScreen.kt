@@ -12,8 +12,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.baytro.navigation.AppScaffold
 import com.example.baytro.navigation.NavigationType
-import com.example.baytro.view.navigationType.NavigationDrawerView
 import com.example.baytro.ui.theme.AppTheme
+import com.example.baytro.view.navigationType.NavigationDrawerView
 import kotlinx.coroutines.launch
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
@@ -67,6 +67,12 @@ fun MainScreen() {
                         },
                         onContractClicked = {
                             navController.navigate("contracts_screen")
+                            scope.launch {
+                                drawerState.close()
+                            }
+                        },
+                        onServiceClicked = {
+                            navController.navigate("services_screen")
                             scope.launch {
                                 drawerState.close()
                             }

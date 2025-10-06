@@ -3,9 +3,9 @@ package com.example.baytro.service
 import android.util.Log
 import com.example.baytro.BuildConfig
 import com.example.baytro.data.FptAiOcrResponse
-import com.example.baytro.data.user.Gender
 import com.example.baytro.data.IdCardInfo
 import com.example.baytro.data.MediaRepository
+import com.example.baytro.data.user.Gender
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData

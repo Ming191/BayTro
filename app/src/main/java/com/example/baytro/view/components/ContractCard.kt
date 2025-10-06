@@ -44,14 +44,14 @@ fun ContractCard(infoMap: Map<String, String> = emptyMap()) {
             modifier = Modifier.padding(16.dp)
         ) {
             for (entry in infoMap) {
-              InfoRow(label = entry.key, value = entry.value)
+              ContractInfoRow(label = entry.key, value = entry.value)
             }
         }
     }
 }
 
 @Composable
-fun InfoRow(label: String, value: String) {
+fun ContractInfoRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

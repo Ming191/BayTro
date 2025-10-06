@@ -1,58 +1,91 @@
 package com.example.baytro.data.room
 
+import android.util.Log
 import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 class RoomRepository(
     db: FirebaseFirestore
-) : Repository<Room> {
-    private val collection = db.collection("rooms_test")
+) {
+    private val collection = db.collection("rooms")
 
-    override suspend fun getAll(): List<Room> {
-        val snapshot = collection.get()
-        return snapshot.documents.map { it.data<Room>()}
+    companion object {
+        private const val TAG = "RoomRepository"
     }
 
-    override suspend fun getById(id: String): Room? {
-        val snapshot = collection.document(id).get()
-        return if (snapshot.exists) {
-            val room = snapshot.data<Room>()
-            room.copy(id = snapshot.id)
-        } else {
+    suspend fun getAll(): List<Room> {
+        return try {
+            val snapshot = collection.get()
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    val room = doc.data<Room>()
+                    room.copy(id = doc.id)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error deserializing room ${doc.id}: ${e.message}")
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching all rooms: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun getById(id: String): Room? {
+        return try {
+            val snapshot = collection.document(id).get()
+            if (snapshot.exists) {
+                val room = snapshot.data<Room>()
+                room.copy(id = snapshot.id)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching room $id: ${e.message}")
             null
         }
     }
 
-    override suspend fun add(item: Room): String {
+    suspend fun add(item: Room): String {
         val docRef = collection.add(item)
         return docRef.id
     }
 
-    override suspend fun addWithId(id: String, item: Room) {
-        collection.document(id).set(item)
-    }
-
-    override suspend fun update(id: String, item: Room) {
-        collection.document(id).set(item, merge = true)
-    }
-
-    override suspend fun delete(id: String) {
-        collection.document(id).delete()
-    }
-    override suspend fun updateFields(id: String, fields: Map<String, Any?>) {
-        collection.document(id).update(fields)
-    }
-
-    suspend fun getRoomsByBuildingId(buildingId: String): List<Room> {
-        val snapshot = collection.where { "buildingId" equalTo buildingId }.get()
-        return snapshot.documents.mapNotNull { doc ->
-            try {
-                val room = doc.data<Room>()
-                room.copy(id = doc.id)
-            } catch (_: Exception) {
-                null
-            }
+    suspend fun update(id: String, item: Room): Boolean {
+        return try {
+            collection.document(id).set(item)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating room $id: ${e.message}")
+            false
         }
     }
 
+    suspend fun delete(id: String): Boolean {
+        return try {
+            collection.document(id).delete()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting room $id: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun getRoomsByBuildingId(buildingId: String): List<Room> {
+        return try {
+            val snapshot = collection.where { "buildingId" equalTo buildingId }.get()
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    val room = doc.data<Room>()
+                    room.copy(id = doc.id)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error deserializing room ${doc.id} for building $buildingId: ${e.message}")
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching rooms for building $buildingId: ${e.message}")
+            emptyList()
+        }
+    }
 }

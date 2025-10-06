@@ -9,13 +9,16 @@ import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
+import com.example.baytro.data.service.Metric
+import com.example.baytro.data.service.Service
+import com.example.baytro.data.service.Status
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.view.AuthUIState
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 
 class AddBuildingVM(
     private val context: Context,
@@ -27,6 +30,23 @@ class AddBuildingVM(
     private val _addBuildingUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
     val addBuildingUIState: StateFlow<AuthUIState> = _addBuildingUIState
 
+    private fun createDefaultServices(): List<Service> {
+        return listOf(
+            Service(
+                name = "Water",
+                price = "18000",
+                metric = Metric.M3,
+                status = Status.ACTIVE
+            ),
+            Service(
+                name = "Electricity",
+                price = "4000",
+                metric = Metric.KWH,
+                status = Status.ACTIVE
+            )
+        )
+    }
+
     fun addBuilding(building: Building) {
         viewModelScope.launch {
             _addBuildingUIState.value = AuthUIState.Loading
@@ -34,14 +54,24 @@ class AddBuildingVM(
                 val currentUser = authRepository.getCurrentUser()
                     ?: throw IllegalStateException("No logged in user found")
                 
-                val buildingWithUserId = building.copy(userId = currentUser.uid)
-                buildingRepository.add(buildingWithUserId)
+                val buildingWithDefaults = building.copy(
+                    userId = currentUser.uid,
+                    services = createDefaultServices()
+                )
+                val newId = buildingRepository.add(buildingWithDefaults)
+
+                // Update the document to include its own ID
+                buildingRepository.updateFields(newId, mapOf("id" to newId))
+                
+                Log.d("AddBuildingVM", "Building created with default services")
+
                 _addBuildingUIState.value = AuthUIState.Success(currentUser)
             } catch (e: Exception) {
                 _addBuildingUIState.value = AuthUIState.Error(e.message ?: "An unknown error occurred")
             }
         }
     }
+
     fun addBuildingWithImages(building: Building, imageUris: List<Uri>) {
         viewModelScope.launch {
             _addBuildingUIState.value = AuthUIState.Loading
@@ -49,9 +79,14 @@ class AddBuildingVM(
                 val currentUser = authRepository.getCurrentUser()
                     ?: throw IllegalStateException("No logged in user found")
 
-                // Tạo building trước để có ID
-                val buildingWithUserId = building.copy(userId = currentUser.uid, imageUrls = emptyList())
-                val newId = buildingRepository.add(buildingWithUserId)
+                val buildingWithDefaults = building.copy(
+                    userId = currentUser.uid,
+                    imageUrls = emptyList(),
+                    services = createDefaultServices()
+                )
+                val newId = buildingRepository.add(buildingWithDefaults)
+
+                buildingRepository.updateFields(newId, mapOf("id" to newId))
                 Log.d("AddBuildingVM", "Building created with ID: $newId")
 
                 val limitedUris = imageUris.take(3)
@@ -59,7 +94,6 @@ class AddBuildingVM(
                 val startTime = System.currentTimeMillis()
                 
                 // Tối ưu: Compress và upload song song cho từng ảnh
-                // Thay vì compress tất cả rồi upload tất cả
                 val uploadedUrls = limitedUris.mapIndexed { index, uri ->
                     async {
                         val imageStartTime = System.currentTimeMillis()
@@ -99,10 +133,10 @@ class AddBuildingVM(
                     buildingRepository.updateFields(newId, mapOf("imageUrls" to uploadedUrls))
                     Log.d("AddBuildingVM", "Building updated with ${uploadedUrls.size} image URLs")
                 }
-                
+
                 _addBuildingUIState.value = AuthUIState.Success(currentUser)
                 Log.d("AddBuildingVM", "Add building completed successfully")
-                
+
             } catch (e: Exception) {
                 Log.e("AddBuildingVM", "Failed to add building with images", e)
                 _addBuildingUIState.value = AuthUIState.Error(e.message ?: "An unknown error occurred")
