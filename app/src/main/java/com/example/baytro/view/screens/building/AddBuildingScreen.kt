@@ -1,56 +1,33 @@
 package com.example.baytro.view.screens.building
 
-import android.Manifest
 import android.net.Uri
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -58,24 +35,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.navigation.NavHostController
-import coil3.compose.AsyncImage
 import com.example.baytro.data.Building
 import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
-import com.example.baytro.view.components.FullScreenImageViewer
+import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.viewModel.AddBuildingVM
-import com.yalantis.ucrop.UCrop
 import org.koin.compose.viewmodel.koinViewModel
-import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,88 +86,6 @@ fun AddBuildingScreen(
     val startFocus = remember { FocusRequester() }
     val dueFocus = remember { FocusRequester() }
     val selectedImages = remember { mutableStateOf<List<Uri>>(emptyList()) }
-    val cameraImageUri = remember { mutableStateOf<Uri?>(null) }
-
-    // Image viewer state
-    var showImageViewer by remember { mutableStateOf(false) }
-    var imageViewerIndex by remember { mutableIntStateOf(0) }
-
-    // UCrop launcher
-    val cropLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            result.data?.let { intent ->
-                val croppedUri = UCrop.getOutput(intent)
-                croppedUri?.let { uri ->
-                    val current = selectedImages.value
-                    selectedImages.value = (current + uri).take(3)
-                }
-            }
-        }
-    }
-
-    // Camera launcher
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success) {
-            cameraImageUri.value?.let { uri ->
-                val destinationUri = Uri.fromFile(
-                    File(context.cacheDir, "building_camera_cropped_${System.currentTimeMillis()}.jpg")
-                )
-                val uCropIntent = UCrop.of(uri, destinationUri)
-                    .withAspectRatio(16f, 9f)
-                    .withMaxResultSize(1080, 608)
-                    .getIntent(context)
-
-                cropLauncher.launch(uCropIntent)
-            }
-        }
-    }
-
-    // Camera permission launcher
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            // Permission granted, launch camera
-            try {
-                val imageFile = File(context.cacheDir, "building_camera_${System.currentTimeMillis()}.jpg")
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.provider",
-                    imageFile
-                )
-                cameraImageUri.value = uri
-                cameraLauncher.launch(uri)
-            } catch (e: Exception) {
-                Toast.makeText(context, "Camera not available: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            Toast.makeText(context, "Camera permission is required to take photos", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // Photo picker launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        uri?.let { selectedUri ->
-            if (selectedImages.value.size < 3) {
-                val destinationUri = Uri.fromFile(
-                    File(context.cacheDir, "building_cropped_${System.currentTimeMillis()}.jpg")
-                )
-
-                val uCropIntent = UCrop.of(selectedUri, destinationUri)
-                    .withAspectRatio(16f, 9f) // Tỷ lệ 16:9 cho ảnh building
-                    .withMaxResultSize(1080, 608) // Max size tương ứng
-                    .getIntent(context)
-
-                cropLauncher.launch(uCropIntent)
-            }
-        }
-    }
 
     // Handle UI state changes
     LaunchedEffect(key1 = uiState) {
@@ -436,128 +325,20 @@ fun AddBuildingScreen(
                         }
                     }
 
-                    // Image action buttons
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-                    ) {
-                        // Gallery button
-                        OutlinedButton(
-                            onClick = {
-                                imagePickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                            enabled = selectedImages.value.size < 3,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Gallery")
-                        }
-
-                        // Camera button
-                        OutlinedButton(
-                            onClick = {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            },
-                            enabled = selectedImages.value.size < 3,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Camera")
-                        }
-                    }
-                    // Image grid
-                    if (selectedImages.value.isNotEmpty()) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            itemsIndexed(selectedImages.value) { index, uri ->
-                                Card(
-                                    modifier = Modifier.size(120.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clickable {
-                                                imageViewerIndex = index
-                                                showImageViewer = true
-                                            }
-                                    ) {
-                                        AsyncImage(
-                                            model = uri,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-
-                                        // Delete button in top-left corner
-                                        IconButton(
-                                            onClick = {
-                                                selectedImages.value =
-                                                    selectedImages.value.toMutableList().also {
-                                                        it.removeAt(index)
-                                                    }
-                                            },
-                                            modifier = Modifier
-                                                .align(Alignment.TopStart)
-                                                .padding(4.dp)
-                                                .size(32.dp)
-                                                .background(
-                                                    Color.Black.copy(alpha = 0.6f),
-                                                    CircleShape
-                                                )
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Close,
-                                                contentDescription = "Remove image",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        // Empty state for images
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        Icons.Default.AddAPhoto,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(32.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        "Add building photos",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    // Use PhotoCarousel component
+                    PhotoCarousel(
+                        selectedPhotos = selectedImages.value,
+                        onPhotosSelected = { newPhotos ->
+                            selectedImages.value = newPhotos
+                        },
+                        maxSelectionCount = 3,
+                        imageWidth = 150.dp,
+                        imageHeight = 200.dp,
+                        aspectRatioX = 3f,
+                        aspectRatioY = 4f,
+                        maxResultWidth = 1080,
+                        maxResultHeight = 1080
+                    )
                 }
             }
 
@@ -666,14 +447,5 @@ fun AddBuildingScreen(
                 }
             }
         }
-    }
-
-    // Image Viewer
-    if (showImageViewer) {
-        FullScreenImageViewer(
-            images = selectedImages.value,
-            initialIndex = imageViewerIndex,
-            onDismiss = { showImageViewer = false }
-        )
     }
 }

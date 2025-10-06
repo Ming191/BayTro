@@ -74,7 +74,6 @@ fun BuildingListScreen(
     viewModel: BuildingListVM = koinViewModel()
 ) {
     val controller = navController ?: rememberNavController()
-    val buildings by viewModel.buildings.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     // Load buildings when screen is first displayed
     LaunchedEffect(Unit) {
@@ -127,7 +126,7 @@ fun BuildingListScreen(
                                 expanded = showStatusMenu,
                                 onDismissRequest = { showStatusMenu = false }
                             ) {
-                                BuildingListVM.BuildingStatusFilter.values().forEach { filter ->
+                                BuildingListVM.BuildingStatusFilter.entries.forEach { filter ->
                                     DropdownMenuItem(
                                         text = {
                                             Text(
@@ -198,7 +197,7 @@ fun BuildingListScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(8.dp),
+                                    .padding(16.dp),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -290,7 +289,6 @@ fun BuildingListScreen(
                                         }
                                     }
 
-                                    // 2) Thông tin ở dưới
                                     Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -343,8 +341,7 @@ fun BuildingListScreen(
                                     hasNextPage = hasNextPage,
                                     hasPreviousPage = hasPreviousPage,
                                     onNextPage = viewModel::nextPage,
-                                    onPreviousPage = viewModel::previousPage,
-                                    onGoToPage = viewModel::goToPage
+                                    onPreviousPage = viewModel::previousPage
                                 )
                             }
                         }
@@ -418,8 +415,7 @@ fun PaginationControls(
     hasNextPage: Boolean,
     hasPreviousPage: Boolean,
     onNextPage: () -> Unit,
-    onPreviousPage: () -> Unit,
-    onGoToPage: (Int) -> Unit
+    onPreviousPage: () -> Unit
 ) {
     Card(
         modifier = Modifier

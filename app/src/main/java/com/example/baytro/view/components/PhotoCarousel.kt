@@ -1,14 +1,22 @@
 package com.example.baytro.view.components
 
+import android.Manifest
 import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -16,13 +24,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -32,9 +45,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
+import com.yalantis.ucrop.UCrop
+import java.io.File
 
 enum class CarouselOrientation {
     Horizontal, Vertical
@@ -52,11 +69,88 @@ fun PhotoCarousel(
     aspectRatioY: Float = 4f,
     maxResultWidth: Int = 1080,
     maxResultHeight: Int = 1440,
-    useCircularFrame: Boolean = false // Add parameter to control circular framing
+    useCircularFrame: Boolean = false
 ) {
+    val context = LocalContext.current
     var showPicker by remember { mutableStateOf(false) }
-    var selectedPhotoForDetail by remember { mutableStateOf<Uri?>(null) }
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
+    var selectedPhotoIndex by remember { mutableIntStateOf(-1) }
     var pickerLaunchKey by remember { mutableIntStateOf(0) }
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            cameraImageUri?.let { uri ->
+                pendingCropUri = uri
+            }
+        }
+    }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            try {
+                // Create images directory in cache if it doesn't exist
+                val imagesDir = File(context.cacheDir, "images")
+                if (!imagesDir.exists()) {
+                    imagesDir.mkdirs()
+                }
+                val imageFile = File(imagesDir, "camera_${System.currentTimeMillis()}.jpg")
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    imageFile
+                )
+                cameraImageUri = uri
+                cameraLauncher.launch(uri)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Camera not available: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Camera permission is required to take photos", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Crop launcher for camera images
+    val cropLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            result.data?.let { intent ->
+                val croppedUri = UCrop.getOutput(intent)
+                croppedUri?.let { uri ->
+                    onPhotosSelected(selectedPhotos + uri)
+                }
+            }
+        }
+        // Reset pending crop URI after handling
+        pendingCropUri = null
+    }
+
+    // Handle cropping for camera images using LaunchedEffect
+    LaunchedEffect(pendingCropUri) {
+        pendingCropUri?.let { uri ->
+            // Create images directory in cache if it doesn't exist (for cropped output)
+            val imagesDir = File(context.cacheDir, "images")
+            if (!imagesDir.exists()) {
+                imagesDir.mkdirs()
+            }
+            val destinationUri = Uri.fromFile(
+                File(imagesDir, "camera_cropped_${System.currentTimeMillis()}.jpg")
+            )
+            val uCropIntent = UCrop.of(uri, destinationUri)
+                .withAspectRatio(aspectRatioX, aspectRatioY)
+                .withMaxResultSize(maxResultWidth, maxResultHeight)
+                .getIntent(context)
+            cropLauncher.launch(uCropIntent)
+        }
+    }
 
     if (showPicker) {
         PhotoSelectorView(
@@ -76,13 +170,103 @@ fun PhotoCarousel(
         )
     }
 
-    selectedPhotoForDetail?.let { photoUri ->
+    // Photo detail dialog
+    if (selectedPhotoIndex != -1) {
         PhotoDetailDialog(
-            photoUri = photoUri,
-            onDismiss = { selectedPhotoForDetail = null },
-            onDelete = {
-                onPhotosSelected(selectedPhotos.filter { it != photoUri })
-                selectedPhotoForDetail = null
+            photos = selectedPhotos,
+            initialIndex = selectedPhotoIndex,
+            onDismiss = { selectedPhotoIndex = -1 },
+            onDelete = { deletedUri ->
+                onPhotosSelected(selectedPhotos.filter { it != deletedUri })
+                // Update index or close if last photo
+                val newIndex = selectedPhotos.indexOf(deletedUri)
+                if (selectedPhotos.size <= 1) {
+                    selectedPhotoIndex = -1
+                } else if (newIndex == selectedPhotos.lastIndex) {
+                    selectedPhotoIndex = maxOf(0, selectedPhotoIndex - 1)
+                }
+            }
+        )
+    }
+
+    // Photo source selection dialog
+    if (showPhotoSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showPhotoSourceDialog = false },
+            title = { Text("Add Photo") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // From Gallery option
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showPhotoSourceDialog = false
+                                pickerLaunchKey++
+                                showPicker = true
+                            },
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Photo,
+                                contentDescription = "From Gallery",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = "From Gallery",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+
+                    // Take Photo option
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showPhotoSourceDialog = false
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            },
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Take Photo",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = "Take Photo",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPhotoSourceDialog = false }) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -105,8 +289,8 @@ fun PhotoCarousel(
                         modifier = Modifier
                             .size(imageWidth, imageHeight)
                             .padding(4.dp)
-                            .clickable { selectedPhotoForDetail = uri }
-                            .clip(imageShape), // Use dynamic shape
+                            .clickable { selectedPhotoIndex = selectedPhotos.indexOf(uri) }
+                            .clip(imageShape),
                         contentScale = ContentScale.Crop
                     )
 
@@ -141,12 +325,11 @@ fun PhotoCarousel(
                         modifier = Modifier
                             .size(imageWidth, imageHeight)
                             .clickable {
-                                pickerLaunchKey++
-                                showPicker = true
+                                showPhotoSourceDialog = true
                             },
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         tonalElevation = 2.dp,
-                        shape = imageShape // Use dynamic shape for add button too
+                        shape = imageShape
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -183,8 +366,8 @@ fun PhotoCarousel(
                         modifier = Modifier
                             .size(imageWidth, imageHeight)
                             .padding(4.dp)
-                            .clickable { selectedPhotoForDetail = uri }
-                            .clip(imageShape), // Use dynamic shape
+                            .clickable { selectedPhotoIndex = selectedPhotos.indexOf(uri) }
+                            .clip(imageShape),
                         contentScale = ContentScale.Crop
                     )
 
@@ -219,12 +402,11 @@ fun PhotoCarousel(
                         modifier = Modifier
                             .size(imageWidth, imageHeight)
                             .clickable {
-                                pickerLaunchKey++
-                                showPicker = true
+                                showPhotoSourceDialog = true
                             },
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         tonalElevation = 2.dp,
-                        shape = imageShape // Use dynamic shape for add button too
+                        shape = imageShape
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
