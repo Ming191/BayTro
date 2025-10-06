@@ -60,7 +60,7 @@ fun ServiceCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(all = 8.dp),
+                .padding(all = 16.dp),
         ) {
             Row(
                 modifier = Modifier
@@ -103,7 +103,7 @@ fun ServiceCard(
                     horizontalArrangement = Arrangement.End
                 ) {
                     ServiceActionButton(
-                        icon = Icons.Default.Edit,
+                        icon = Icons.Filled.Edit,
                         contentDescription = "Edit",
                         backgroundColor = MaterialTheme.colorScheme.tertiary,
                         iconColor = MaterialTheme.colorScheme.tertiary,
@@ -116,7 +116,7 @@ fun ServiceCard(
                     )
 
                     ServiceActionButton(
-                        icon = Icons.Default.Delete,
+                        icon = Icons.Filled.Delete,
                         contentDescription = "Delete",
                         backgroundColor = MaterialTheme.colorScheme.primary,
                         iconColor = MaterialTheme.colorScheme.primary,

@@ -4,19 +4,24 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.baytro.data.building.Building
 import com.example.baytro.data.service.Service
+import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.service.AddServiceVM
@@ -106,13 +111,6 @@ fun AddServiceContent(
         )
 
         OutlinedTextField(
-            value = formState.description,
-            onValueChange = onDescriptionChange,
-            label = { Text("Description") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
             value = formState.price,
             onValueChange = onPriceChange,
             label = { Text("Unit price") },
@@ -137,22 +135,46 @@ fun AddServiceContent(
         )
 
         // Search + Select All
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = formState.searchText,
-                onValueChange = { /* TODO: implement search in VM */ },
-                label = { Text("Search room") },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = onToggleSelectAll) {
-                Text("Select all")
+        Column {
+            HorizontalDivider(thickness = 2.dp)
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = "searchQuery",
+                    onValueChange = { },
+                    modifier = Modifier
+                        .weight(1f)
+                        .onFocusChanged {
+                        },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = null)
+                    },
+                    placeholder = {
+                        //if (!isSearchFocused) {
+                            Text("Search by name or address")
+                        //}
+                    },
+                    label = {
+                        //if (!isSearchFocused && searchQuery.isEmpty()) {
+                            Text("Search by name or address")
+                        //}
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = onToggleSelectAll,
+                ) {
+                    Text("Select all")
+                }
             }
         }
+
 
         // Room list
         LazyColumn(
@@ -176,6 +198,7 @@ fun AddServiceContent(
             }
         }
         SubmitButton(
+            modifier = Modifier.fillMaxWidth().height(50.dp),
             isLoading = uiState is UiState.Loading,
             onClick = { onConfirm() }
         )
