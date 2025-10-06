@@ -121,7 +121,7 @@ fun AddServiceContent(
 
         DropdownSelectField(
             label = "Metrics",
-            options = listOf("Person", "Room", "Month", "kWh", "m³"),
+            options = listOf("Person", "Room", "kWh", "m³"),
             selectedOption = formState.unit,
             onOptionSelected = onUnitSelected,
             modifier = Modifier.fillMaxWidth()
