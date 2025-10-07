@@ -1,5 +1,17 @@
 package com.example.baytro.view.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,24 +21,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlin.math.max
-import kotlin.math.min
 
 @Composable
 fun PaginationControls(
@@ -39,20 +47,20 @@ fun PaginationControls(
     modifier: Modifier = Modifier,
     onPageClick: ((Int) -> Unit)? = null
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    var controlsVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        controlsVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = controlsVisible,
+        enter = fadeIn(animationSpec = tween(300, 100)) + slideInVertically { it / 2 }
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Back button
             PageButton(
                 text = "Back",
                 isSelected = false,
@@ -60,9 +68,8 @@ fun PaginationControls(
                 onClick = onPreviousPage
             )
 
-            // Generate page numbers to display
             val pages = generatePageNumbers(currentPage + 1, totalPages)
-            
+
             pages.forEach { pageItem ->
                 when (pageItem) {
                     is PageItem.Page -> {
@@ -70,9 +77,9 @@ fun PaginationControls(
                             text = pageItem.number.toString(),
                             isSelected = pageItem.number == currentPage + 1,
                             enabled = true,
-                            onClick = { 
+                            onClick = {
                                 if (onPageClick != null && pageItem.number != currentPage + 1) {
-                                    onPageClick(pageItem.number - 1) // Convert back to 0-based
+                                    onPageClick(pageItem.number - 1)
                                 }
                             }
                         )
@@ -87,8 +94,6 @@ fun PaginationControls(
                     }
                 }
             }
-
-            // Next button
             PageButton(
                 text = "Next",
                 isSelected = false,
@@ -106,28 +111,58 @@ private fun PageButton(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = tween(durationMillis = 300),
+        label = "BackgroundColor"
+    )
+
+    val textColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            isSelected -> MaterialTheme.colorScheme.onPrimary
+            else -> MaterialTheme.colorScheme.primary
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "TextColor"
+    )
+
+    val buttonSize by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isSelected) 44.dp else 40.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "ButtonSize"
+    )
+
     Box(
         modifier = Modifier
             .padding(horizontal = 4.dp)
-            .size(40.dp)
+            .size(buttonSize)
             .clip(RoundedCornerShape(8.dp))
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primary
-                else Color.Transparent
-            )
+            .background(backgroundColor)
             .clickable(enabled = enabled) { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = when {
-                !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                isSelected -> MaterialTheme.colorScheme.onPrimary
-                else -> MaterialTheme.colorScheme.primary
-            }
-        )
+        AnimatedContent(
+            targetState = text,
+            transitionSpec = {
+                if (targetState > initialState) {
+                    (slideInVertically { height -> height } + fadeIn()).togetherWith(slideOutVertically { height -> -height } + fadeOut())
+                } else {
+                    (slideInVertically { height -> -height } + fadeIn()).togetherWith(slideOutVertically { height -> height } + fadeOut())
+                }.using(SizeTransform(clip = false))
+            },
+            label = "PageNumberText"
+        ) { targetText ->
+            Text(
+                text = targetText,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = textColor // Áp dụng màu chữ đã được animate
+            )
+        }
     }
 }
 
@@ -138,36 +173,30 @@ private sealed class PageItem {
 
 private fun generatePageNumbers(currentPage: Int, totalPages: Int): List<PageItem> {
     if (totalPages <= 7) {
-        // Show all pages if total is 7 or less
         return (1..totalPages).map { PageItem.Page(it) }
     }
 
     val pages = mutableListOf<PageItem>()
-    
-    // Always show first page
+
     pages.add(PageItem.Page(1))
-    
+
     when {
         currentPage <= 4 -> {
-            // Show pages 2, 3, 4, 5, ..., last
             (2..5).forEach { pages.add(PageItem.Page(it)) }
             pages.add(PageItem.Ellipsis)
             pages.add(PageItem.Page(totalPages))
         }
         currentPage >= totalPages - 3 -> {
-            // Show 1, ..., last-4, last-3, last-2, last-1, last
             pages.add(PageItem.Ellipsis)
             (totalPages - 4..totalPages).forEach { pages.add(PageItem.Page(it)) }
         }
         else -> {
-            // Show 1, ..., current-1, current, current+1, ..., last
             pages.add(PageItem.Ellipsis)
             (currentPage - 1..currentPage + 1).forEach { pages.add(PageItem.Page(it)) }
             pages.add(PageItem.Ellipsis)
             pages.add(PageItem.Page(totalPages))
         }
     }
-    
+
     return pages
 }
-
