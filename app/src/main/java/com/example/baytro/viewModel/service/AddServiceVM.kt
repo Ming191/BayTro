@@ -42,10 +42,6 @@ class AddServiceVM(
         viewModelScope.launch {
             try {
                 _uiState.value = UiState.Loading
-
-                // Add delay for better UX
-                kotlinx.coroutines.delay(300)
-
                 val buildings = buildingRepo.getBuildingsByUserId(currentUser.uid)
                 _formState.value = _formState.value.copy(availableBuildings = buildings)
 
@@ -63,9 +59,12 @@ class AddServiceVM(
     }
 
     fun onBuildingSelected(building: Building) {
+        Log.d(TAG, "onBuildingSelected: ${building.name} - clearing old rooms")
+
         _formState.value = _formState.value.copy(
             selectedBuilding = building,
-            selectedRooms = emptySet()
+            selectedRooms = emptySet(),
+            availableRooms = emptyList() // Clear old rooms immediately
         )
         fetchRooms(building.id)
     }
@@ -74,11 +73,7 @@ class AddServiceVM(
     private fun fetchRooms(buildingId: String) {
         viewModelScope.launch {
             try {
-                _uiState.value = UiState.Loading
-
-                // Add delay for better UX
-                kotlinx.coroutines.delay(300)
-
+                // Don't set loading state here - it causes dropdown to glitch
                 val rooms = roomRepo.getRoomsByBuildingId(buildingId)
                 _formState.value = _formState.value.copy(availableRooms = rooms)
                 Log.d(TAG, "Fetched ${rooms.size} rooms for building $buildingId")
@@ -90,12 +85,19 @@ class AddServiceVM(
                     Log.d(TAG, "Auto-selected all ${rooms.size} rooms")
                 }
 
-                _uiState.value = UiState.Idle
+                // Only set to Idle if we're currently Loading (initial load)
+                if (_uiState.value is UiState.Loading) {
+                    _uiState.value = UiState.Idle
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching rooms for building $buildingId: ${e.message}")
                 // Set empty list instead of showing error - building might have no rooms
                 _formState.value = _formState.value.copy(availableRooms = emptyList())
-                _uiState.value = UiState.Idle
+
+                // Only set to Idle if we're currently Loading (initial load)
+                if (_uiState.value is UiState.Loading) {
+                    _uiState.value = UiState.Idle
+                }
             }
         }
     }
