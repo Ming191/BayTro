@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -57,10 +57,232 @@ enum class CarouselOrientation {
     Horizontal, Vertical
 }
 
+// Image item composable for existing images (URLs)
+@Composable
+private fun ExistingImageItem(
+    imageUrl: String,
+    imageWidth: Dp,
+    imageHeight: Dp,
+    imageShape: androidx.compose.ui.graphics.Shape,
+    onImageClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Box(
+        modifier = Modifier.size(imageWidth, imageHeight)
+    ) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = null,
+            modifier = Modifier
+                .size(imageWidth, imageHeight)
+                .padding(4.dp)
+                .clickable { onImageClick() }
+                .clip(imageShape),
+            contentScale = ContentScale.Crop
+        )
+
+        // Delete button
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(24.dp)
+                .offset(x = (-2).dp, y = 2.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.error,
+            tonalElevation = 4.dp
+        ) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Delete photo",
+                    tint = MaterialTheme.colorScheme.onError,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+        }
+    }
+}
+
+// Image item composable for new images (URIs)
+@Composable
+private fun NewImageItem(
+    uri: Uri,
+    imageWidth: Dp,
+    imageHeight: Dp,
+    imageShape: androidx.compose.ui.graphics.Shape,
+    onImageClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Box(
+        modifier = Modifier.size(imageWidth, imageHeight)
+    ) {
+        AsyncImage(
+            model = uri,
+            contentDescription = null,
+            modifier = Modifier
+                .size(imageWidth, imageHeight)
+                .padding(4.dp)
+                .clickable { onImageClick() }
+                .clip(imageShape),
+            contentScale = ContentScale.Crop
+        )
+
+        // Delete button
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(24.dp)
+                .offset(x = (-2).dp, y = 2.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.error,
+            tonalElevation = 4.dp
+        ) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Delete photo",
+                    tint = MaterialTheme.colorScheme.onError,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+        }
+    }
+}
+
+// Upload button composable
+@Composable
+private fun UploadButton(
+    imageWidth: Dp,
+    imageHeight: Dp,
+    imageShape: androidx.compose.ui.graphics.Shape,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .size(imageWidth, imageHeight)
+            .clickable { onClick() },
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 2.dp,
+        shape = imageShape
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Icon(
+                imageVector = Icons.Default.AddAPhoto,
+                contentDescription = "Add Photo",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+            Text(
+                text = "Upload",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// Photo source selection dialog
+@Composable
+private fun PhotoSourceDialog(
+    onDismiss: () -> Unit,
+    onGallerySelected: () -> Unit,
+    onCameraSelected: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Photo") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // From Gallery option
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onDismiss()
+                            onGallerySelected()
+                        },
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Photo,
+                            contentDescription = "From Gallery",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = "From Gallery",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+
+                // Take Photo option
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onDismiss()
+                            onCameraSelected()
+                        },
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Take Photo",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = "Take Photo",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 @Composable
 fun PhotoCarousel(
     selectedPhotos: List<Uri>,
     onPhotosSelected: (List<Uri>) -> Unit,
+    existingImageUrls: List<String> = emptyList(),
+    onExistingImagesChanged: (List<String>) -> Unit = {},
     maxSelectionCount: Int = 5,
     orientation: CarouselOrientation = CarouselOrientation.Horizontal,
     imageWidth: Dp = 150.dp,
@@ -74,10 +296,18 @@ fun PhotoCarousel(
     val context = LocalContext.current
     var showPicker by remember { mutableStateOf(false) }
     var showPhotoSourceDialog by remember { mutableStateOf(false) }
-    var selectedPhotoIndex by remember { mutableIntStateOf(-1) }
+    var showImageDetailDialog by remember { mutableStateOf(false) }
+    var selectedImageIndex by remember { mutableIntStateOf(-1) }
     var pickerLaunchKey by remember { mutableIntStateOf(0) }
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
     var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
+
+    val totalImageCount = existingImageUrls.size + selectedPhotos.size
+
+    // Combine all images for viewing (URLs as strings, URIs as strings)
+    val allImageModels = remember(existingImageUrls, selectedPhotos) {
+        existingImageUrls + selectedPhotos.map { it.toString() }
+    }
 
     // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -96,7 +326,6 @@ fun PhotoCarousel(
     ) { isGranted ->
         if (isGranted) {
             try {
-                // Create images directory in cache if it doesn't exist
                 val imagesDir = File(context.cacheDir, "images")
                 if (!imagesDir.exists()) {
                     imagesDir.mkdirs()
@@ -129,14 +358,12 @@ fun PhotoCarousel(
                 }
             }
         }
-        // Reset pending crop URI after handling
         pendingCropUri = null
     }
 
-    // Handle cropping for camera images using LaunchedEffect
+    // Handle cropping for camera images
     LaunchedEffect(pendingCropUri) {
         pendingCropUri?.let { uri ->
-            // Create images directory in cache if it doesn't exist (for cropped output)
             val imagesDir = File(context.cacheDir, "images")
             if (!imagesDir.exists()) {
                 imagesDir.mkdirs()
@@ -154,7 +381,7 @@ fun PhotoCarousel(
 
     if (showPicker) {
         PhotoSelectorView(
-            maxSelectionCount = maxSelectionCount - selectedPhotos.size,
+            maxSelectionCount = maxSelectionCount - totalImageCount,
             onImagesSelected = { newPhotos ->
                 if (newPhotos.isNotEmpty()) {
                     onPhotosSelected(selectedPhotos + newPhotos)
@@ -170,185 +397,113 @@ fun PhotoCarousel(
         )
     }
 
-    // Photo detail dialog
-    if (selectedPhotoIndex != -1) {
-        PhotoDetailDialog(
-            photos = selectedPhotos,
-            initialIndex = selectedPhotoIndex,
-            onDismiss = { selectedPhotoIndex = -1 },
-            onDelete = { deletedUri ->
-                onPhotosSelected(selectedPhotos.filter { it != deletedUri })
-                // Update index or close if last photo
-                val newIndex = selectedPhotos.indexOf(deletedUri)
-                if (selectedPhotos.size <= 1) {
-                    selectedPhotoIndex = -1
-                } else if (newIndex == selectedPhotos.lastIndex) {
-                    selectedPhotoIndex = maxOf(0, selectedPhotoIndex - 1)
+    // Image detail dialog - shows all images (existing + new)
+    if (showImageDetailDialog && selectedImageIndex != -1 && allImageModels.isNotEmpty()) {
+        // Use a key to force recreation when the images list changes
+        androidx.compose.runtime.key(allImageModels.joinToString(",")) {
+            ImageDetailDialog(
+                images = allImageModels,
+                initialIndex = selectedImageIndex.coerceIn(0, allImageModels.size - 1),
+                onDismiss = {
+                    showImageDetailDialog = false
+                    selectedImageIndex = -1
+                },
+                onDelete = { index ->
+                    if (index < existingImageUrls.size) {
+                        // Deleting an existing image
+                        val imageUrl = existingImageUrls[index]
+                        onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
+                    } else {
+                        // Deleting a new image
+                        val uriIndex = index - existingImageUrls.size
+                        if (uriIndex < selectedPhotos.size) {
+                            val uri = selectedPhotos[uriIndex]
+                            onPhotosSelected(selectedPhotos.filter { it != uri })
+                        }
+                    }
+
+                    // Update the selected index or close if last image
+                    val totalImages = existingImageUrls.size + selectedPhotos.size - 1
+                    if (totalImages <= 0) {
+                        showImageDetailDialog = false
+                        selectedImageIndex = -1
+                    } else if (selectedImageIndex >= totalImages) {
+                        selectedImageIndex = totalImages - 1
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 
-    // Photo source selection dialog
     if (showPhotoSourceDialog) {
-        AlertDialog(
-            onDismissRequest = { showPhotoSourceDialog = false },
-            title = { Text("Add Photo") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // From Gallery option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                showPhotoSourceDialog = false
-                                pickerLaunchKey++
-                                showPicker = true
-                            },
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Photo,
-                                contentDescription = "From Gallery",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = "From Gallery",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
-
-                    // Take Photo option
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                showPhotoSourceDialog = false
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            },
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "Take Photo",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = "Take Photo",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
-                }
+        PhotoSourceDialog(
+            onDismiss = { showPhotoSourceDialog = false },
+            onGallerySelected = {
+                pickerLaunchKey++
+                showPicker = true
             },
-            confirmButton = {
-                TextButton(onClick = { showPhotoSourceDialog = false }) {
-                    Text("Cancel")
-                }
+            onCameraSelected = {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
             }
         )
     }
 
-    val itemModifier = Modifier.size(imageWidth, imageHeight)
-    val arrangement = Arrangement.spacedBy(8.dp)
     val imageShape = if (useCircularFrame) CircleShape else RoundedCornerShape(8.dp)
+    val arrangement = Arrangement.spacedBy(8.dp)
 
     if (orientation == CarouselOrientation.Horizontal) {
         LazyRow(
             horizontalArrangement = arrangement,
         ) {
-            items(selectedPhotos) { uri ->
-                Box(
-                    modifier = itemModifier
-                ) {
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(imageWidth, imageHeight)
-                            .padding(4.dp)
-                            .clickable { selectedPhotoIndex = selectedPhotos.indexOf(uri) }
-                            .clip(imageShape),
-                        contentScale = ContentScale.Crop
-                    )
-
-                    // Delete button
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(24.dp)
-                            .offset(x = (-2).dp, y = 2.dp),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.error,
-                        tonalElevation = 4.dp
-                    ) {
-                        IconButton(
-                            onClick = { onPhotosSelected(selectedPhotos.filter { it != uri }) },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Delete photo",
-                                tint = MaterialTheme.colorScheme.onError,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
+            // Existing images from URLs
+            itemsIndexed(
+                items = existingImageUrls,
+                key = { _, imageUrl -> "existing_$imageUrl" }
+            ) { index, imageUrl ->
+                ExistingImageItem(
+                    imageUrl = imageUrl,
+                    imageWidth = imageWidth,
+                    imageHeight = imageHeight,
+                    imageShape = imageShape,
+                    onImageClick = {
+                        selectedImageIndex = index
+                        showImageDetailDialog = true
+                    },
+                    onDelete = {
+                        onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
                     }
-                }
+                )
             }
 
-            if (selectedPhotos.size < maxSelectionCount) {
-                item {
-                    Surface(
-                        modifier = Modifier
-                            .size(imageWidth, imageHeight)
-                            .clickable {
-                                showPhotoSourceDialog = true
-                            },
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        tonalElevation = 2.dp,
-                        shape = imageShape
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AddAPhoto,
-                                contentDescription = "Add Photo",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Text(
-                                text = "Upload",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+            // New images from URIs
+            itemsIndexed(
+                items = selectedPhotos,
+                key = { _, uri -> "new_$uri" }
+            ) { uriIndex, uri ->
+                val index = existingImageUrls.size + uriIndex
+                NewImageItem(
+                    uri = uri,
+                    imageWidth = imageWidth,
+                    imageHeight = imageHeight,
+                    imageShape = imageShape,
+                    onImageClick = {
+                        selectedImageIndex = index
+                        showImageDetailDialog = true
+                    },
+                    onDelete = {
+                        onPhotosSelected(selectedPhotos.filter { it != uri })
                     }
+                )
+            }
+
+            if (totalImageCount < maxSelectionCount) {
+                item {
+                    UploadButton(
+                        imageWidth = imageWidth,
+                        imageHeight = imageHeight,
+                        imageShape = imageShape,
+                        onClick = { showPhotoSourceDialog = true }
+                    )
                 }
             }
         }
@@ -356,76 +511,55 @@ fun PhotoCarousel(
         LazyColumn(
             verticalArrangement = arrangement,
         ) {
-            items(selectedPhotos) { uri ->
-                Box(
-                    modifier = itemModifier
-                ) {
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(imageWidth, imageHeight)
-                            .padding(4.dp)
-                            .clickable { selectedPhotoIndex = selectedPhotos.indexOf(uri) }
-                            .clip(imageShape),
-                        contentScale = ContentScale.Crop
-                    )
-
-                    // Delete button
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(24.dp)
-                            .offset(x = (-2).dp, y = 2.dp),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.error,
-                        tonalElevation = 4.dp
-                    ) {
-                        IconButton(
-                            onClick = { onPhotosSelected(selectedPhotos.filter { it != uri }) },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Delete photo",
-                                tint = MaterialTheme.colorScheme.onError,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
+            // Existing images from URLs
+            itemsIndexed(
+                items = existingImageUrls,
+                key = { _, imageUrl -> "existing_$imageUrl" }
+            ) { index, imageUrl ->
+                ExistingImageItem(
+                    imageUrl = imageUrl,
+                    imageWidth = imageWidth,
+                    imageHeight = imageHeight,
+                    imageShape = imageShape,
+                    onImageClick = {
+                        selectedImageIndex = index
+                        showImageDetailDialog = true
+                    },
+                    onDelete = {
+                        onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
                     }
-                }
+                )
             }
 
-            if (selectedPhotos.size < maxSelectionCount) {
-                item {
-                    Surface(
-                        modifier = Modifier
-                            .size(imageWidth, imageHeight)
-                            .clickable {
-                                showPhotoSourceDialog = true
-                            },
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        tonalElevation = 2.dp,
-                        shape = imageShape
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AddAPhoto,
-                                contentDescription = "Add Photo",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Text(
-                                text = "Upload",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+            // New images from URIs
+            itemsIndexed(
+                items = selectedPhotos,
+                key = { _, uri -> "new_$uri" }
+            ) { uriIndex, uri ->
+                val index = existingImageUrls.size + uriIndex
+                NewImageItem(
+                    uri = uri,
+                    imageWidth = imageWidth,
+                    imageHeight = imageHeight,
+                    imageShape = imageShape,
+                    onImageClick = {
+                        selectedImageIndex = index
+                        showImageDetailDialog = true
+                    },
+                    onDelete = {
+                        onPhotosSelected(selectedPhotos.filter { it != uri })
                     }
+                )
+            }
+
+            if (totalImageCount < maxSelectionCount) {
+                item {
+                    UploadButton(
+                        imageWidth = imageWidth,
+                        imageHeight = imageHeight,
+                        imageShape = imageShape,
+                        onClick = { showPhotoSourceDialog = true }
+                    )
                 }
             }
         }

@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -26,162 +24,139 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 
-@Composable
-fun ImageSkeleton(
-    modifier: Modifier = Modifier
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "skeleton")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.9f,
+/**
+ * Advanced shimmer effect modifier with moving gradient animation
+ */
+fun Modifier.shimmerEffect(): Modifier = composed {
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+
+    val shimmerTranslate by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(durationMillis = 1500, easing = androidx.compose.animation.core.LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "alpha"
+        label = "shimmerTranslate"
     )
 
     val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha * 0.5f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
     )
 
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = shimmerColors,
-                        start = Offset.Zero,
-                        end = Offset(x = 300f, y = 300f)
-                    )
-                )
+    background(
+        brush = Brush.linearGradient(
+            colors = shimmerColors,
+            start = Offset(shimmerTranslate - 200f, shimmerTranslate - 200f),
+            end = Offset(shimmerTranslate, shimmerTranslate)
         )
-    }
+    )
 }
 
 @Composable
 fun BuildingCardSkeleton(
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "skeleton")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "alpha"
-    )
-
-    val shimmerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha)
-
     Card(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
-                    .background(shimmerColor)
+                    .height(200.dp)
+                    .shimmerEffect()
             )
             
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(16.dp)
             ) {
-                // Title skeleton
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .height(20.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(shimmerColor)
+                        .fillMaxWidth(0.75f)
+                        .height(28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .shimmerEffect()
                 )
                 
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
-                        .height(16.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(shimmerColor)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .shimmerEffect()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .shimmerEffect()
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
+                Spacer(modifier = Modifier.height(20.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(80.dp)
-                            .height(14.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(shimmerColor)
+                            .weight(1f)
+                            .height(68.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .shimmerEffect()
                     )
+
                     Box(
                         modifier = Modifier
-                            .width(100.dp)
-                            .height(14.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(shimmerColor)
+                            .weight(1f)
+                            .height(68.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .shimmerEffect()
                     )
                 }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Button row skeleton
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(120.dp)
-                            .height(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(shimmerColor)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(shimmerColor)
-                    )
-                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .shimmerEffect()
+                )
             }
         }
     }
-
 }
 
 @Composable
 fun BuildingListSkeleton(
-    itemCount: Int = 3
+    itemCount: Int = 2
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 80.dp)
+        contentPadding = PaddingValues(bottom = 80.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(itemCount) {
             BuildingCardSkeleton()

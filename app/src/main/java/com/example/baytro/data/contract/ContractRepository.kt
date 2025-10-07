@@ -100,4 +100,23 @@ class ContractRepository(
             throw e
         }
     }
+
+    suspend fun getContractsByBuildingId(buildingId: String): List<Contract> {
+        if (buildingId.isBlank()) {
+            return emptyList()
+        }
+
+        return try {
+            val querySnapshot = collection.where {
+                "buildingId" equalTo buildingId
+            }.get()
+            querySnapshot.documents.map { doc ->
+                val contract = doc.data<Contract>()
+                contract.copy(id = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching contracts by building ID", e)
+            emptyList()
+        }
+    }
 }

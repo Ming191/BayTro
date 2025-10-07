@@ -16,11 +16,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -43,6 +39,7 @@ import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
 import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
+import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.viewModel.AddBuildingVM
@@ -59,7 +56,6 @@ fun AddBuildingScreen(
     var name by remember { mutableStateOf("") }
     var floor by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
-    var statusExpanded by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Active") }
     var billingDate by remember { mutableStateOf("") }
     var paymentStart by remember { mutableStateOf("") }
@@ -185,31 +181,13 @@ fun AddBuildingScreen(
             }
 
             item {
-                ExposedDropdownMenuBox(
-                    expanded = statusExpanded,
-                    onExpandedChange = { statusExpanded = !statusExpanded }) {
-                    OutlinedTextField(
-                        value = status,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Status") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
-                    DropdownMenu(
-                        expanded = statusExpanded,
-                        onDismissRequest = { statusExpanded = false }) {
-                        listOf("Active", "Inactive").forEach { option ->
-                            DropdownMenuItem(text = { Text(option) }, onClick = {
-                                status = option
-                                statusExpanded = false
-                            })
-                        }
-                    }
-                }
+                DropdownSelectField(
+                    label = "Status",
+                    options = listOf("Active", "Inactive"),
+                    selectedOption = status,
+                    onOptionSelected = { status = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             item {

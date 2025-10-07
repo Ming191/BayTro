@@ -22,9 +22,9 @@ import com.example.baytro.viewModel.contract.AddContractVM
 import com.example.baytro.viewModel.contract.ContractDetailsVM
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
+import com.example.baytro.viewModel.dashboard.TenantDashboardVM
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
-import com.example.baytro.viewModel.dashboard.TenantDashboardVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
@@ -110,6 +110,8 @@ val authModule = module {
     viewModel {
         BuildingListVM(
             get(),
+            get(),
+            get(),
             get()
         )
     }
@@ -166,7 +168,6 @@ val authModule = module {
             get()
         )
     }
-    viewModel { BuildingListVM(get(), get()) }
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }

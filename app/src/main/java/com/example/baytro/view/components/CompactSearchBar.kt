@@ -21,6 +21,7 @@ fun CompactSearchBar(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     placeholderText: String = "Search rooms...",
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     OutlinedTextField(
         value = value,
@@ -41,6 +42,7 @@ fun CompactSearchBar(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
+        trailingIcon = trailingIcon,
         enabled = enabled,
         colors = TextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
