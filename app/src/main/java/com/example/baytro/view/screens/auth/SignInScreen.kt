@@ -41,6 +41,7 @@ fun SignInScreen(
     viewModel: SignInVM = koinViewModel(),
     onSignInSuccess: () -> Unit,
     onNavigateToSignUp: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit,
     onFirstTimeUser: () -> Unit,
     onTenantNoContract: () -> Unit,
     onTenantPendingSession: () -> Unit,
@@ -56,7 +57,8 @@ fun SignInScreen(
         onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
         onSignInClicked = viewModel::login,
-        onNavigateToSignUp = onNavigateToSignUp
+        onNavigateToSignUp = onNavigateToSignUp,
+        onNavigateToForgotPassword = onNavigateToForgotPassword
     )
     LaunchedEffect(key1 = loginUiState) {
         when (val state = loginUiState) {
@@ -94,7 +96,8 @@ fun SignInContent(
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onSignInClicked: () -> Unit,
-    onNavigateToSignUp: () -> Unit
+    onNavigateToSignUp: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit
 ) {
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
@@ -152,6 +155,13 @@ fun SignInContent(
                     .fillMaxWidth()
                     .height(50.dp)
             )
+
+            TextButton(onClick = onNavigateToForgotPassword) {
+                Text(
+                    text = "Forgot Password?",
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
 
             TextButton(onClick = onNavigateToSignUp) {
                 Text("Don't have an account? Sign Up")
