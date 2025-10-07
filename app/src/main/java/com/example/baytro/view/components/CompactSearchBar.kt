@@ -10,7 +10,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
@@ -23,16 +28,24 @@ fun CompactSearchBar(
     placeholderText: String = "Search rooms...",
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
+    var isFocused by remember { mutableStateOf(false) }
+    
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = {
-            Text(
-                text = placeholderText,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        },
-        modifier = modifier.fillMaxWidth(),
+        placeholder = if (!isFocused && value.isEmpty()) {
+            {
+                Text(
+                    text = placeholderText,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else null,
+        modifier = modifier
+            .fillMaxWidth()
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+            },
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
         leadingIcon = {
