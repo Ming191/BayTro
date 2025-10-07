@@ -57,6 +57,14 @@ class FirebaseAuthRepository(
         }
     }
 
+    override suspend fun sendPasswordResetEmail(email: String) {
+        try {
+            auth.sendPasswordResetEmail(email).await()
+        } catch (e: Exception) {
+            throw Exception("Failed to send password reset email", e)
+        }
+    }
+
     override suspend fun signOut() {
         auth.signOut()
     }
