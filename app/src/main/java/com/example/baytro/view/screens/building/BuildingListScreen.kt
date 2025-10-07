@@ -67,7 +67,6 @@ fun BuildingListScreen(
     val buildings by viewModel.buildings.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Start with loading visible, content hidden
     var showLoading by remember { mutableStateOf(true) }
     var showContent by remember { mutableStateOf(false) }
     var showEmptyState by remember { mutableStateOf(false) }
@@ -82,7 +81,7 @@ fun BuildingListScreen(
             showEmptyState = false
             viewModel.loadBuildings()
         } else {
-            Log.d("BuildingListScreen", "Already loaded, showing existing content")
+            viewModel.refreshBuildings()
             showLoading = false
             if (buildings.isEmpty()) {
                 showEmptyState = true
@@ -96,7 +95,6 @@ fun BuildingListScreen(
 
     LaunchedEffect(isLoading, hasLoadedOnce) {
         Log.d("BuildingListScreen", "State changed: isLoading=$isLoading, hasLoadedOnce=$hasLoadedOnce, buildings.size=${buildings.size}")
-
         if (!isLoading && hasLoadedOnce) {
             Log.d("BuildingListScreen", "Loading complete, transitioning to content")
 
@@ -198,7 +196,7 @@ private fun BuildingListContent(
 
     var showStatusMenu by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp, start = 16.dp, end = 16.dp)) {
+    Box(modifier = Modifier.fillMaxSize().padding(top = 12.dp, start = 16.dp, end = 16.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
             CompactSearchBar(
                 value = searchQuery,
@@ -256,11 +254,11 @@ private fun BuildingListContent(
                     }
                 }
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             if (!filteredBuildings.isEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 80.dp),
+                    contentPadding = PaddingValues(bottom = 140.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     itemsIndexed(
@@ -311,14 +309,34 @@ private fun BuildingListContent(
                     // Pagination controls
                     if (totalPages > 1) {
                         item {
-                            PaginationControls(
-                                currentPage = currentPage,
-                                totalPages = totalPages,
-                                hasNextPage = hasNextPage,
-                                hasPreviousPage = hasPreviousPage,
-                                onNextPage = viewModel::nextPage,
-                                onPreviousPage = viewModel::previousPage
-                            )
+                            var paginationVisible by remember { mutableStateOf(false) }
+                            
+                            LaunchedEffect(paginatedBuildings.size) {
+                                // Show pagination after all cards have started their animation
+                                kotlinx.coroutines.delay((paginatedBuildings.size * 50L))
+                                paginationVisible = true
+                            }
+                            
+                            AnimatedVisibility(
+                                visible = paginationVisible,
+                                enter = fadeIn(
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    ),
+                                    initialAlpha = 0f
+                                )
+                            ) {
+                                PaginationControls(
+                                    currentPage = currentPage,
+                                    totalPages = totalPages,
+                                    hasNextPage = hasNextPage,
+                                    hasPreviousPage = hasPreviousPage,
+                                    onNextPage = viewModel::nextPage,
+                                    onPreviousPage = viewModel::previousPage,
+                                    onPageClick = viewModel::goToPage
+                                )
+                            }
                         }
                     }
                 }
