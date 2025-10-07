@@ -258,6 +258,8 @@ private fun BuildingListContent(
             )
             Spacer(modifier = Modifier.height(8.dp))
             if (!filteredBuildings.isEmpty()) {
+                Log.d("BuildingListContent", "Rendering LazyColumn with ${paginatedBuildings.size} paginated items (page $currentPage of $totalPages)")
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 80.dp),
@@ -267,11 +269,11 @@ private fun BuildingListContent(
                         items = paginatedBuildings,
                         key = { _, item -> item.building.id }
                     ) { index, buildingWithStats ->
-                        var visible by remember { mutableStateOf(false) }
+                        Log.d("BuildingListContent", "Item[$index] composing: ${buildingWithStats.building.name} (id: ${buildingWithStats.building.id})")
 
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(index * 50L)
-                            visible = true
+                        var visible by remember(buildingWithStats.building.id) {
+                            Log.d("BuildingListContent", "Item[$index] remember created for ${buildingWithStats.building.name}")
+                            mutableStateOf(true)
                         }
 
                         AnimatedVisibility(
@@ -311,6 +313,7 @@ private fun BuildingListContent(
                     // Pagination controls
                     if (totalPages > 1) {
                         item {
+                            Log.d("BuildingListContent", "Rendering PaginationControls: page $currentPage of $totalPages")
                             PaginationControls(
                                 currentPage = currentPage,
                                 totalPages = totalPages,
