@@ -101,19 +101,20 @@ fun SignInContent(
 
 
     Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.Center
         ) {
             Text("Welcome Back!", style = MaterialTheme.typography.headlineLarge)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            RequiredTextField (
+            RequiredTextField(
                 value = formState.email,
                 onValueChange = onEmailChange,
                 label = "Email",
@@ -156,5 +157,14 @@ fun SignInContent(
                 Text("Don't have an account? Sign Up")
             }
         }
+
+        Text(
+            text = "Made with ❤️ for landlords & tenants © 2025 BayTro",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        )
     }
 }
