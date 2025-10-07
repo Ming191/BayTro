@@ -64,6 +64,9 @@ fun <T> DropdownSelectField(
 
     var expanded by remember { mutableStateOf(false) }
 
+    // Use a key that changes when options change to reset state properly
+    val optionsKey = remember(options.size) { options.hashCode() }
+
     Box(modifier = modifier.height(IntrinsicSize.Min)) {
         OutlinedTextField(
             label = { Text(label) },
@@ -85,7 +88,11 @@ fun <T> DropdownSelectField(
                 .fillMaxSize()
                 .padding(top = 8.dp)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .clickable(enabled = enabled) { expanded = true },
+                .clickable(enabled = enabled) {
+                    if (options.isNotEmpty()) {
+                        expanded = true
+                    }
+                },
             color = Color.Transparent,
         ) {}
     }
@@ -99,21 +106,24 @@ fun <T> DropdownSelectField(
             ) {
                 val listState = rememberLazyListState()
                 if (selectedIndex > -1) {
-                    LaunchedEffect("ScrollToSelected") {
+                    LaunchedEffect(selectedIndex, optionsKey) {
                         listState.scrollToItem(index = selectedIndex)
                     }
                 }
 
                 LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState) {
-                    itemsIndexed(options) { index, item ->
+                    itemsIndexed(
+                        items = options,
+                        key = { index, _ -> "$optionsKey-$index" }
+                    ) { index, item ->
                         val isSelected = index == selectedIndex
                         LargeDropdownMenuItem(
                             text = optionToString(item),
                             selected = isSelected,
-                            enabled = true
+                            enabled = enabled
                         ) {
-                            onOptionSelected(item)
                             expanded = false
+                            onOptionSelected(item)
                         }
 
                         if (index < options.lastIndex) {

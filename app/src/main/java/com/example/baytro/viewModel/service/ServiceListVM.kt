@@ -88,8 +88,17 @@ class ServiceListVM(
 
         if (current?.id == building.id) return
 
+        Log.d(TAG, "onBuildingChange: ${building.name} - clearing old services")
+
+        // Set loading state when building changes
+        _serviceListUiState.value = UiState.Loading
+
+        // Clear old services immediately to prevent showing services from previous building
         _serviceListFormState.value =
-            _serviceListFormState.value.copy(selectedBuilding = building)
+            _serviceListFormState.value.copy(
+                selectedBuilding = building,
+                availableServices = emptyList()
+            )
 
         if (building.id.isNotBlank()) {
             listenToServicesRealtime(building.id)
@@ -105,10 +114,6 @@ class ServiceListVM(
         viewModelScope.launch {
             try {
                 _serviceListUiState.value = UiState.Loading
-
-                // Add delay for better UX
-                kotlinx.coroutines.delay(300)
-
                 val building = _serviceListFormState.value.selectedBuilding
                 if (building == null) {
                     _serviceListUiState.value = UiState.Error("No building selected")
