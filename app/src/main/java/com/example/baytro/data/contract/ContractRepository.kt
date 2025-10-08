@@ -81,9 +81,10 @@ class ContractRepository(
 
     suspend fun getContractsByStatus(landlordId: String, statuses: List<Status>): List<Contract> {
         if (landlordId.isBlank() || statuses.isEmpty()) {
+            Log.d("ContractRepository", "Query skipped: landlordId is blank or statuses is empty")
             return emptyList()
         }
-
+        Log.d("ContractRepository", "Querying for landlordId: '$landlordId', statuses: ${statuses.map { it.name }}")
         try {
             val querySnapshot = collection.where {
                 all(
@@ -91,8 +92,10 @@ class ContractRepository(
                     "status" inArray statuses.map { it.name }
                 )
             }.get()
+            Log.d("ContractRepository", "Found ${querySnapshot.documents.size} documents for landlordId: '$landlordId', statuses: ${statuses.map { it.name }}")
             return querySnapshot.documents.map { doc ->
                 val contract = doc.data<Contract>()
+                Log.d("ContractRepository", "Fetched contract: ${contract.contractNumber}, landlordId: ${contract.landlordId}, status: ${contract.status}")
                 contract.copy(id = doc.id)
             }
         } catch (e: Exception) {
@@ -103,15 +106,18 @@ class ContractRepository(
 
     suspend fun getContractsByBuildingId(buildingId: String): List<Contract> {
         if (buildingId.isBlank()) {
+            Log.d("ContractRepository", "Query skipped: buildingId is blank")
             return emptyList()
         }
-
+        Log.d("ContractRepository", "Querying for buildingId: '$buildingId'")
         return try {
             val querySnapshot = collection.where {
                 "buildingId" equalTo buildingId
             }.get()
+            Log.d("ContractRepository", "Found ${querySnapshot.documents.size} documents for buildingId: '$buildingId'")
             querySnapshot.documents.map { doc ->
                 val contract = doc.data<Contract>()
+                Log.d("ContractRepository", "Fetched contract: ${contract.contractNumber}, buildingId: ${contract.buildingId}")
                 contract.copy(id = doc.id)
             }
         } catch (e: Exception) {

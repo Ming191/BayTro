@@ -2,16 +2,18 @@ package com.example.baytro.view.screens.contract
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.baytro.data.contract.Status
@@ -56,6 +59,7 @@ import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.User
 import com.example.baytro.view.components.AddFirstTenantPrompt
 import com.example.baytro.view.components.ContractCard
+import com.example.baytro.view.components.ContractDetailsSkeleton
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.QrCodeDialog
 import com.example.baytro.view.components.TenantsSection
@@ -140,67 +144,38 @@ fun ContractDetailsScreen(
     val loading by viewModel.loading.collectAsState()
     val isLandlord by viewModel.isLandlord.collectAsState()
 
-    var indicatorVisible by remember { mutableStateOf(true) }
-    var contentVisible by remember { mutableStateOf(false) }
+    var hasLoadedOnce by remember { mutableStateOf(false) }
 
     LaunchedEffect(loading) {
-        if (!loading) {
-            indicatorVisible = false
-        } else {
-            indicatorVisible = true
-            contentVisible = false
-        }
-    }
-
-    LaunchedEffect(indicatorVisible) {
-        if (!indicatorVisible) {
+        if (!loading && !hasLoadedOnce) {
             delay(300)
-            contentVisible = true
-        } else {
-            contentVisible = false
+            hasLoadedOnce = true
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        AnimatedVisibility(
-            visible = indicatorVisible,
-            exit = fadeOut(),
-            enter = fadeIn()
-        ) {
-            Surface(modifier = Modifier.fillMaxSize()) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
+    if (!hasLoadedOnce && loading) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            ContractDetailsSkeleton()
         }
-
-        AnimatedVisibility(
-            visible = contentVisible,
-            enter = fadeIn()
-        ) {
-            LaunchedEffect(error) {
-                error?.let { viewModel.clearActionError() }
-            }
-            QrCodeDialog(
-                state = qrState,
-                onDismissRequest = viewModel::clearQrCode,
-                onRetry = viewModel::generateQrCode
-            )
-            ContractDetailsContent(
-                formState = formState,
-                pendingSessions = pendingSessions,
-                confirmingIds = confirmingIds,
-                decliningIds = decliningIds,
-                isLandlord = isLandlord,
-                onAddTenant = viewModel::generateQrCode,
-                onConfirmTenant = viewModel::confirmTenant,
-                onDeclineTenant = viewModel::declineTenant
-            )
+    } else {
+        LaunchedEffect(error) {
+            error?.let { viewModel.clearActionError() }
         }
+        QrCodeDialog(
+            state = qrState,
+            onDismissRequest = viewModel::clearQrCode,
+            onRetry = viewModel::generateQrCode
+        )
+        ContractDetailsContent(
+            formState = formState,
+            pendingSessions = pendingSessions,
+            confirmingIds = confirmingIds,
+            decliningIds = decliningIds,
+            isLandlord = isLandlord,
+            onAddTenant = viewModel::generateQrCode,
+            onConfirmTenant = viewModel::confirmTenant,
+            onDeclineTenant = viewModel::declineTenant
+        )
     }
 }
 
@@ -219,88 +194,138 @@ fun ContractDetailsContent(
     onConfirmTenant: (String) -> Unit,
     onDeclineTenant: (String) -> Unit,
 ) {
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(100)
+        visible = true
+    }
+
     Scaffold { paddingValues ->
         LazyColumn(
             modifier = Modifier
-                .padding(paddingValues)
+                .padding(PaddingValues(
+                    start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
+                    end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
+                    bottom = paddingValues.calculateBottomPadding(),
+                    top = 0.dp
+                ))
                 .fillMaxSize()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                DividerWithSubhead(
-                    subhead = "Contract number #${formState.contractNumber}",
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                )
-                ContractCard(
-                    infoMap = mapOf(
-                        "Building name:" to formState.buildingName,
-                        "Room number:" to formState.roomNumber,
-                        "Num.Tenants:" to (formState.tenantCount).toString(),
-                        "Start Date:" to formState.startDate,
-                        "End Date:" to formState.endDate,
-                        "Rental fee:" to "${formState.formattedRentalFee} /month",
-                        "Deposit:" to formState.formattedDeposit,
-                    )
-                )
-            }
-
-            item {
-                DividerWithSubhead(
-                    subhead = "Services",
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                )
                 AnimatedVisibility(
-                    visible = pendingSessions.isNotEmpty(),
-                    enter = fadeIn() + slideInVertically(),
-                    exit = fadeOut() + slideOutVertically()
+                    visible = visible,
+                    enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
+                        animationSpec = tween(300),
+                        initialOffsetY = { -it / 2 }
+                    ),
+                    exit = fadeOut(animationSpec = tween(200))
                 ) {
-                    PendingRequestsSection(
-                        sessions = pendingSessions,
-                        confirmingIds = confirmingIds,
-                        decliningIds = decliningIds,
-                        onConfirm = onConfirmTenant,
-                        onDecline = onDeclineTenant
-                    )
+                    Column {
+                        DividerWithSubhead(
+                            subhead = "Contract number #${formState.contractNumber}",
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                        )
+                        ContractCard(
+                            infoMap = mapOf(
+                                "Building name:" to formState.buildingName,
+                                "Room number:" to formState.roomNumber,
+                                "Num.Tenants:" to (formState.tenantCount).toString(),
+                                "Start Date:" to formState.startDate,
+                                "End Date:" to formState.endDate,
+                                "Rental fee:" to "${formState.formattedRentalFee} /month",
+                                "Deposit:" to formState.formattedDeposit,
+                            )
+                        )
+                    }
                 }
             }
 
             item {
-                DividerWithSubhead(
-                    subhead = "Tenants",
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                )
-
                 AnimatedVisibility(
-                    visible = formState.isPendingContract && !formState.hasActiveTenants && pendingSessions.isEmpty() && isLandlord,
-                    enter = fadeIn() + slideInVertically(),
-                    exit = fadeOut() + slideOutVertically()
+                    visible = visible,
+                    enter = fadeIn(animationSpec = tween(300, delayMillis = 100)) + slideInVertically(
+                        animationSpec = tween(300, delayMillis = 100),
+                        initialOffsetY = { it / 3 }
+                    ),
+                    exit = fadeOut(animationSpec = tween(200))
                 ) {
-                    AddFirstTenantPrompt(onClick = onAddTenant)
+                    Column {
+                        DividerWithSubhead(
+                            subhead = "Services",
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                        )
+                        AnimatedVisibility(
+                            visible = pendingSessions.isNotEmpty(),
+                            enter = fadeIn() + slideInVertically(),
+                            exit = fadeOut() + slideOutVertically()
+                        ) {
+                            PendingRequestsSection(
+                                sessions = pendingSessions,
+                                confirmingIds = confirmingIds,
+                                decliningIds = decliningIds,
+                                onConfirm = onConfirmTenant,
+                                onDecline = onDeclineTenant
+                            )
+                        }
+                    }
                 }
+            }
 
+            item {
                 AnimatedVisibility(
-                    visible = formState.hasActiveTenants,
-                    enter = fadeIn() + slideInVertically(),
-                    exit = fadeOut() + slideOutVertically()
+                    visible = visible,
+                    enter = fadeIn(animationSpec = tween(300, delayMillis = 200)) + slideInVertically(
+                        animationSpec = tween(300, delayMillis = 200),
+                        initialOffsetY = { it / 3 }
+                    ),
+                    exit = fadeOut(animationSpec = tween(200))
                 ) {
-                    TenantsSection(
-                        tenants = formState.tenantList,
-                        onAddTenantClick = onAddTenant,
-                        showAddButton = isLandlord
-                    )
+                    Column {
+                        DividerWithSubhead(
+                            subhead = "Tenants",
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                        )
+
+                        AnimatedVisibility(
+                            visible = formState.isPendingContract && !formState.hasActiveTenants && pendingSessions.isEmpty() && isLandlord,
+                            enter = fadeIn() + slideInVertically(),
+                            exit = fadeOut() + slideOutVertically()
+                        ) {
+                            AddFirstTenantPrompt(onClick = onAddTenant)
+                        }
+
+                        AnimatedVisibility(
+                            visible = formState.hasActiveTenants,
+                            enter = fadeIn() + slideInVertically(),
+                            exit = fadeOut() + slideOutVertically()
+                        ) {
+                            TenantsSection(
+                                tenants = formState.tenantList,
+                                onAddTenantClick = onAddTenant,
+                                showAddButton = isLandlord
+                            )
+                        }
+                    }
                 }
             }
 
             // Animated ActionButtonsRow
             item {
                 AnimatedVisibility(
-                    visible = formState.isActiveContract && isLandlord,
-                    enter = fadeIn() + slideInVertically(),
+                    visible = visible && formState.isActiveContract && isLandlord,
+                    enter = fadeIn(animationSpec = tween(300, delayMillis = 300)) + slideInVertically(
+                        animationSpec = tween(300, delayMillis = 300),
+                        initialOffsetY = { it / 2 }
+                    ),
                     exit = fadeOut() + slideOutVertically()
                 ) {
-                    Spacer(Modifier.height(16.dp))
-                    ActionButtonsRow()
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        ActionButtonsRow()
+                    }
                 }
             }
         }
