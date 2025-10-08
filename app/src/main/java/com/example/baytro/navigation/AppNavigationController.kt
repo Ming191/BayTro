@@ -14,6 +14,7 @@ import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.MaintenanceScreen
 import com.example.baytro.view.screens.TenantListScreen
+import com.example.baytro.view.screens.auth.ForgotPasswordScreen
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
 import com.example.baytro.view.screens.building.AddBuildingScreen
@@ -193,6 +194,9 @@ fun AppNavigationController(
                 },
                 onNavigateToSignUp = {
                     navHostController.navigate(Screens.SignUp.route)
+                },
+                onNavigateToForgotPassword = {
+                    navHostController.navigate(Screens.ForgotPassword.route)
                 }
             )
         }
@@ -200,6 +204,18 @@ fun AppNavigationController(
             Screens.SignUp.route
         ) {
             SignUpScreen(
+                onNavigateToSignIn = {
+                    navHostController.popBackStack()
+                }
+            )
+        }
+        composable (
+            Screens.ForgotPassword.route
+        ) {
+            ForgotPasswordScreen(
+                onNavigateBack = {
+                    navHostController.popBackStack()
+                },
                 onNavigateToSignIn = {
                     navHostController.popBackStack()
                 }
