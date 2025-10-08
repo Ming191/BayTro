@@ -13,43 +13,29 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
     composable(
         route = Screens.RoomList.route,
         arguments = Screens.RoomList.arguments
-    ) { entry ->
-        val buildingId = entry.arguments?.getString(Screens.ARG_BUILDING_ID) ?: ""
-        RoomListScreen(
-            navController = navController
-        )
+    ) {
+        RoomListScreen(navController = navController)
     }
 
     composable(
         route = Screens.AddRoom.route,
         arguments = Screens.AddRoom.arguments
-    ) { entry ->
-        val buildingId = entry.arguments?.getString(Screens.ARG_BUILDING_ID) ?: ""
-        Log.d("AddRoomNav", "BuildingIdInNav: $buildingId")
-        AddRoomScreen(
-            navController = navController,
-            buildingId = buildingId
-        )
+    ) {
+        AddRoomScreen(navController = navController)
     }
 
     composable(
         route = Screens.EditRoom.route,
         arguments = Screens.EditRoom.arguments
-    ) { backStackEntry ->
-        val roomId = backStackEntry.arguments?.getString(Screens.ARG_ROOM_ID) ?: ""
-        EditRoomScreen(
-            navController = navController
-        )
+    ) {
+        EditRoomScreen(navController = navController)
     }
 
     composable(
         route = Screens.RoomDetails.route,
         arguments = Screens.RoomDetails.arguments
-    ) { backStackEntry ->
-        val roomId = backStackEntry.arguments?.getString(Screens.ARG_ROOM_ID) ?: ""
-        RoomDetailsScreen(
-            navController = navController
-        )
+    ) {
+        RoomDetailsScreen(navController = navController)
     }
 }
 

@@ -32,13 +32,11 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.Divider
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +62,7 @@ import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.ButtonComponent
 import com.example.baytro.view.components.CardComponent
 import com.example.baytro.view.components.DividerWithSubhead
+import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.Room.RoomListVM
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -88,16 +87,11 @@ fun ViewBuildingTabRow(
         }
     }
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTabIndex) {
-            tabItemList.forEachIndexed { index, tabItem ->
-                Tab(
-                    text = { Text(tabItem.first) },
-                    icon = { Icon(tabItem.second, contentDescription = tabItem.first) },
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index }
-                )
-            }
-        }
+        Tabs(
+            selectedTabIndex = selectedTabIndex,
+            onTabSelected = { index -> selectedTabIndex = index },
+            tabData = tabItemList
+        )
         HorizontalPager(
             state = pagerState,
             Modifier.fillMaxWidth(),
@@ -178,7 +172,7 @@ fun ViewRoomList(
                         }
                     }
                 }
-                Divider(
+                HorizontalDivider(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                     thickness = 1.dp,
                     modifier = Modifier.padding(horizontal = 8.dp)

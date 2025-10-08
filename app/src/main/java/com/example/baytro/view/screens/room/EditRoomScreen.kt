@@ -130,7 +130,7 @@
             item {
                 DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Interior condition")
                 ChoiceSelection(
-                    options = Furniture.entries.toList().dropLast(1),
+                    options = Furniture.entries.toList(),
                     selectedOption = formState.interior,
                     onOptionSelected = interior,
                     isError = false,
