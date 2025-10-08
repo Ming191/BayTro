@@ -7,7 +7,6 @@ import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.room.RoomRepository
-import com.example.baytro.data.service.ServiceRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.service.FptAiService
 import com.example.baytro.viewModel.AddBuildingVM
@@ -174,9 +173,8 @@ val authModule = module {
             get()
         )
     }
-    viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), get(),handle) }
     viewModel { BuildingListVM(get(), get(), get(),get()) }
-    viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), get(),handle) }
+    viewModel { (handle: SavedStateHandle) -> AddRoomVM( get(), get(),handle) }
     viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), get(),handle) }
     viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), get(), handle) }
@@ -185,7 +183,6 @@ val authModule = module {
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }
-    single<ServiceRepository> { ServiceRepository(get()) }
     viewModel { ServiceListVM(get(), get()) }
     viewModel { AddServiceVM(get(), get(), get(), get()) }
 }

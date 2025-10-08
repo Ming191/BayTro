@@ -10,7 +10,6 @@ import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.room.Status
 import com.example.baytro.data.service.Service
-import com.example.baytro.data.service.ServiceRepository
 import com.example.baytro.utils.AddRoomValidator
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +18,6 @@ import kotlinx.coroutines.launch
 class AddRoomVM(
     private val roomRepository: RoomRepository,
     private val buildingRepository: BuildingRepository,
-    private val serviceRepository: ServiceRepository,
     savedStateHandle: SavedStateHandle
 ): ViewModel() {
     val buildingId: String = checkNotNull(savedStateHandle["buildingId"])
