@@ -1,25 +1,25 @@
 package com.example.baytro.view.screens.building
 
-import android.net.Uri
-import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -37,13 +36,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
-import com.example.baytro.utils.BuildingValidator
-import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.SecondaryButton
+import com.example.baytro.view.components.SubmitButton
+import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.EditBuildingVM
+import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,61 +58,56 @@ fun EditBuildingScreen(
     val uiState by viewModel.editUIState.collectAsState()
     val buildingState by viewModel.building.collectAsState()
 
-    var name by remember { mutableStateOf("") }
-    var floor by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf("Active") }
-    var billingDate by remember { mutableStateOf("") }
-    var paymentStart by remember { mutableStateOf("") }
-    var paymentDue by remember { mutableStateOf("") }
-    var selectedImages by remember { mutableStateOf<List<Uri>>(emptyList()) }
-    var existingImageUrls by remember { mutableStateOf<List<String>>(emptyList()) }
-
-    var nameError by remember { mutableStateOf(false) }
-    var floorError by remember { mutableStateOf(false) }
-    var addressError by remember { mutableStateOf(false) }
-    var billingError by remember { mutableStateOf(false) }
-    var startError by remember { mutableStateOf(false) }
-    var dueError by remember { mutableStateOf(false) }
-
-    var nameErrorMsg by remember { mutableStateOf<String?>(null) }
-    var floorErrorMsg by remember { mutableStateOf<String?>(null) }
-    var addressErrorMsg by remember { mutableStateOf<String?>(null) }
-    var billingErrorMsg by remember { mutableStateOf<String?>(null) }
-    var startErrorMsg by remember { mutableStateOf<String?>(null) }
-    var dueErrorMsg by remember { mutableStateOf<String?>(null) }
-
     LaunchedEffect(buildingId) {
         viewModel.load(buildingId)
     }
 
-    LaunchedEffect(buildingState) {
-        val b = buildingState ?: return@LaunchedEffect
-        name = b.name
-        floor = b.floor.toString()
-        address = b.address
-        status = b.status
-        billingDate = b.billingDate.toString()
-        paymentStart = b.paymentStart.toString()
-        paymentDue = b.paymentDue.toString()
-        selectedImages = emptyList()
-        existingImageUrls = b.imageUrls
-    }
-
     LaunchedEffect(uiState) {
         when (val s = uiState) {
-            is AuthUIState.Success -> {
+            is UiState.Success -> {
                 Toast.makeText(context, "Building updated successfully", Toast.LENGTH_SHORT).show()
                 navController?.popBackStack()
             }
-
-            is AuthUIState.Error -> {
+            is UiState.Error -> {
                 Toast.makeText(context, s.message, Toast.LENGTH_SHORT).show()
             }
-
             else -> {}
         }
     }
+
+    // Show skeleton during initial load
+    if (!(uiState is UiState.Loading || buildingState == null)) {
+        // Show error dialog
+        if (uiState is UiState.Error) {
+            AlertDialog(
+                onDismissRequest = { viewModel.clearError() },
+                title = { Text("Error") },
+                text = { Text((uiState as UiState.Error).message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearError() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+
+        EditBuildingContent(
+            viewModel = viewModel,
+            onCancel = { navController?.popBackStack() },
+            uiState = uiState
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditBuildingContent(
+    viewModel: EditBuildingVM,
+    onCancel: () -> Unit,
+    uiState: UiState<Building>
+) {
+    val formState by viewModel.formState.collectAsState()
+    val formErrors by viewModel.formErrors.collectAsState()
 
     val nameFocus = remember { FocusRequester() }
     val floorFocus = remember { FocusRequester() }
@@ -120,303 +116,414 @@ fun EditBuildingScreen(
     val startFocus = remember { FocusRequester() }
     val dueFocus = remember { FocusRequester() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Building Details Section
-            item {
-                DividerWithSubhead(subhead = "Building Details")
-            }
+    // Animation states for each field
+    var sectionTitleVisible by remember { mutableStateOf(false) }
+    var nameFieldVisible by remember { mutableStateOf(false) }
+    var floorFieldVisible by remember { mutableStateOf(false) }
+    var addressFieldVisible by remember { mutableStateOf(false) }
+    var statusFieldVisible by remember { mutableStateOf(false) }
+    var paymentTitleVisible by remember { mutableStateOf(false) }
+    var billingFieldVisible by remember { mutableStateOf(false) }
+    var paymentFieldsVisible by remember { mutableStateOf(false) }
+    var imagesTitleVisible by remember { mutableStateOf(false) }
+    var imagesFieldVisible by remember { mutableStateOf(false) }
+    var buttonsVisible by remember { mutableStateOf(false) }
 
-            item {
-                RequiredTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        val res = BuildingValidator.validateName(name)
-                        nameError = res.isError
-                        nameErrorMsg = res.message
-                    },
-                    label = "Building name",
-                    isError = nameError,
-                    errorMessage = nameErrorMsg,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(
-                        onNext = { floorFocus.requestFocus() }
-                    ),
-                    modifier = Modifier.fillMaxWidth().focusRequester(nameFocus)
-                )
-            }
+    // Trigger staggered animations when form is loaded
+    LaunchedEffect(formState.name) {
+        if (formState.name.isNotEmpty()) {
+            delay(50)
+            sectionTitleVisible = true
+            buttonsVisible = true
+            delay(80)
+            nameFieldVisible = true
+            delay(80)
+            floorFieldVisible = true
+            delay(80)
+            addressFieldVisible = true
+            delay(80)
+            statusFieldVisible = true
+            delay(100)
+            paymentTitleVisible = true
+            delay(80)
+            billingFieldVisible = true
+            delay(80)
+            paymentFieldsVisible = true
+            delay(100)
+            imagesTitleVisible = true
+            delay(80)
+            imagesFieldVisible = true
+            delay(80)
+        }
+    }
 
-            item {
-                RequiredTextField(
-                    value = floor,
-                    onValueChange = {
-                        floor = it
-                        val res = BuildingValidator.validateFloor(floor)
-                        floorError = res.isError
-                        floorErrorMsg = res.message
-                    },
-                    label = "Floor",
-                    isError = floorError,
-                    errorMessage = floorErrorMsg,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { addressFocus.requestFocus() }
-                    ),
-                    modifier = Modifier.fillMaxWidth().focusRequester(floorFocus)
-                )
-            }
+    Scaffold(
+        content = { innerPadding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                item {
+                    AnimatedVisibility(
+                        visible = sectionTitleVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        DividerWithSubhead(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            subhead = "Building Details"
+                        )
+                    }
+                }
 
-            item {
-                RequiredTextField(
-                    value = address,
-                    onValueChange = {
-                        address = it
-                        val res = BuildingValidator.validateAddress(address)
-                        addressError = res.isError
-                        addressErrorMsg = res.message
-                    },
-                    label = "Address",
-                    isError = addressError,
-                    errorMessage = addressErrorMsg,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(
-                        onNext = { billingFocus.requestFocus() }
-                    ),
-                    modifier = Modifier.fillMaxWidth().focusRequester(addressFocus)
-                )
-            }
-
-            item {
-                DropdownSelectField(
-                    label = "Status",
-                    options = listOf("Active", "Inactive"),
-                    selectedOption = status,
-                    onOptionSelected = { status = it },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            // Payment Schedule Section
-            item {
-                DividerWithSubhead(subhead = "Payment Schedule")
-            }
-
-            item {
-                RequiredTextField(
-                    value = billingDate,
-                    onValueChange = {
-                        billingDate = it
-                        val res = BuildingValidator.validateBillingDate(billingDate)
-                        billingError = res.isError
-                        billingErrorMsg = res.message
-                    },
-                    label = "Billing date",
-                    isError = billingError,
-                    errorMessage = billingErrorMsg,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { startFocus.requestFocus() }
-                    ),
-                    modifier = Modifier.fillMaxWidth().focusRequester(billingFocus)
-                )
-            }
-
-            item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                item {
+                    AnimatedVisibility(
+                        visible = nameFieldVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
                         RequiredTextField(
-                            value = paymentStart,
-                            onValueChange = {
-                                paymentStart = it
-                                val res = BuildingValidator.validatePaymentStart(paymentStart)
-                                startError = res.isError
-                                startErrorMsg = res.message
-                            },
-                            label = "Payment start",
-                            isError = startError,
-                            errorMessage = startErrorMsg,
+                            value = formState.name,
+                            onValueChange = { viewModel.updateField("name", it) },
+                            label = "Building name",
+                            isError = formErrors.nameError != null,
+                            errorMessage = formErrors.nameError,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(
+                                onNext = { floorFocus.requestFocus() }
+                            ),
+                            modifier = Modifier.fillMaxWidth().focusRequester(nameFocus)
+                        )
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = floorFieldVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        RequiredTextField(
+                            value = formState.floor,
+                            onValueChange = { viewModel.updateField("floor", it) },
+                            label = "Floor",
+                            isError = formErrors.floorError != null,
+                            errorMessage = formErrors.floorError,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Number,
                                 imeAction = ImeAction.Next
                             ),
                             keyboardActions = KeyboardActions(
-                                onNext = { dueFocus.requestFocus() }
+                                onNext = { addressFocus.requestFocus() }
                             ),
-                            modifier = Modifier.fillMaxWidth().focusRequester(startFocus)
+                            modifier = Modifier.fillMaxWidth().focusRequester(floorFocus)
                         )
                     }
-                    Column(modifier = Modifier.weight(1f)) {
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = addressFieldVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
                         RequiredTextField(
-                            value = paymentDue,
-                            onValueChange = {
-                                paymentDue = it
-                                val res = BuildingValidator.validatePaymentDue(paymentDue)
-                                dueError = res.isError
-                                dueErrorMsg = res.message
-                            },
-                            label = "Payment due",
-                            isError = dueError,
-                            errorMessage = dueErrorMsg,
+                            value = formState.address,
+                            onValueChange = { viewModel.updateField("address", it) },
+                            label = "Address",
+                            isError = formErrors.addressError != null,
+                            errorMessage = formErrors.addressError,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(
+                                onNext = { billingFocus.requestFocus() }
+                            ),
+                            modifier = Modifier.fillMaxWidth().focusRequester(addressFocus)
+                        )
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = statusFieldVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        DropdownSelectField(
+                            label = "Status",
+                            options = listOf("Active", "Inactive"),
+                            selectedOption = formState.status,
+                            onOptionSelected = { viewModel.updateField("status", it) },
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        )
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = paymentTitleVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        DividerWithSubhead(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            subhead = "Payment Schedule"
+                        )
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = billingFieldVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        RequiredTextField(
+                            value = formState.billingDate,
+                            onValueChange = { viewModel.updateField("billingDate", it) },
+                            label = "Billing date",
+                            isError = formErrors.billingError != null,
+                            errorMessage = formErrors.billingError,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Done
+                                imeAction = ImeAction.Next
                             ),
                             keyboardActions = KeyboardActions(
-                                onDone = { dueFocus.freeFocus() }
+                                onNext = { startFocus.requestFocus() }
                             ),
-                            modifier = Modifier.fillMaxWidth().focusRequester(dueFocus)
+                            modifier = Modifier.fillMaxWidth().focusRequester(billingFocus)
+                        )
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = paymentFieldsVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                RequiredTextField(
+                                    value = formState.paymentStart,
+                                    onValueChange = { viewModel.updateField("paymentStart", it) },
+                                    label = "Payment start",
+                                    isError = formErrors.startError != null,
+                                    errorMessage = formErrors.startError,
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = { dueFocus.requestFocus() }
+                                    ),
+                                    modifier = Modifier.fillMaxWidth().focusRequester(startFocus)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                RequiredTextField(
+                                    value = formState.paymentDue,
+                                    onValueChange = { viewModel.updateField("paymentDue", it) },
+                                    label = "Payment due",
+                                    isError = formErrors.dueError != null,
+                                    errorMessage = formErrors.dueError,
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = { dueFocus.freeFocus() }
+                                    ),
+                                    modifier = Modifier.fillMaxWidth().focusRequester(dueFocus)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = imagesTitleVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        DividerWithSubhead(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            subhead = "Building Images (Up to 3)"
+                        )
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = imagesFieldVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        PhotoCarousel(
+                            selectedPhotos = formState.selectedImages,
+                            onPhotosSelected = { viewModel.updateImages(it) },
+                            existingImageUrls = formState.existingImageUrls,
+                            onExistingImagesChanged = { viewModel.updateExistingImages(it) },
+                            maxSelectionCount = 3,
+                            imageWidth = 160.dp,
+                            imageHeight = 90.dp,
+                            aspectRatioX = 16f,
+                            aspectRatioY = 9f,
+                            maxResultWidth = 1920,
+                            maxResultHeight = 1080
                         )
                     }
                 }
             }
-
-            // Building Images Section
-            item {
-                DividerWithSubhead(subhead = "Building Images")
-            }
-
-            item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // Use PhotoCarousel component with 16:9 ratio and existing images
-                    PhotoCarousel(
-                        selectedPhotos = selectedImages,
-                        onPhotosSelected = { newPhotos ->
-                            selectedImages = newPhotos
+        },
+        bottomBar = {
+            AnimatedVisibility(
+                visible = buttonsVisible,
+                enter = fadeIn()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    SecondaryButton(
+                        text = "Back",
+                        onClick = onCancel,
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    )
+                    SubmitButton(
+                        text = "Save",
+                        isLoading = uiState is UiState.Loading,
+                        onClick = {
+                            val (isValid, errorField) = viewModel.validateAll()
+                            if (!isValid) {
+                                when (errorField) {
+                                    "name" -> nameFocus.requestFocus()
+                                    "floor" -> floorFocus.requestFocus()
+                                    "address" -> addressFocus.requestFocus()
+                                    "billingDate" -> billingFocus.requestFocus()
+                                    "paymentStart" -> startFocus.requestFocus()
+                                    "paymentDue" -> dueFocus.requestFocus()
+                                }
+                            } else {
+                                viewModel.saveBuilding()
+                            }
                         },
-                        existingImageUrls = existingImageUrls,
-                        onExistingImagesChanged = { updatedUrls ->
-                            existingImageUrls = updatedUrls
-                        },
-                        maxSelectionCount = 3,
-                        imageWidth = 160.dp,
-                        imageHeight = 90.dp,
-                        aspectRatioX = 16f,
-                        aspectRatioY = 9f,
-                        maxResultWidth = 1920,
-                        maxResultHeight = 1080
+                        modifier = Modifier.weight(1f).fillMaxWidth()
                     )
                 }
             }
-
-            // Save Button
-            item {
-                Button(
-                    onClick = {
-                        if (uiState is AuthUIState.Loading) return@Button
-
-                        // Reset errors
-                        nameError = false; nameErrorMsg = null
-                        floorError = false; floorErrorMsg = null
-                        addressError = false; addressErrorMsg = null
-                        billingError = false; billingErrorMsg = null
-                        startError = false; startErrorMsg = null
-                        dueError = false; dueErrorMsg = null
-
-                        val checks = listOf(
-                            "name" to BuildingValidator.validateName(name),
-                            "floor" to BuildingValidator.validateFloor(floor),
-                            "address" to BuildingValidator.validateAddress(address),
-                            "billing" to BuildingValidator.validateBillingDate(billingDate),
-                            "start" to BuildingValidator.validatePaymentStart(paymentStart),
-                            "due" to BuildingValidator.validatePaymentDue(paymentDue),
-                        )
-                        val firstInvalid = checks.firstOrNull { it.second.isError }
-
-                        if (firstInvalid != null) {
-                            when (firstInvalid.first) {
-                                "name" -> {
-                                    nameError = true
-                                    nameErrorMsg = firstInvalid.second.message
-                                    nameFocus.requestFocus()
-                                }
-                                "floor" -> {
-                                    floorError = true
-                                    floorErrorMsg = firstInvalid.second.message
-                                    floorFocus.requestFocus()
-                                }
-                                "address" -> {
-                                    addressError = true
-                                    addressErrorMsg = firstInvalid.second.message
-                                    addressFocus.requestFocus()
-                                }
-                                "billing" -> {
-                                    billingError = true
-                                    billingErrorMsg = firstInvalid.second.message
-                                    billingFocus.requestFocus()
-                                }
-                                "start" -> {
-                                    startError = true
-                                    startErrorMsg = firstInvalid.second.message
-                                    startFocus.requestFocus()
-                                }
-                                "due" -> {
-                                    dueError = true
-                                    dueErrorMsg = firstInvalid.second.message
-                                    dueFocus.requestFocus()
-                                }
-                            }
-                        } else {
-                            val building = Building(
-                                id = buildingId,
-                                name = name,
-                                floor = floor.toIntOrNull() ?: 0,
-                                address = address,
-                                status = status,
-                                billingDate = billingDate.toIntOrNull() ?: 0,
-                                paymentStart = paymentStart.toIntOrNull() ?: 0,
-                                paymentDue = paymentDue.toIntOrNull() ?: 0,
-                                userId = viewModel.building.value?.userId ?: "",
-                                imageUrls = existingImageUrls
-                            )
-                            
-                            Log.d("EditBuildingScreen", "Existing images: ${existingImageUrls.size}, New images: ${selectedImages.size}")
-
-                            if (selectedImages.isNotEmpty()) {
-                                viewModel.updateWithImages(building, selectedImages)
-                            } else {
-                                viewModel.update(building)
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .requiredHeight(50.dp),
-                    enabled = uiState !is AuthUIState.Loading
-                ) {
-                    if (uiState is AuthUIState.Loading) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "Edit building info",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    } else {
-                        Text("Confirm")
-                    }
-                }
-            }
         }
-    }
+    )
 }
+

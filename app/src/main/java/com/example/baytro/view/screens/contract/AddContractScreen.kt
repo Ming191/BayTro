@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.Building
 import com.example.baytro.data.contract.Contract
@@ -41,6 +42,36 @@ import com.example.baytro.viewModel.contract.AddContractFormState
 import com.example.baytro.viewModel.contract.AddContractVM
 import org.koin.compose.viewmodel.koinViewModel
 
+@Composable
+@Preview(showBackground = true)
+fun AddContractScreenPreview() {
+    val sampleBuildings = emptyList<Building>()
+    val sampleRooms = emptyList<Room>()
+    val formState = AddContractFormState(
+        availableBuildings = sampleBuildings,
+        availableRooms = sampleRooms,
+        selectedBuilding = null,
+        selectedRoom = null,
+        startDate = "2024-07-01",
+        endDate = "2025-06-30",
+        rentalFee = "1000",
+        deposit = "2000",
+        status = Status.PENDING
+    )
+
+    AddContractContent(
+        formState = formState,
+        onBuildingSelected = {},
+        onRoomSelected = {},
+        onStartDateSelected = {},
+        onEndDateSelected = {},
+        onDepositChange = {},
+        onRentalFeeChange = {},
+        onPhotosSelected = {},
+        onSubmit = {},
+        onStatusChange = {}
+    )
+}
 @Composable
 fun AddContractScreen(
     viewModel: AddContractVM = koinViewModel(),
