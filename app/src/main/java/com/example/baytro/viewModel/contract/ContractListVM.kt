@@ -18,7 +18,6 @@ enum class ContractTab {
     ACTIVE, PENDING, ENDED
 }
 
-// Create a data class to hold contract with room number
 data class ContractWithRoom(
     val contract: Contract,
     val roomNumber: String
@@ -26,7 +25,7 @@ data class ContractWithRoom(
 
 class ContractListVM(
     private val contractRepository: ContractRepository,
-    private val authRepository: AuthRepository,
+    authRepository: AuthRepository,
     private val buildingRepository: BuildingRepository,
     private val roomRepository: RoomRepository
 ) : ViewModel() {
@@ -35,6 +34,12 @@ class ContractListVM(
 
     private val _contracts = MutableStateFlow<List<ContractWithRoom>>(emptyList())
     val contracts: StateFlow<List<ContractWithRoom>> = _contracts.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _filteredContracts = MutableStateFlow<List<ContractWithRoom>>(emptyList())
+    val filteredContracts: StateFlow<List<ContractWithRoom>> = _filteredContracts.asStateFlow()
 
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
@@ -54,10 +59,31 @@ class ContractListVM(
     val ownedBuildings: StateFlow<List<Building>> = _ownedBuildings.asStateFlow()
 
     init {
-        fetchUserBuildingsAndContracts()
+        loadBuildingsAndContracts()
+        viewModelScope.launch {
+            _searchQuery.collect { query ->
+                applyFilters()
+            }
+        }
     }
 
-    private fun fetchUserBuildingsAndContracts() {
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    private fun applyFilters() {
+        val query = _searchQuery.value.lowercase().trim()
+        _filteredContracts.value = if (query.isEmpty()) {
+            _contracts.value
+        } else {
+            _contracts.value.filter { contractWithRoom ->
+                contractWithRoom.contract.contractNumber.lowercase().contains(query) ||
+                contractWithRoom.roomNumber.lowercase().contains(query)
+            }
+        }
+    }
+
+    private fun loadBuildingsAndContracts() {
         viewModelScope.launch {
             landlordId?.let { uid ->
                 val buildings = buildingRepository.getBuildingsByUserId(uid)
@@ -72,18 +98,21 @@ class ContractListVM(
         _selectedTab.value = tab
         contractCache[tab]?.let {
             viewModelScope.launch {
-                _loading.value = true
-                kotlinx.coroutines.delay(250) // Show loading for 250ms for animation
                 _contracts.value = it
-                _loading.value = false
+                applyFilters()
             }
             return
         }
+        _contracts.value = emptyList()
+        _filteredContracts.value = emptyList()
         refreshContracts()
     }
 
     fun refreshContracts() {
         if (landlordId == null) return
+        _contracts.value = emptyList()
+        _filteredContracts.value = emptyList()
+
         _loading.value = true
         _error.value = null
         viewModelScope.launch {
@@ -96,7 +125,6 @@ class ContractListVM(
                 val fetchedContracts = contractRepository.getContractsByStatus(landlordId, statusesToFetch)
                 val filteredContracts = fetchedContracts.filter { it.buildingId in userBuildingIds }
 
-                // Fetch room numbers for each contract
                 val contractsWithRooms = filteredContracts.map { contract ->
                     val room = roomRepository.getById(contract.roomId)
                     ContractWithRoom(
@@ -107,9 +135,11 @@ class ContractListVM(
 
                 _contracts.value = contractsWithRooms
                 contractCache[_selectedTab.value] = contractsWithRooms
+                applyFilters()
             } catch (e: Exception) {
                 _error.value = e.message
                 _contracts.value = emptyList()
+                _filteredContracts.value = emptyList()
             } finally {
                 _loading.value = false
             }

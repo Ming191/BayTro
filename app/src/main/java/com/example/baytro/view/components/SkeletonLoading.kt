@@ -381,3 +381,95 @@ fun AddServiceSkeleton() {
         )
     }
 }
+
+@Composable
+fun ContractCardSkeleton(
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Contract number placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .shimmerEffect()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Room number placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.4f)
+                    .height(16.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .shimmerEffect()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Date range placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(16.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .shimmerEffect()
+            )
+        }
+    }
+}
+
+@Composable
+fun ContractListSkeleton(
+    itemCount: Int = 5
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Search bar placeholder
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .shimmerEffect()
+        )
+
+        // Building filter dropdown placeholder
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .shimmerEffect()
+        )
+
+        // Contract cards
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(itemCount) {
+                ContractCardSkeleton()
+            }
+        }
+    }
+}
