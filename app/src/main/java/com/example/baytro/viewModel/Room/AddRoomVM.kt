@@ -1,5 +1,6 @@
 package com.example.baytro.viewModel.Room
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,6 +9,8 @@ import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.room.Status
+import com.example.baytro.data.service.Service
+import com.example.baytro.data.service.ServiceRepository
 import com.example.baytro.utils.AddRoomValidator
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +19,7 @@ import kotlinx.coroutines.launch
 class AddRoomVM(
     private val roomRepository: RoomRepository,
     private val buildingRepository: BuildingRepository,
+    private val serviceRepository: ServiceRepository,
     savedStateHandle: SavedStateHandle
 ): ViewModel() {
     val buildingId: String = checkNotNull(savedStateHandle["buildingId"])
@@ -27,9 +31,14 @@ class AddRoomVM(
     
     private val _buildingName = MutableStateFlow<String>("")
     val buildingName: StateFlow<String> = _buildingName
+
+    private val _services = MutableStateFlow<List<Service>>(emptyList())
+    val services: StateFlow<List<Service>> = _services
     
     init {
         loadBuildingName()
+        loadService()
+        Log.d("AddRoomVM", "buildingIdInAddRoomVM: $buildingId")
     }
     
     private fun loadBuildingName() {
@@ -42,13 +51,17 @@ class AddRoomVM(
             }
         }
     }
-//    fun onBuildingNameChange(buildingName: String) {
-//        _addRoomFormState.value = _addRoomFormState.value.copy(
-//            buildingName = buildingName,
-//            buildingNameError = AddRoomValidator.validateBuildingName(buildingName)
-//        )
-//    }
 
+    private fun loadService() {
+        viewModelScope.launch {
+            try {
+                val services = buildingRepository.getServicesByBuildingId(buildingId)
+                _services.value = services
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
     fun onRoomNumberChange(roomNumber: String) {
         _addRoomFormState.value = _addRoomFormState.value.copy(
             roomNumber = roomNumber,
@@ -91,7 +104,8 @@ class AddRoomVM(
             floorError = AddRoomValidator.validateFloor(form.floor),
             sizeError = AddRoomValidator.validateSize(form.size),
             rentalFeeError = AddRoomValidator.validateRentalFee(form.rentalFee),
-            interiorError = AddRoomValidator.validateInterior(form.interior)
+            interiorError = AddRoomValidator.validateInterior(form.interior),
+
         )
         _addRoomFormState.value = updated
         if (listOf(
@@ -118,6 +132,7 @@ class AddRoomVM(
                 rentalFee = formState.rentalFee.toIntOrNull()?:0,
                 status = Status.AVAILABLE,
                 interior = formState.interior,
+                extraService = services.value
             )
             viewModelScope.launch {
                 roomRepository.add(newRoom)

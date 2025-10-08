@@ -73,6 +73,7 @@ fun ViewBuildingTabRow(
     navController : NavHostController,
     building : Building?
 ) {
+    Log.d("BuildingTabRow", "BuildingName: ${building?.id}")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val pagerState = rememberPagerState (initialPage = 0){tabItemList.size}
     LaunchedEffect(selectedTabIndex) {
@@ -253,7 +254,7 @@ fun RoomListScreen(
     ViewBuildingTabRow(
         tabItemList = listOf(
             "Room list" to Icons.Outlined.List,
-            "Details" to Icons.Outlined.Info
+            "Building details" to Icons.Outlined.Info
         ),
         floors = floors,
         navController = navController,

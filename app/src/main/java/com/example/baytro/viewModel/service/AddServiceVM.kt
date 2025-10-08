@@ -1,6 +1,7 @@
 package com.example.baytro.viewModel.service
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
@@ -18,13 +19,14 @@ import kotlinx.coroutines.launch
 class AddServiceVM(
     private val buildingRepo: BuildingRepository,
     private val roomRepo: RoomRepository,
-    private val auth: AuthRepository
+    private val auth: AuthRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "AddServiceVM"
     }
-
+    private val buildingId: String? = savedStateHandle["buildingId"]
     private val _uiState = MutableStateFlow<UiState<Service>>(UiState.Idle)
     val uiState: StateFlow<UiState<Service>> = _uiState
 
@@ -44,7 +46,16 @@ class AddServiceVM(
                 _uiState.value = UiState.Loading
                 val buildings = buildingRepo.getBuildingsByUserId(currentUser.uid)
                 _formState.value = _formState.value.copy(availableBuildings = buildings)
-
+                // Auto-select building from nav args if available
+                buildingId?.let { id ->
+                    val selected = buildings.find { it.id == id } ?: buildingRepo.getById(id)
+                    if (selected != null) {
+                        Log.d(TAG, "Auto-selected building from nav args: ${selected.name}")
+                        onBuildingSelected(selected)
+                        _uiState.value = UiState.Idle
+                        return@launch
+                    }
+                }
                 // Auto-select first building if available
                 if (buildings.isNotEmpty() && _formState.value.selectedBuilding == null) {
                     onBuildingSelected(buildings[0])

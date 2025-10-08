@@ -7,7 +7,7 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 class RoomRepository(
     db: FirebaseFirestore
 ) {
-    private val collection = db.collection("rooms_test")
+    private val collection = db.collection("rooms")
 
     companion object {
         private const val TAG = "RoomRepository"

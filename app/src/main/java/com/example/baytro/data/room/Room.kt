@@ -14,7 +14,8 @@ enum class Status {
 @Serializable
 enum class Furniture {
     FURNISHED,
-    UNFURNISHED
+    UNFURNISHED,
+    UNKNOW
 }
 
 @Serializable

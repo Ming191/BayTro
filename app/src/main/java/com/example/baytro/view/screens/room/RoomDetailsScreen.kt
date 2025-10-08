@@ -2,6 +2,7 @@ package com.example.baytro.view.screens.room
 
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +28,7 @@ import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.ButtonComponent
 import com.example.baytro.view.components.CardComponent
 import com.example.baytro.view.components.DividerWithSubhead
+import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.viewModel.Room.RoomDetailsVM
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.NumberFormat
@@ -103,8 +105,32 @@ fun RoomDetailsScreen(
             )
         }
         DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Service")
+        val services = room?.extraService ?: emptyList()
+        if (services.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                services.forEach { service ->
+                    ServiceCard(
+                        service = service,
+                        onEdit = {},
+                        onDelete = {}
+                    )
+                }
+            }
+        } else {
+            Text(
+                text = "No services available",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
         DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Tenants")
-
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
             verticalAlignment = Alignment.Top

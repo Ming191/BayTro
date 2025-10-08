@@ -3,12 +3,22 @@ package com.example.baytro.view.screens.room
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,9 +29,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.baytro.data.room.Furniture
+import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.ChoiceSelection
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.Room.AddRoomVM
@@ -44,6 +56,8 @@ fun AddRoomScreen(
     val uiState by viewModel.addRoomUIState.collectAsState()
     val formState by viewModel.addRoomFormState.collectAsState()
     val buildingName by viewModel.buildingName.collectAsState()
+    val services by viewModel.services.collectAsState()
+    Log.d("AddRoomScreen", "services: ${services.size}")
 
     LaunchedEffect(uiState) {
         if (uiState is UiState.Success) {
@@ -130,7 +144,7 @@ fun AddRoomScreen(
         item {
             DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Interior condition")
             ChoiceSelection(
-                options = Furniture.entries.toList(),
+                options = Furniture.entries.toList().dropLast(1), //hide option UNKNOW while display
                 selectedOption = formState.interior,
                 onOptionSelected = interior,
                 isError = formState.interiorError != null,
@@ -140,21 +154,30 @@ fun AddRoomScreen(
 
         item {
             DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Services")
-            Card(
-                Modifier
-                    .width(380.dp)
-                    .background(Color.White)
-            ) {
-//                Row(modifier = Modifier.padding(16.dp)) { // Add padding inside the card
-//                    Icon(
-//                        Icons.Filled.Bolt,
-//                        "electric icon"
-//                    )
-//                    Text(
-//                        text = "Electric", // "Electricity" to match the image
-//                        modifier = Modifier.padding(start = 8.dp)
-//                    )
-//                }
+            if (services.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    services.forEach { service ->
+                        ServiceCard(
+                            service = service,
+                            onEdit = {},
+                            onDelete = {}
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No services available")
+                }
             }
         }
         item {
