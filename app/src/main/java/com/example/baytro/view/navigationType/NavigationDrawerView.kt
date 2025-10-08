@@ -2,12 +2,13 @@ package com.example.baytro.view.navigationType
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
@@ -50,98 +51,103 @@ fun NavigationDrawerView(
         )
     }
 
-    Column (
-        modifier = Modifier
-            .fillMaxHeight()
-            .wrapContentWidth()
-            .background(MaterialTheme.colorScheme.inverseOnSurface)
-            .padding(8.dp)
-    ) {
-        Row(
+    BoxWithConstraints {
+        val drawerWidth = maxWidth * 0.7f
+
+        Column (
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxHeight()
+                .width(drawerWidth)
+                .background(MaterialTheme.colorScheme.inverseOnSurface)
+                .padding(8.dp)
         ) {
-            Text(
-                text = "Menu",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            IconButton(
-                onClick = {
-                    onDrawerClicked()
-                },
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon (
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Close Menu",
+                Text(
+                    text = "Menu",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
+                IconButton(
+                    onClick = {
+                        onDrawerClicked()
+                    },
+                ) {
+                    Icon (
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Close Menu",
+                    )
+                }
             }
+            NavigationDrawerItem(
+                label = { Text(text = "Dashboard") },
+                selected = selectedItem.value == Screens.Dashboard,
+                onClick = {
+                    onDashboardClicked()
+                    selectedItem.value = Screens.Dashboard
+                },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+            // ... các NavigationDrawerItem khác
+            NavigationDrawerItem(
+                label = { Text(text = "Buildings") },
+                selected = selectedItem.value == Screens.BuildingList,
+                onClick = {
+                    onPropertyClicked()
+                    selectedItem.value = Screens.BuildingList
+                },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+            NavigationDrawerItem(
+                label = { Text(text = "Tenants") },
+                selected = selectedItem.value == Screens.TenantList,
+                onClick = {
+                    onTenantClicked()
+                    selectedItem.value = Screens.TenantList
+                },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+            NavigationDrawerItem(
+                label = { Text(text = "Maintenance") },
+                selected = selectedItem.value == Screens.MaintenanceRequestList,
+                onClick = {
+                    onMaintenanceClicked()
+                    selectedItem.value = Screens.MaintenanceRequestList
+                },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+            NavigationDrawerItem(
+                label = { Text(text = "Bills") },
+                selected = selectedItem.value == Screens.BillList,
+                onClick = {
+                    onBillClicked()
+                    selectedItem.value = Screens.BillList
+                },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+            NavigationDrawerItem(
+                label = { Text(text = "Contracts") },
+                selected = selectedItem.value == Screens.ContractList,
+                onClick = {
+                    onContractClicked()
+                    selectedItem.value = Screens.ContractList
+                },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+            NavigationDrawerItem(
+                label = { Text(text = "Services") },
+                selected = selectedItem.value == Screens.ServiceList,
+                onClick = {
+                    onServiceClicked()
+                    selectedItem.value = Screens.ServiceList
+                },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
         }
-        NavigationDrawerItem(
-            label = { Text(text = "Dashboard") },
-            selected = selectedItem.value == Screens.Dashboard,
-            onClick = {
-                onDashboardClicked()
-                selectedItem.value = Screens.Dashboard
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-        NavigationDrawerItem(
-            label = { Text(text = "Buildings") },
-            selected = selectedItem.value == Screens.BuildingList,
-            onClick = {
-                onPropertyClicked()
-                selectedItem.value = Screens.BuildingList
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-        NavigationDrawerItem(
-            label = { Text(text = "Tenants") },
-            selected = selectedItem.value == Screens.TenantList,
-            onClick = {
-                onTenantClicked()
-                selectedItem.value = Screens.TenantList
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-        NavigationDrawerItem(
-            label = { Text(text = "Maintenance") },
-            selected = selectedItem.value == Screens.MaintenanceRequestList,
-            onClick = {
-                onMaintenanceClicked()
-                selectedItem.value = Screens.MaintenanceRequestList
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-        NavigationDrawerItem(
-            label = { Text(text = "Bills") },
-            selected = selectedItem.value == Screens.BillList,
-            onClick = {
-                onBillClicked()
-                selectedItem.value = Screens.BillList
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-        NavigationDrawerItem(
-            label = { Text(text = "Contracts") },
-            selected = selectedItem.value == Screens.ContractList,
-            onClick = {
-                onContractClicked()
-                selectedItem.value = Screens.ContractList
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-        NavigationDrawerItem(
-            label = { Text(text = "Services") },
-            selected = selectedItem.value == Screens.ServiceList,
-            onClick = {
-                onServiceClicked()
-                selectedItem.value = Screens.ServiceList
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
     }
 }
