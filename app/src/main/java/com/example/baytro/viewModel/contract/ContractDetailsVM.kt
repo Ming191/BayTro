@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.contract.ContractRepository
+import com.example.baytro.data.contract.Status
 import com.example.baytro.data.qr_session.PendingQrSession
 import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.room.RoomRepository
@@ -188,5 +189,27 @@ class ContractDetailsVM(
 
     fun clearActionError() {
         _actionError.value = null
+    }
+
+    fun endContract(onNavigateBack: () -> Unit = {}) {
+        Log.d("ContractDetailsVM", "endContract called for contractId: $contractId")
+        val id = contractId ?: return
+        viewModelScope.launch {
+            try {
+                val currentContract = contractRepository.getById(id)
+                if (currentContract != null) {
+                    val updatedContract = currentContract.copy(status = Status.ENDED)
+                    contractRepository.update(updatedContract.id, updatedContract)
+                    Log.d("ContractDetailsVM", "Contract status updated to ENDED for contractId: $id")
+                    onNavigateBack()
+                } else {
+                    Log.e("ContractDetailsVM", "Contract not found for id: $id")
+                    _actionError.value = "Contract not found."
+                }
+            } catch (e: Exception) {
+                Log.e("ContractDetailsVM", "Failed to end contract: ${e.message}", e)
+                _actionError.value = e.message ?: "Failed to end contract."
+            }
+        }
     }
 }

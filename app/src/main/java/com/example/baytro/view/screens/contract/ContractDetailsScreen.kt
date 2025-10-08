@@ -130,7 +130,9 @@ fun ContractDetailsScreenPreview() {
 @Composable
 fun ContractDetailsScreen(
     viewModel: ContractDetailsVM = koinViewModel(),
-    contractId: String
+    onEditContract: (String) -> Unit = {},
+    contractId: String,
+    navigateBack: () -> Unit = {}
 ) {
     LaunchedEffect(contractId) {
         viewModel.loadContract(contractId)
@@ -174,7 +176,9 @@ fun ContractDetailsScreen(
             isLandlord = isLandlord,
             onAddTenant = viewModel::generateQrCode,
             onConfirmTenant = viewModel::confirmTenant,
-            onDeclineTenant = viewModel::declineTenant
+            onDeclineTenant = viewModel::declineTenant,
+            onEditContract = {onEditContract(contractId)},
+            onEndContract = { viewModel.endContract(navigateBack) }
         )
     }
 }
@@ -193,6 +197,8 @@ fun ContractDetailsContent(
     onAddTenant: () -> Unit,
     onConfirmTenant: (String) -> Unit,
     onDeclineTenant: (String) -> Unit,
+    onEditContract: () -> Unit = {},
+    onEndContract: () -> Unit = {},
 ) {
     var visible by remember { mutableStateOf(false) }
 
@@ -324,7 +330,11 @@ fun ContractDetailsContent(
                 ) {
                     Column {
                         Spacer(Modifier.height(16.dp))
-                        ActionButtonsRow()
+                        ActionButtonsRow(
+                            onEdit = onEditContract,
+                            onEnd = onEndContract,
+                            onExport = { /* TODO: Implement export contract action */ }
+                        )
                     }
                 }
             }
@@ -397,14 +407,18 @@ fun PendingRequestsSection(
 }
 
 @Composable
-fun ActionButtonsRow() {
+fun ActionButtonsRow(
+    onEdit: () -> Unit = {},
+    onEnd: () -> Unit = {},
+    onExport: () -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        ActionButton(text = "Export", icon = Icons.Default.UploadFile, modifier = Modifier.weight(1f), isPrimary = true)
-        ActionButton(text = "Edit", icon = Icons.Default.Edit, modifier = Modifier.weight(1f), isPrimary = false)
-        ActionButton(text = "End", icon = Icons.Default.Delete, modifier = Modifier.weight(1f), isPrimary = false)
+        ActionButton(text = "Export", icon = Icons.Default.UploadFile, modifier = Modifier.weight(1f), isPrimary = true, onExport)
+        ActionButton(text = "Edit", icon = Icons.Default.Edit, modifier = Modifier.weight(1f), isPrimary = false, onEdit)
+        ActionButton(text = "End", icon = Icons.Default.Delete, modifier = Modifier.weight(1f), isPrimary = false, onEnd)
     }
 }
 

@@ -260,7 +260,8 @@ private fun ContractListContent(
                                 "No ${tabData[page].first.lowercase()} contracts found."
                             },
                             animatedItemIds = animatedItemIds,
-                            onContractClick = onContractClick
+                            onContractClick = onContractClick,
+                            loading = viewModel.loading.collectAsState().value
                         )
                     } else {
                         Box(modifier = Modifier.fillMaxSize())
@@ -281,15 +282,17 @@ private fun ContractListPage(
     contracts: List<ContractWithRoom>,
     emptyMessage: String,
     animatedItemIds: MutableSet<String>,
-    onContractClick: (String) -> Unit
+    onContractClick: (String) -> Unit,
+    loading: Boolean = false
 ) {
-    if (contracts.isEmpty()) {
+    if (loading) {
+        ContractListSkeleton(itemCount = 5)
+    } else if (contracts.isEmpty()) {
         var emptyStateVisible by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
             Log.d("ContractList", "Empty state animation")
-            emptyStateVisible = false
-            delay(100)
+            delay(50)
             emptyStateVisible = true
         }
 
@@ -302,9 +305,6 @@ private fun ContractListPage(
                 Text(text = emptyMessage)
             }
         }
-    } else {
-        var isInitialLoad by remember { mutableStateOf(true) }
-
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
@@ -321,18 +321,9 @@ private fun ContractListPage(
 
                 LaunchedEffect(itemId) {
                     if (!visible) {
-                        // Only delay for initial load
-                        if (isInitialLoad) {
-                            delay(50)
-                        }
+                        delay(50L * index.coerceAtMost(10))
                         visible = true
                         animatedItemIds.add(itemId)
-                    }
-                }
-
-                LaunchedEffect(Unit) {
-                    if (isInitialLoad && index >= 2) {
-                        isInitialLoad = false
                     }
                 }
 
@@ -342,8 +333,7 @@ private fun ContractListPage(
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessLow
-                        ),
-                        initialAlpha = 0f
+                        )
                     ) + slideInVertically(
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,

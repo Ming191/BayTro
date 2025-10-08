@@ -13,6 +13,7 @@ import com.example.baytro.data.room.RoomRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -138,8 +139,8 @@ class ContractListVM(
         }
 
         Log.d(TAG, "No cache for tab: $tab, fetching contracts...")
-        _contracts.value = emptyList()
-        _filteredContracts.value = emptyList()
+        // Set loading to true IMMEDIATELY to prevent empty state flicker
+        _loading.value = true
         refreshContracts()
     }
 
@@ -149,8 +150,6 @@ class ContractListVM(
             return
         }
 
-        _contracts.value = emptyList()
-        _filteredContracts.value = emptyList()
         _loading.value = true
         _error.value = null
 
@@ -202,6 +201,7 @@ class ContractListVM(
                 _filteredContracts.value = emptyList()
             } finally {
                 _loading.value = false
+                delay(100)
             }
         }
     }
