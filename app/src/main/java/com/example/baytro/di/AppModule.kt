@@ -17,6 +17,7 @@ import com.example.baytro.viewModel.Room.AddRoomVM
 import com.example.baytro.viewModel.Room.EditRoomVM
 import com.example.baytro.viewModel.Room.RoomDetailsVM
 import com.example.baytro.viewModel.Room.RoomListVM
+import com.example.baytro.viewModel.auth.ForgotPasswordVM
 import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
 import com.example.baytro.viewModel.contract.AddContractVM
@@ -73,7 +74,6 @@ val authModule = module {
     single<FptAiService> { FptAiService(get(), get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
-    single<RoomRepository> { RoomRepository(get()) }
     single { IdCardDataViewModel() }
 
     viewModel {
@@ -97,6 +97,11 @@ val authModule = module {
             get(),
             get(),
             get(),
+            get()
+        )
+    }
+    viewModel {
+        ForgotPasswordVM(
             get()
         )
     }

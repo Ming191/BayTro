@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class ServiceListVM(
     private val buildingRepo: BuildingRepository,
@@ -41,7 +42,7 @@ class ServiceListVM(
         }
         val userId = currentUser.uid
         viewModelScope.launch {
-            _serviceListUiState.value = UiState.Loading // Set loading state once here
+            _serviceListUiState.value = UiState.Loading
             try {
                 val buildings = buildingRepo.getBuildingsByUserId(userId)
                 _serviceListFormState.value = _serviceListFormState.value.copy(
@@ -61,13 +62,9 @@ class ServiceListVM(
     private fun listenToServicesRealtime(buildingId: String) {
         viewModelScope.launch {
             try {
-                // Removed redundant loading state here
-                // Add small delay for better UX
-                kotlinx.coroutines.delay(250)
-                // Listen to real-time updates from building document
                 buildingRepo.listenToBuildingServices(buildingId)
                     .catch { e ->
-                        Log.e(TAG, "Error in services listener", e)
+                        Log.e(TAG, "Error from upstream Flow", e)
                         _serviceListUiState.value = UiState.Error(e.message ?: "Error listening to services")
                     }
                     .collect { services ->
@@ -75,10 +72,13 @@ class ServiceListVM(
                         _serviceListFormState.value = _serviceListFormState.value.copy(availableServices = services)
                         _serviceListUiState.value = UiState.Success(services)
                     }
+            } catch (e: CancellationException) {
+                Log.i(TAG, "listenToServicesRealtime was cancelled as expected.")
+                throw e
             } catch (e: Exception) {
-                Log.e(TAG, "listenToServicesRealtime error", e)
+                Log.e(TAG, "An unexpected error occurred in listenToServicesRealtime", e)
                 _serviceListUiState.value =
-                    UiState.Error(e.message ?: "Error while listening to services")
+                    UiState.Error(e.message ?: "An unexpected error occurred")
             }
         }
     }
@@ -90,10 +90,8 @@ class ServiceListVM(
 
         Log.d(TAG, "onBuildingChange: ${building.name} - clearing old services")
 
-        // Set loading state when building changes
         _serviceListUiState.value = UiState.Loading
 
-        // Clear old services immediately to prevent showing services from previous building
         _serviceListFormState.value =
             _serviceListFormState.value.copy(
                 selectedBuilding = building,
@@ -120,10 +118,8 @@ class ServiceListVM(
                     return@launch
                 }
 
-                // Remove service from building's services list
                 val updatedServices = building.services.toMutableList()
 
-                // Find and remove the service by all its properties to ensure correct match
                 val removed = updatedServices.removeAll {
                     it.name == service.name &&
                             it.price == service.price &&
@@ -136,10 +132,8 @@ class ServiceListVM(
                     return@launch
                 }
 
-                // Update building with new services list
                 buildingRepo.updateFields(building.id, mapOf("services" to updatedServices))
 
-                // Update local state immediately (real-time listener will also update it)
                 _serviceListFormState.value = _serviceListFormState.value.copy(
                     selectedBuilding = building.copy(services = updatedServices)
                 )

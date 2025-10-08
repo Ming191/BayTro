@@ -7,14 +7,15 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,6 +31,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -54,6 +57,7 @@ import com.example.baytro.view.components.PaginationControls
 import com.example.baytro.viewModel.BuildingListVM
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.text.clear
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +71,6 @@ fun BuildingListScreen(
     val buildings by viewModel.buildings.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Start with loading visible, content hidden
     var showLoading by remember { mutableStateOf(true) }
     var showContent by remember { mutableStateOf(false) }
     var showEmptyState by remember { mutableStateOf(false) }
@@ -82,7 +85,7 @@ fun BuildingListScreen(
             showEmptyState = false
             viewModel.loadBuildings()
         } else {
-            Log.d("BuildingListScreen", "Already loaded, showing existing content")
+            viewModel.refreshBuildings()
             showLoading = false
             if (buildings.isEmpty()) {
                 showEmptyState = true
@@ -96,7 +99,6 @@ fun BuildingListScreen(
 
     LaunchedEffect(isLoading, hasLoadedOnce) {
         Log.d("BuildingListScreen", "State changed: isLoading=$isLoading, hasLoadedOnce=$hasLoadedOnce, buildings.size=${buildings.size}")
-
         if (!isLoading && hasLoadedOnce) {
             Log.d("BuildingListScreen", "Loading complete, transitioning to content")
 
@@ -128,7 +130,7 @@ fun BuildingListScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    BuildingListSkeleton(itemCount = 5)
+                    BuildingListSkeleton(itemCount = 2)
                 }
             }
         }
@@ -158,7 +160,8 @@ fun BuildingListScreen(
         // Main content with buildings (wrapped in PullToRefresh)
         AnimatedVisibility(
             visible = showContent,
-            enter = fadeIn(animationSpec = tween(300))
+            enter = fadeIn(animationSpec = tween(300)),
+            modifier = Modifier.fillMaxSize()
         ) {
             Log.d("BuildingListScreen", "Rendering content (buildings.size=${buildings.size})")
             PullToRefreshBox(
@@ -169,8 +172,7 @@ fun BuildingListScreen(
                         isRefreshing = true
                         viewModel.refreshBuildings()
                     }
-                },
-                modifier = Modifier.fillMaxSize()
+                }
             ) {
                 BuildingListContent(
                     navController = controller,
@@ -197,142 +199,167 @@ private fun BuildingListContent(
     val hasPreviousPage by viewModel.hasPreviousPage.collectAsState()
 
     var showStatusMenu by remember { mutableStateOf(false) }
+    val animatedItemIds = remember { mutableSetOf<String>() }
 
-    Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp, start = 16.dp, end = 16.dp)) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            CompactSearchBar(
-                value = searchQuery,
-                onValueChange = { viewModel.setSearchQuery(it) },
-                placeholderText = "Search buildings...",
-                trailingIcon = {
-                    Box {
-                        IconButton(
-                            onClick = { showStatusMenu = true }
-                        ) {
-                            Icon(
-                                Icons.Default.FilterList,
-                                contentDescription = "Filter by status",
-                                tint = if (statusFilter != BuildingListVM.BuildingStatusFilter.ALL) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            )
-                        }
+    LaunchedEffect(currentPage) {
+        animatedItemIds.clear()
+    }
 
-                        DropdownMenu(
-                            expanded = showStatusMenu,
-                            onDismissRequest = { showStatusMenu = false }
-                        ) {
-                            BuildingListVM.BuildingStatusFilter.entries.forEach { filter ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = filter.name.lowercase()
-                                                .replaceFirstChar { it.uppercase() },
-                                            color = if (filter == statusFilter) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurface
-                                            }
-                                        )
-                                    },
-                                    onClick = {
-                                        viewModel.setStatusFilter(filter)
-                                        showStatusMenu = false
-                                    },
-                                    leadingIcon = if (filter == statusFilter) {
-                                        {
-                                            Icon(
-                                                Icons.Default.Check,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                    } else null
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(150)
+        visible = true
+    }
+
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+
+        topBar = {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
+            ) {
+                CompactSearchBar(
+                    modifier = Modifier.padding(16.dp),
+                    value = searchQuery,
+                    onValueChange = { viewModel.setSearchQuery(it) },
+                    placeholderText = "Search buildings...",
+                    trailingIcon = {
+                        Box {
+                            IconButton(onClick = { showStatusMenu = true }) {
+                                Icon(
+                                    Icons.Default.FilterList,
+                                    contentDescription = "Filter by status",
+                                    tint = if (statusFilter != BuildingListVM.BuildingStatusFilter.ALL) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
                                 )
+                            }
+                            DropdownMenu(
+                                expanded = showStatusMenu,
+                                onDismissRequest = { showStatusMenu = false }
+                            ) {
+                                BuildingListVM.BuildingStatusFilter.entries.forEach { filter ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = filter.name.lowercase()
+                                                    .replaceFirstChar { it.uppercase() },
+                                                color = if (filter == statusFilter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.setStatusFilter(filter)
+                                            showStatusMenu = false
+                                        },
+                                        leadingIcon = if (filter == statusFilter) {
+                                            {
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        } else null
+                                    )
+                                }
                             }
                         }
                     }
-                }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            if (!filteredBuildings.isEmpty()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 80.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                )
+            }
+        },
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                FloatingActionButton(
+                    onClick = { navController.navigate(Screens.BuildingAdd.route) },
                 ) {
-                    itemsIndexed(
-                        items = paginatedBuildings,
-                        key = { _, item -> item.building.id }
-                    ) { index, buildingWithStats ->
-                        var visible by remember { mutableStateOf(false) }
-
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(index * 50L)
-                            visible = true
-                        }
-
-                        AnimatedVisibility(
-                            visible = visible,
-                            enter = fadeIn(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                ),
-                                initialAlpha = 0f
-                            ) + slideInVertically(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                ),
-                                initialOffsetY = { it / 3 }
-                            )
-                        ) {
-                            BuildingCard(
-                                name = buildingWithStats.building.name,
-                                address = buildingWithStats.building.address,
-                                imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
-                                roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
-                                revenue = "$0",
-                                onViewClick = {
-                                    navController.navigate(Screens.RoomList.createRoute(buildingWithStats.building.id))
-                                },
-                                onEditClick = {
-                                    navController.navigate(
-                                        Screens.BuildingEdit.route.replace("{id}", buildingWithStats.building.id)
-                                    )
-                                }
-                            )
-                        }
-                    }
-
-                    // Pagination controls
-                    if (totalPages > 1) {
-                        item {
-                            PaginationControls(
-                                currentPage = currentPage,
-                                totalPages = totalPages,
-                                hasNextPage = hasNextPage,
-                                hasPreviousPage = hasPreviousPage,
-                                onNextPage = viewModel::nextPage,
-                                onPreviousPage = viewModel::previousPage
-                            )
-                        }
+                    Icon(Icons.Default.Add, contentDescription = "Add building")
+                }
+            }
+        },
+        bottomBar = {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
+            ) {
+                if (totalPages > 1) {
+                    BottomAppBar {
+                        PaginationControls(
+                            modifier = Modifier.weight(1f),
+                            currentPage = currentPage,
+                            totalPages = totalPages,
+                            hasNextPage = hasNextPage,
+                            hasPreviousPage = hasPreviousPage,
+                            onNextPage = viewModel::nextPage,
+                            onPreviousPage = viewModel::previousPage,
+                            onPageClick = viewModel::goToPage
+                        )
                     }
                 }
             }
         }
+    ) { innerPadding ->
+        var isInitialLoad by remember { mutableStateOf(true) }
+        if (filteredBuildings.isNotEmpty()) {
+            Log.d("BuildingListContent", "Rendering LazyColumn with ${paginatedBuildings.size} paginated items (page $currentPage of $totalPages)")
 
-        // FAB
-        FloatingActionButton(
-            onClick = { navController.navigate(Screens.BuildingAdd.route) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Add building")
+            LazyColumn(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                itemsIndexed(
+                    items = paginatedBuildings,
+                    key = { _, item -> item.building.id }
+                ) { index, buildingWithStats ->
+                    val itemId = buildingWithStats.building.id
+                    var visible by remember(itemId) {
+                        mutableStateOf(animatedItemIds.contains(itemId))
+                    }
+                    LaunchedEffect(itemId) {
+                        if (!visible) {
+                            // Chỉ delay cho lần đầu load, không delay khi scroll
+                            if (isInitialLoad) {
+                                kotlinx.coroutines.delay(index * 50L)
+                            }
+                            visible = true
+                            animatedItemIds.add(itemId)
+                        }
+                    }
+                    LaunchedEffect(Unit) {
+                        if (isInitialLoad && index >= 2) {
+                            isInitialLoad = false
+                        }
+                    }
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialAlpha = 0f) +
+                                slideInVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialOffsetY = { it / 3 })
+                    ) {
+                        BuildingCard(
+                            name = buildingWithStats.building.name,
+                            address = buildingWithStats.building.address,
+                            imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
+                            roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
+                            revenue = "$0",
+                            onViewClick = { navController.navigate(Screens.RoomList.createRoute(buildingWithStats.building.id)) },
+                            onEditClick = { navController.navigate(Screens.BuildingEdit.route.replace("{id}", buildingWithStats.building.id)) }
+                        )
+                    }
+                }
+            }
         }
     }
 }

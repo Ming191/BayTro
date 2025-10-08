@@ -62,8 +62,9 @@ class BuildingListVM(
         _searchQuery.debounce(500),
         _statusFilter
     ) { list, query, status ->
+        Log.d("BuildingListVM", "filteredBuildings recomputing: list.size=${list.size}, query='$query', status=$status")
         val normalizedQuery = query.trim().lowercase()
-        list.filter { buildingWithStats ->
+        val result = list.filter { buildingWithStats ->
             val building = buildingWithStats.building
             val matchesQuery = if (normalizedQuery.isBlank()) {
                 true
@@ -80,6 +81,8 @@ class BuildingListVM(
 
             matchesQuery && matchesStatus
         }
+        Log.d("BuildingListVM", "filteredBuildings result: ${result.size} items")
+        result
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // Paginated buildings for current page
@@ -87,18 +90,23 @@ class BuildingListVM(
         filteredBuildings,
         _currentPage
     ) { buildings, page ->
+        Log.d("BuildingListVM", "paginatedBuildings recomputing: buildings.size=${buildings.size}, page=$page")
         val startIndex = page * _itemsPerPage
         val endIndex = minOf(startIndex + _itemsPerPage, buildings.size)
-        if (startIndex < buildings.size) {
+        val result = if (startIndex < buildings.size) {
             buildings.subList(startIndex, endIndex)
         } else {
             emptyList()
         }
+        Log.d("BuildingListVM", "paginatedBuildings result: ${result.size} items (startIndex=$startIndex, endIndex=$endIndex)")
+        result
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // Total pages
     val totalPages: StateFlow<Int> = filteredBuildings.combine(_currentPage) { buildings, _ ->
-        if (buildings.isEmpty()) 0 else ((buildings.size - 1) / _itemsPerPage) + 1
+        val total = if (buildings.isEmpty()) 0 else ((buildings.size - 1) / _itemsPerPage) + 1
+        Log.d("BuildingListVM", "totalPages computed: $total (from ${buildings.size} buildings)")
+        total
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     // Has next page
@@ -106,12 +114,16 @@ class BuildingListVM(
         _currentPage,
         totalPages
     ) { page, total ->
-        page < total - 1
+        val hasNext = page < total - 1
+        Log.d("BuildingListVM", "hasNextPage: $hasNext (page=$page, total=$total)")
+        hasNext
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     // Has previous page
     val hasPreviousPage: StateFlow<Boolean> = _currentPage.combine(totalPages) { page, _ ->
-        page > 0
+        val hasPrev = page > 0
+        Log.d("BuildingListVM", "hasPreviousPage: $hasPrev (page=$page)")
+        hasPrev
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     fun loadBuildings() {

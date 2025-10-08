@@ -21,3 +21,8 @@ data class SignUpFormState(
     val confirmPassword: String = "",
     val confirmPasswordError: ValidationResult = ValidationResult.Success,
 )
+
+data class ForgotPasswordFormState(
+    val email: String = "",
+    val emailError: ValidationResult = ValidationResult.Success
+)
