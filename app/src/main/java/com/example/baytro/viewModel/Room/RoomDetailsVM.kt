@@ -1,8 +1,11 @@
 package com.example.baytro.viewModel.Room
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.baytro.data.contract.Contract
+import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,11 +14,15 @@ import kotlinx.coroutines.launch
 
 class RoomDetailsVM(
     private val roomRepository: RoomRepository,
+    private val contractRepository: ContractRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val roomId: String = checkNotNull(savedStateHandle["roomId"])
     private val _room = MutableStateFlow<Room?>(null)
     val room: StateFlow<Room?> = _room
+
+    private val _contract = MutableStateFlow<List<Contract>>(emptyList())
+    val contract: StateFlow<List<Contract>> = _contract
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -25,12 +32,26 @@ class RoomDetailsVM(
             _isLoading.value = true
             try {
                 val room = roomRepository.getById(roomId)
+                Log.d("RoomDetailsVM", "RoomInRoomDetailsVM: $room")
                 _room.value = room
             } catch (e: Exception) {
                 e.printStackTrace()
                 _room.value = null
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun getRoomContract() {
+        viewModelScope.launch {
+            try {
+                val contracts = contractRepository.getContractsByRoomId(roomId)
+                Log.d("RoomDetailsVM", "ContractsInRoomDetailsVM: ${contracts.size}")
+                _contract.value = contracts
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _contract.value = emptyList()
             }
         }
     }

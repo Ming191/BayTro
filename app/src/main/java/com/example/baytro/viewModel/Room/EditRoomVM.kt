@@ -129,7 +129,7 @@ class EditRoomVM (
                 roomNumber = formState.roomNumber,
                 size = formState.size.toIntOrNull()?:0,
                 rentalFee = formState.rentalFee.toIntOrNull()?:0,
-                status = Status.AVAILABLE,
+                status = Status.Available,
                 interior = formState.interior,
             )
             viewModelScope.launch {

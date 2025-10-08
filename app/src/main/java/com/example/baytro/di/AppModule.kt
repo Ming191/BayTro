@@ -172,8 +172,8 @@ val authModule = module {
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), get(),handle) }
     viewModel { BuildingListVM(get(), get(), get(),get()) }
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), get(),handle) }
-    viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), handle) }
-    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), get(),handle) }
+    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), get(), handle) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
     viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }

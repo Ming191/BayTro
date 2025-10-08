@@ -19,7 +19,7 @@ data class EditRoomFormState(
     val rentalFee: String = "",
     val rentalFeeError: String? = null,
 
-    val interior: Furniture = Furniture.UNKNOW,
+    val interior: Furniture = Furniture.Unknow,
     val interiorError: String? = null,
 
     val extraService: List<Service> = emptyList(),

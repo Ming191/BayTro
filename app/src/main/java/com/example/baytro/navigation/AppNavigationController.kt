@@ -101,41 +101,24 @@ fun AppNavigationController(
             )
         }
         composable(
-            route = Screens.RoomList.route, // route có {buildingId} bên trong
-            arguments = listOf(navArgument("buildingId") { type = NavType.StringType})
-        ) { entry ->
-            val buildingId = entry.arguments?.getString("buildingId") ?: ""
-            RoomListScreen(
-                navController = navHostController,
-            )
+            route = Screens.RoomList.route,
+        ) {
+            RoomListScreen(navController = navHostController,)
         }
         composable(
             route = Screens.RoomDetails.route,
-            arguments = listOf(navArgument("roomId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
-            RoomDetailsScreen(
-                navController = navHostController)
+        ) {
+            RoomDetailsScreen(navController = navHostController)
         }
         composable(
             route = Screens.EditRoom.route,
-            arguments = listOf(navArgument("roomId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+        ) {
             EditRoomScreen(navController = navHostController)
         }
         composable(
             route = Screens.AddRoom.route,
-            arguments = listOf(navArgument("buildingId") { type = NavType.StringType})
-        ) { entry ->
-            // Lấy tham số từ navigation
-            val buildingId = entry.arguments?.getString("buildingId") ?: ""
-            Log.d("AddRoomNav", "BuildingIdInNav: $buildingId")
-            // Gọi screen, truyền buildingId vào
-            AddRoomScreen(
-                navController = navHostController,
-                buildingId = buildingId
-            )
+        ) {
+            AddRoomScreen(navController = navHostController)
         }
         composable(
             Screens.ServiceList.route

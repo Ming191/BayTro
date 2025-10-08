@@ -51,10 +51,16 @@ fun RoomDetailsScreen(
     }
 
     val room by viewModel.room.collectAsState()
+    val contracts by viewModel.contract.collectAsState()
+    Log.d("RoomDetailsScreen", "contractInRoomDetailsScreen: ${contracts.size}")
+    if (contracts.isNotEmpty()) {
+        Log.d("RoomDetailsScreen", "First contract number: ${contracts[0]}")
+    }
     LaunchedEffect(Unit) {
         viewModel.loadRoom()
+        viewModel.getRoomContract()
     }
-    Log.d("RoomDetailsScreen", "RoomID: ${room?.buildingId}")
+    Log.d("RoomDetailsScreen", "buildingID: ${room?.buildingId}")
     Column (
         modifier = Modifier
             .fillMaxWidth()
@@ -79,30 +85,32 @@ fun RoomDetailsScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            ListItem(
-                headlineContent = {
-                    Text(
-                        text = "Contract#1234",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
+            contracts.firstOrNull()?.let { contract ->
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            text = "Contract# ${contract.contractNumber}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    supportingContent = {
+                        Column {
+                            Text(
+                                text = room?.roomNumber.orEmpty(),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "${contract.startDate} - ${contract.endDate}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    },
+                    colors = ListItemDefaults.colors(
+                        containerColor = Color.Transparent
                     )
-                },
-                supportingContent = {
-                    Column {
-                        Text(
-                            text = "Room 101-Gay Town",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "4/2025-4/2026",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                },
-                colors = ListItemDefaults.colors(
-                    containerColor = Color.Transparent
                 )
-            )
+            }
         }
         DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Service")
         val services = room?.extraService ?: emptyList()

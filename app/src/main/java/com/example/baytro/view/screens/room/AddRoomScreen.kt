@@ -43,9 +43,9 @@ import org.koin.compose.viewmodel.koinViewModel
 fun AddRoomScreen(
     navController: NavHostController,
     viewModel: AddRoomVM = koinViewModel(),
-    buildingId: String
+    //buildingId: String
 ) {
-    Log.d("AddRoomScreen", "buildingIdInAddRoomScreen: $buildingId")
+    //Log.d("AddRoomScreen", "buildingIdInAddRoomScreen: $buildingId")
     // --- State for each TextField ---
     val roomNumber: (String) -> Unit = viewModel::onRoomNumberChange
     val floor: (String) -> Unit = viewModel::onFloorChange
