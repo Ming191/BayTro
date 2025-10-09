@@ -4,6 +4,9 @@ import android.util.Log
 import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 
 class UserRepository(
@@ -79,5 +82,21 @@ class UserRepository(
             Log.e("UserRepository", "Error fetching users by IDs", e)
             emptyList()
         }
+    }
+
+    fun getUsersByIdsFlow(ids: List<String>): Flow<List<User>> {
+        if (ids.isEmpty()) {
+            return flowOf(emptyList())
+        }
+        return collection
+            .where { FieldPath.documentId inArray ids }
+            .snapshots // Lắng nghe thay đổi real-time
+            .map { querySnapshot ->
+                querySnapshot.documents.mapNotNull { doc ->
+                    runCatching {
+                        doc.data<User>().copy(id = doc.id)
+                    }.getOrNull()
+                }
+            }
     }
 }

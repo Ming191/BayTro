@@ -77,4 +77,11 @@ sealed class Screens(val route: String, val title: String) {
         )
         fun createRoute(buildingId: String?) = "addRoom_screen/$buildingId"
     }
+
+    object EditContract : Screens("contract_edit/{$ARG_CONTRACT_ID}", "Edit Contract") {
+        val arguments = listOf(
+            navArgument(ARG_CONTRACT_ID) { type = NavType.StringType; nullable = true }
+        )
+        fun createRoute(contractId: String?) = "contract_edit/$contractId"
+    }
 }

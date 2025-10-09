@@ -9,6 +9,7 @@ import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.service.FptAiService
+import com.example.baytro.view.screens.contract.EditContractScreen
 import com.example.baytro.viewModel.AddBuildingVM
 import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.EditBuildingVM
@@ -22,6 +23,7 @@ import com.example.baytro.viewModel.auth.SignUpVM
 import com.example.baytro.viewModel.contract.AddContractVM
 import com.example.baytro.viewModel.contract.ContractDetailsVM
 import com.example.baytro.viewModel.contract.ContractListVM
+import com.example.baytro.viewModel.contract.EditContractVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
 import com.example.baytro.viewModel.dashboard.TenantDashboardVM
 import com.example.baytro.viewModel.service.AddServiceVM
@@ -167,12 +169,21 @@ val authModule = module {
 
     viewModel {
         ContractListVM(
-            get(),
-            get(),
-            get(),
-            get()
+        get(),
+        get(),
+        get(),
+        get()
         )
     }
+
+    viewModel {
+        EditContractVM(
+        get(),
+        get(),
+        get(),
+        get(),
+        get(),
+    ) }
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }
