@@ -40,7 +40,13 @@ fun NavGraphBuilder.contractNavGraph(navController: NavHostController) {
         )
     }
     composable(Screens.TenantEmptyContract.route) {
-        TenantEmptyContractView()
+        TenantEmptyContractView(
+            onContractConfirmed = {
+                navController.navigate(Screens.TenantDashboard.route) {
+                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                }
+            }
+        )
     }
     composable(
         Screens.EditContract.route,

@@ -370,6 +370,7 @@ fun EditContractContent(
                         PhotoCarousel(
                             selectedPhotos = formState.selectedPhotos,
                             onPhotosSelected = onPhotosSelected,
+                            existingImageUrls = formState.existingPhotosURL,
                             maxSelectionCount = 5,
                         )
                     }

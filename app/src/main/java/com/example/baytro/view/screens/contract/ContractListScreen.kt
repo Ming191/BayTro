@@ -287,68 +287,72 @@ private fun ContractListPage(
 ) {
     if (loading) {
         ContractListSkeleton(itemCount = 5)
-    } else if (contracts.isEmpty()) {
+    } else {
         var emptyStateVisible by remember { mutableStateOf(false) }
 
-        LaunchedEffect(Unit) {
-            Log.d("ContractList", "Empty state animation")
-            delay(50)
-            emptyStateVisible = true
-        }
+        if (contracts.isEmpty()) {
+            LaunchedEffect(Unit) {
+                Log.d("ContractList", "Empty state animation")
+                delay(50)
+                emptyStateVisible = true
+            }
 
-        AnimatedVisibility(
-            visible = emptyStateVisible,
-            enter = fadeIn(animationSpec = tween(400)),
-            exit = fadeOut(animationSpec = tween(200))
-        ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = emptyMessage)
+            AnimatedVisibility(
+                visible = emptyStateVisible,
+                enter = fadeIn(animationSpec = tween(400)),
+                exit = fadeOut(animationSpec = tween(200))
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = emptyMessage)
+                }
             }
         }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            itemsIndexed(
-                items = contracts,
-                key = { _, item -> item.contract.id }
-            ) { index, contractWithRoom ->
-                val itemId = contractWithRoom.contract.id
-                var visible by remember(itemId) {
-                    mutableStateOf(animatedItemIds.contains(itemId))
-                }
-
-                LaunchedEffect(itemId) {
-                    if (!visible) {
-                        delay(50L * index.coerceAtMost(10))
-                        visible = true
-                        animatedItemIds.add(itemId)
+        else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                itemsIndexed(
+                    items = contracts,
+                    key = { _, item -> item.contract.id }
+                ) { index, contractWithRoom ->
+                    val itemId = contractWithRoom.contract.id
+                    var visible by remember(itemId) {
+                        mutableStateOf(animatedItemIds.contains(itemId))
                     }
-                }
 
-                AnimatedVisibility(
-                    visible = visible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { it / 3 }
-                    )
-                ) {
-                    ContractListItem(
-                        contractWithRoom = contractWithRoom,
-                        onClick = {
-                            Log.d("NavigationCheck", "Navigating with contractId: '${contractWithRoom.contract.id}'")
-                            onContractClick(contractWithRoom.contract.id)
+                    LaunchedEffect(itemId) {
+                        if (!visible) {
+                            delay(50L * index.coerceAtMost(10))
+                            visible = true
+                            animatedItemIds.add(itemId)
                         }
-                    )
+                    }
+
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { it / 3 }
+                        )
+                    ) {
+                        ContractListItem(
+                            contractWithRoom = contractWithRoom,
+                            onClick = {
+                                Log.d("NavigationCheck", "Navigating with contractId: '${contractWithRoom.contract.id}'")
+                                onContractClick(contractWithRoom.contract.id)
+                            }
+                        )
+                    }
                 }
             }
         }

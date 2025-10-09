@@ -1,8 +1,6 @@
 package com.example.baytro.viewModel.contract
 
 import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.BuildingRepository
@@ -12,12 +10,23 @@ import com.example.baytro.data.qr_session.PendingQrSession
 import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-
 
 sealed interface QrGenerationState {
     object Idle : QrGenerationState
@@ -33,154 +42,193 @@ class ContractDetailsVM(
     private val buildingRepository: BuildingRepository,
     private val userRepository: UserRepository,
     private val qrSessionRepository: QrSessionRepository,
-): ViewModel() {
+) : ViewModel() {
 
     private var contractId: String? = null
+    private var dataLoadingJob: Job? = null
+    private var pendingSessionsJob: Job? = null
+
+    // --- State Properties ---
+    private val _formState = MutableStateFlow(ContractDetailsFormState())
+    val formState: StateFlow<ContractDetailsFormState> = _formState.asStateFlow()
+
+    private val _qrState = MutableStateFlow<QrGenerationState>(QrGenerationState.Idle)
+    val qrState: StateFlow<QrGenerationState> = _qrState.asStateFlow()
+
+    private val _pendingSessions = MutableStateFlow<List<PendingQrSession>>(emptyList())
+    val pendingSessions: StateFlow<List<PendingQrSession>> = _pendingSessions.asStateFlow()
+
+    private val _confirmingSessionIds = MutableStateFlow<Set<String>>(emptySet())
+    val confirmingSessionIds: StateFlow<Set<String>> = _confirmingSessionIds.asStateFlow()
+
+    private val _decliningSessionIds = MutableStateFlow<Set<String>>(emptySet())
+    val decliningSessionIds: StateFlow<Set<String>> = _decliningSessionIds.asStateFlow()
+
+    private val _actionError = MutableStateFlow<String?>(null)
+    val actionError: StateFlow<String?> = _actionError.asStateFlow()
+
+    private val _loading = MutableStateFlow(true)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    private val _isLandlord = MutableStateFlow(false)
+    val isLandlord: StateFlow<Boolean> = _isLandlord.asStateFlow()
 
     fun loadContract(id: String) {
+        if (contractId == id) return // Avoid reloading if the ID is the same
         contractId = id
+
+        // Cancel old jobs
+        dataLoadingJob?.cancel()
+        pendingSessionsJob?.cancel()
+
+        // Start new listeners
         listenForContractUpdates()
         listenForPendingSessions()
         checkUserRole()
     }
 
-    private val _formState = MutableStateFlow(ContractDetailsFormState())
-    val formState: StateFlow<ContractDetailsFormState> = _formState
-    private val _qrState = mutableStateOf<QrGenerationState>(QrGenerationState.Idle)
-    val qrState: State<QrGenerationState> = _qrState
-    private val _pendingSessions = MutableStateFlow<List<PendingQrSession>>(emptyList())
-    val pendingSessions: StateFlow<List<PendingQrSession>> = _pendingSessions
-    private val _confirmingSessionIds = MutableStateFlow<Set<String>>(emptySet())
-    val confirmingSessionIds: StateFlow<Set<String>> = _confirmingSessionIds
-    private val _decliningSessionIds = MutableStateFlow<Set<String>>(emptySet())
-    val decliningSessionIds: StateFlow<Set<String>> = _decliningSessionIds
-    private val _actionError = MutableStateFlow<String?>(null)
-    val actionError: StateFlow<String?> = _actionError
-    private val _loading = MutableStateFlow(true)
-    val loading: StateFlow<Boolean> = _loading
-    private val _isLandlord = MutableStateFlow(false)
-    val isLandlord: StateFlow<Boolean> = _isLandlord
-
     private fun checkUserRole() {
         viewModelScope.launch {
             try {
-                val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                if (currentUserId != null) {
-                    val user = userRepository.getById(currentUserId)
-                    _isLandlord.value = user?.role is com.example.baytro.data.user.Role.Landlord
-                }
+                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                val user = userRepository.getById(currentUserId)
+                _isLandlord.value = user?.role is com.example.baytro.data.user.Role.Landlord
             } catch (e: Exception) {
                 Log.e("ContractDetailsVM", "Error checking user role: ${e.message}", e)
             }
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun listenForContractUpdates() {
-        viewModelScope.launch {
-            val id = contractId ?: return@launch
-            _loading.value = true
-            contractRepository.getContractFlow(id).collect { contract ->
-                if (contract != null) {
-                    Log.d("ContractDetailsVM", "contract.tenantIds: ${contract.tenantIds}")
-                    val room = roomRepository.getById(contract.roomId)
-                    val building = buildingRepository.getById(room?.buildingId ?: "")
-                    Log.d("ContractDetailsVM", "Calling getUsersByIds with: ${contract.tenantIds}")
-                    val tenants = if (contract.tenantIds.isNotEmpty()) {
-                        val users = userRepository.getUsersByIds(contract.tenantIds)
-                        Log.d("ContractDetailsVM", "getUsersByIds result: $users")
-                        users
+        val id = contractId ?: return
+        dataLoadingJob = viewModelScope.launch {
+            contractRepository.getContractFlow(id) // Giả sử bạn cũng đã tạo hàm này cho contract
+                .filterNotNull()
+                .flatMapLatest { contract ->
+                    val roomFlow = roomRepository.getRoomFlow(contract.roomId).filterNotNull()
+                    val tenantsFlow = if (contract.tenantIds.isNotEmpty()) {
+                        userRepository.getUsersByIdsFlow(contract.tenantIds)
                     } else {
-                        emptyList()
+                        flowOf(emptyList())
                     }
 
-                    val newFormState = ContractDetailsFormState(
+                    combine(roomFlow, tenantsFlow) { room, tenants ->
+                        // Lấy building là dạng one-time fetch vì nó ít thay đổi
+                        val building = buildingRepository.getById(room.buildingId)
+                        Triple(contract, room, tenants) to building
+                    }
+                }
+                .onStart { _loading.value = true }
+                .catch { e ->
+                    Log.e("ContractDetailsVM", "Error listening for contract updates", e)
+                    _actionError.value = "Failed to load contract details."
+                    _loading.value = false
+                }
+                .collect { (data, building) ->
+                    val (contract, room, tenants) = data
+                    _formState.value = ContractDetailsFormState(
                         contractNumber = contract.contractNumber,
                         buildingName = building?.name ?: "N/A",
-                        roomNumber = room?.roomNumber ?: "N/A",
+                        roomNumber = room.roomNumber,
                         startDate = contract.startDate,
                         endDate = contract.endDate,
                         rentalFee = contract.rentalFee.toString(),
                         deposit = contract.deposit.toString(),
-                        status = contract.status,
-                        tenantList = tenants
+                        tenantList = tenants,
+                        status = contract.status
                     )
-                    Log.d("ContractDetailsVM", "formState: $newFormState")
-                    _formState.value = newFormState
                     _loading.value = false
                 }
-            }
         }
     }
 
     private fun listenForPendingSessions() {
-        viewModelScope.launch {
-            val id = contractId ?: return@launch
-            qrSessionRepository.listenForScannedSessions(id).collect {
-                sessions ->
-                _pendingSessions.value = sessions
-            }
+        val id = contractId ?: return
+        pendingSessionsJob = viewModelScope.launch {
+            qrSessionRepository.listenForScannedSessions(id)
+                .catch { e ->
+                    Log.e("ContractDetailsVM", "Error listening for pending sessions", e)
+                }
+                .collect { sessions ->
+                    _pendingSessions.value = sessions
+                    // Nếu có session đang chờ và QR đang hiển thị, ẩn QR đi
+                    if (sessions.isNotEmpty() && _qrState.value is QrGenerationState.Success) {
+                        _qrState.value = QrGenerationState.Idle
+                    }
+                }
         }
     }
 
     fun generateQrCode() {
-        Log.d("ContractDetailsVM", "generateQrCode called for contractId: $contractId")
         val id = contractId ?: return
-        if (id.isBlank()) {
-            Log.e("ContractDetailsVM", "Contract ID is missing.")
-            _qrState.value = QrGenerationState.Error("Contract ID is missing.")
-            return
-        }
         viewModelScope.launch {
             _qrState.value = QrGenerationState.Loading
             try {
                 val request = mapOf("contractId" to id)
-                Log.d("ContractDetailsVM", "Calling generateQrSession with request: $request")
                 val result = functions.getHttpsCallable("generate_qr_session").call(request).await()
                 val data = result.data as? Map<*, *>
-                val sessionId = data?.get("sessionId") as? String ?: throw Exception("sessionId missing in response")
-                Log.d("ContractDetailsVM", "QR generation success, sessionId: $sessionId")
+                val sessionId = data?.get("sessionId") as? String
+                    ?: throw Exception("Session ID missing in response")
                 _qrState.value = QrGenerationState.Success(sessionId)
             } catch (e: Exception) {
-                Log.e("ContractDetailsVM", "QR generation error: ${e.message}", e)
-                _qrState.value = QrGenerationState.Error(e.message ?: "An unknown error occurred.")
+                _qrState.value = QrGenerationState.Error(parseFirebaseError(e))
             }
         }
     }
 
     fun confirmTenant(sessionId: String) {
-        Log.d("ContractDetailsVM", "confirmTenant called for sessionId: $sessionId")
         viewModelScope.launch {
-            _confirmingSessionIds.value += sessionId
+            _confirmingSessionIds.update { it + sessionId }
             try {
                 val request = mapOf("sessionId" to sessionId)
-                Log.d("ContractDetailsVM", "Calling confirmTenantLink with request: $request")
                 functions.getHttpsCallable("confirm_tenant_link").call(request).await()
-                Log.d("ContractDetailsVM", "Tenant confirmed for sessionId: $sessionId")
+                // Không cần làm gì thêm. Listener của Firestore sẽ tự động cập nhật
+                // cả contract (thêm tenant mới) và danh sách pending sessions (xóa session đã xác nhận).
             } catch (e: Exception) {
-                Log.e("ContractDetailsVM", "Failed to confirm tenant: ${e.message}", e)
-                _actionError.value = e.message ?: "Failed to confirm tenant."
+                _actionError.value = parseFirebaseError(e)
             } finally {
-                _confirmingSessionIds.value -= sessionId
+                _confirmingSessionIds.update { it - sessionId }
             }
         }
     }
 
     fun declineTenant(sessionId: String) {
-        Log.d("ContractDetailsVM", "declineTenant called for sessionId: $sessionId")
         viewModelScope.launch {
-            _decliningSessionIds.value += sessionId
+            _decliningSessionIds.update { it + sessionId }
             try {
                 val request = mapOf("sessionId" to sessionId)
-                Log.d("ContractDetailsVM", "Calling declineTenantLink with request: $request")
                 functions.getHttpsCallable("decline_tenant_link").call(request).await()
-                Log.d("ContractDetailsVM", "Tenant declined for sessionId: $sessionId")
+                // Listener sẽ tự động xóa session này khỏi danh sách pending.
             } catch (e: Exception) {
-                Log.e("ContractDetailsVM", "Failed to decline tenant: ${e.message}", e)
-                _actionError.value = e.message ?: "Failed to decline tenant."
+                _actionError.value = parseFirebaseError(e)
             } finally {
-                _decliningSessionIds.value -= sessionId
+                _decliningSessionIds.update { it - sessionId }
             }
         }
+    }
+
+    fun endContract(onNavigateBack: () -> Unit = {}) {
+        val id = contractId ?: return
+        viewModelScope.launch {
+            try {
+                contractRepository.updateFields(id, mapOf("status" to Status.ENDED))
+                onNavigateBack()
+            } catch (e: Exception) {
+                _actionError.value = e.message ?: "Failed to end contract."
+            }
+        }
+    }
+
+    private fun parseFirebaseError(e: Exception): String {
+        if (e is FirebaseFunctionsException) {
+            val details = e.details
+            if (details is Map<*, *>) {
+                return details["message"] as? String ?: e.message ?: "Firebase error"
+            }
+            return e.message ?: "Firebase error"
+        }
+        return e.message ?: "An unknown error occurred."
     }
 
     fun clearQrCode() {
@@ -191,25 +239,9 @@ class ContractDetailsVM(
         _actionError.value = null
     }
 
-    fun endContract(onNavigateBack: () -> Unit = {}) {
-        Log.d("ContractDetailsVM", "endContract called for contractId: $contractId")
-        val id = contractId ?: return
-        viewModelScope.launch {
-            try {
-                val currentContract = contractRepository.getById(id)
-                if (currentContract != null) {
-                    val updatedContract = currentContract.copy(status = Status.ENDED)
-                    contractRepository.update(updatedContract.id, updatedContract)
-                    Log.d("ContractDetailsVM", "Contract status updated to ENDED for contractId: $id")
-                    onNavigateBack()
-                } else {
-                    Log.e("ContractDetailsVM", "Contract not found for id: $id")
-                    _actionError.value = "Contract not found."
-                }
-            } catch (e: Exception) {
-                Log.e("ContractDetailsVM", "Failed to end contract: ${e.message}", e)
-                _actionError.value = e.message ?: "Failed to end contract."
-            }
-        }
+    override fun onCleared() {
+        super.onCleared()
+        dataLoadingJob?.cancel()
+        pendingSessionsJob?.cancel()
     }
 }

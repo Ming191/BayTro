@@ -5,6 +5,7 @@ import com.example.baytro.auth.FirebaseAuthRepository
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -37,6 +38,36 @@ class MessagingService : FirebaseMessagingService(), KoinComponent {
             }
         } else {
             Log.d("FCM", "No user logged in. Token will be sent on next login.")
+        }
+    }
+
+    override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        Log.d("FCM", "Message received from: ${remoteMessage.from}")
+        Log.d("FCM", "Message data: ${remoteMessage.data}")
+
+        val title = remoteMessage.notification?.title ?: "Baytro"
+        val body = remoteMessage.notification?.body ?: "You have a new notification"
+        val contractId = remoteMessage.data["contractId"]
+        val screen = remoteMessage.data["screen"]
+
+        NotificationHelper.showNotification(
+            context = this,
+            title = title,
+            body = body,
+            contractId = contractId
+        )
+
+        if (contractId != null) {
+            CoroutineScope(Dispatchers.Default).launch {
+                // If this is a tenant join request notification for landlord
+                if (screen == "ContractDetails" && title == "New join request") {
+                    Log.d("FCM", "Tenant join request received for contract: $contractId")
+                    TenantJoinEventBus.emitTenantJoinRequest(contractId)
+                } else {
+                    // Otherwise it's a contract confirmation for tenant
+                    TenantJoinEventBus.emitContractConfirmed(contractId)
+                }
+            }
         }
     }
 }

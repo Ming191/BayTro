@@ -1,8 +1,9 @@
 package com.example.baytro.data.room
 
 import android.util.Log
-import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class RoomRepository(
     db: FirebaseFirestore
@@ -87,5 +88,9 @@ class RoomRepository(
             Log.e(TAG, "Error fetching rooms for building $buildingId: ${e.message}")
             emptyList()
         }
+    }
+
+    fun getRoomFlow(id: String): Flow<Room?> {
+        return collection.document(id).snapshots.map { it.data<Room>() }
     }
 }
