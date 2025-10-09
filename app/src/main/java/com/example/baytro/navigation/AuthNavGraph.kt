@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
+import com.example.baytro.view.screens.auth.PersonalInformationScreen
 import com.example.baytro.view.screens.auth.ForgotPasswordScreen
 
 fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
@@ -48,6 +49,20 @@ fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
         SignUpScreen(
             onNavigateToSignIn = {
                 navController.popBackStack()
+            }
+        )
+    }
+
+    composable(Screens.PersonalInformation.route) {
+        PersonalInformationScreen(
+            onNavigateToChangePassword = {
+                navController.navigate(Screens.ChangePassword.route)
+            },
+            onNavigateToSignOut = {
+                navController.navigate(Screens.SignOut.route)
+            },
+            onNavigateToEditPersonalInformation = {
+                navController.navigate(Screens.EditPersonalInformation.route)
             }
         )
     }

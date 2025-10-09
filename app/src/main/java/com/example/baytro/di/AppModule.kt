@@ -17,6 +17,7 @@ import com.example.baytro.viewModel.Room.EditRoomVM
 import com.example.baytro.viewModel.Room.RoomDetailsVM
 import com.example.baytro.viewModel.Room.RoomListVM
 import com.example.baytro.viewModel.auth.ForgotPasswordVM
+import com.example.baytro.viewModel.auth.PersonalInformationVM
 import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
 import com.example.baytro.viewModel.contract.AddContractVM
@@ -173,6 +174,14 @@ val authModule = module {
             get()
         )
     }
+
+    viewModel {
+        PersonalInformationVM(
+            get(),
+            get()
+        )
+    }
+
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }
