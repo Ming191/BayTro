@@ -5,7 +5,7 @@ import androidx.navigation.navArgument
 
 sealed class Screens(val route: String, val title: String) {
     companion object {
-        const val ARG_ID = "id"
+        const val ARG_ID = "userId"
         const val ARG_CONTRACT_ID = "contractId"
         const val ARG_BUILDING_ID = "buildingId"
         const val ARG_ROOM_ID = "roomId"
@@ -84,4 +84,6 @@ sealed class Screens(val route: String, val title: String) {
         )
         fun createRoute(contractId: String?) = "contract_edit/$contractId"
     }
+
+    object AddRequest : Screens("add_request_screen", "Add Request")
 }

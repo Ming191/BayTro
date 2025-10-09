@@ -6,11 +6,12 @@ import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
+import com.example.baytro.data.Request.RequestRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.service.FptAiService
-import com.example.baytro.view.screens.contract.EditContractScreen
 import com.example.baytro.viewModel.AddBuildingVM
+import com.example.baytro.viewModel.request.AddRequestVM
 import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.EditBuildingVM
 import com.example.baytro.viewModel.Room.AddRoomVM
@@ -75,6 +76,7 @@ val authModule = module {
     single<FptAiService> { FptAiService(get(), get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
+    single<RequestRepository> { RequestRepository(get()) }
     single { IdCardDataViewModel() }
 
     viewModel {
@@ -190,6 +192,7 @@ val authModule = module {
     viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), handle) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
     viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
+    viewModel { AddRequestVM(get(), get(), get(), get()) }
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }
