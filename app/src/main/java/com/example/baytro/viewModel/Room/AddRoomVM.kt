@@ -1,6 +1,5 @@
 package com.example.baytro.viewModel.Room
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +10,7 @@ import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.room.Status
 import com.example.baytro.data.service.Service
 import com.example.baytro.utils.AddRoomValidator
+import com.example.baytro.utils.Utils.formatCurrency
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,11 +32,15 @@ class AddRoomVM(
 
     private val _services = MutableStateFlow<List<Service>>(emptyList())
     val services: StateFlow<List<Service>> = _services
-    
+
+    var existingRooms = emptyList<Room>()
+
     init {
         loadBuildingName()
         loadService()
-        Log.d("AddRoomVM", "buildingIdInAddRoomVM: $buildingId")
+        viewModelScope.launch {
+            existingRooms = roomRepository.getRoomsByBuildingId(buildingId)
+        }
     }
     
     private fun loadBuildingName() {
@@ -61,44 +65,38 @@ class AddRoomVM(
         }
     }
     fun onRoomNumberChange(roomNumber: String) {
-        _addRoomFormState.value = _addRoomFormState.value.copy(
-            roomNumber = roomNumber,
-            roomNumberError = AddRoomValidator.validateRoomNumber(roomNumber)
-        )
+        _addRoomFormState.value = _addRoomFormState.value.copy(roomNumber = roomNumber)
     }
 
     fun onFloorChange(floor: String) {
-        _addRoomFormState.value = _addRoomFormState.value.copy(
-            floor = floor,
-            floorError = AddRoomValidator.validateFloor(floor)
-        )
+        _addRoomFormState.value = _addRoomFormState.value.copy(floor = floor)
     }
 
     fun onSizeChange(size: String) {
-        _addRoomFormState.value = _addRoomFormState.value.copy(
-            size = size,
-            sizeError = AddRoomValidator.validateSize(size)
-        )
+        _addRoomFormState.value = _addRoomFormState.value.copy(size = size)
     }
 
     fun onRentalFeeChange(rentalFee: String) {
+        val cleanInput = rentalFee.replace("[^\\d]".toRegex(), "")
+        val formattedRentalFee = if (cleanInput.isNotEmpty()) formatCurrency(cleanInput) else ""
         _addRoomFormState.value = _addRoomFormState.value.copy(
-            rentalFee = rentalFee,
-            rentalFeeError = AddRoomValidator.validateRentalFee(rentalFee)
+            rentalFee = cleanInput,           // để lưu DB
+            rentalFeeUI = formattedRentalFee    // để hiển thị
         )
     }
 
     fun onInteriorChange(interior: Furniture) {
-        _addRoomFormState.value = _addRoomFormState.value.copy(
-            interior = interior,
-            interiorError = AddRoomValidator.validateInterior(interior)
-        )
+        _addRoomFormState.value = _addRoomFormState.value.copy(interior = interior)
     }
     fun addRoom() {
         val form = _addRoomFormState.value
         val updated = form.copy(
-            //buildingNameError = AddRoomValidator.validateBuildingName(form.buildingName),
-            roomNumberError = AddRoomValidator.validateRoomNumber(form.roomNumber),
+            roomNumberError = AddRoomValidator
+                .validateRoomNumber(
+                    roomNumber = form.roomNumber,
+                    floorNumber = _addRoomFormState.value.floor,
+                    existingRooms = existingRooms
+                ),
             floorError = AddRoomValidator.validateFloor(form.floor),
             sizeError = AddRoomValidator.validateSize(form.size),
             rentalFeeError = AddRoomValidator.validateRentalFee(form.rentalFee),
@@ -107,7 +105,6 @@ class AddRoomVM(
         )
         _addRoomFormState.value = updated
         if (listOf(
-                //updated.buildingNameError,
                 updated.roomNumberError,
                 updated.floorError,
                 updated.sizeError,

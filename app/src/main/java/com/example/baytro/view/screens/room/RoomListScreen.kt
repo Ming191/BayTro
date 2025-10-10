@@ -149,7 +149,7 @@ fun ViewRoomList(
                         exit = shrinkVertically() + fadeOut()
                     ) {
                         Column {
-                            floor.rooms.forEach { room ->
+                            floor.rooms.sortedBy { it.roomNumber }.forEach { room ->
                                 ListItem(
                                     headlineContent = { Text("Room ${room.roomNumber}") },
                                     leadingContent = {

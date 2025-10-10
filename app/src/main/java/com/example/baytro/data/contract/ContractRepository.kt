@@ -153,11 +153,25 @@ class ContractRepository(
 
         return try {
             val contracts = getContractsByBuildingId(buildingId)
+            Log.d("ContractRepository", "Found ${contracts.size} contracts for buildingId: '$buildingId'")
             contracts.flatMap { it.tenantIds }.distinct()
         } catch (e: Exception) {
             Log.e("ContractRepository", "Error fetching tenant IDs by building ID", e)
             emptyList()
         }
     }
-
+    suspend fun getTenantsByRoomId(roomId : String) : List<String> {
+        if (roomId.isBlank()) {
+            Log.d("ContractRepository", "RoomId is blank")
+            return emptyList()
+        }
+        return try {
+            val contracts = getContractsByRoomId(roomId)
+            Log.d("ContractRepository", "Found ${contracts.size} contracts for roomId: '$roomId'")
+            contracts.flatMap { it.tenantIds }.distinct()
+        } catch (e : Exception) {
+            Log.e("ContractRepository", "Error fetching tenant IDs by room ID", e)
+            emptyList()
+        }
+    }
 }

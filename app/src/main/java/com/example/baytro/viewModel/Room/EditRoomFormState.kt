@@ -16,6 +16,7 @@ data class EditRoomFormState(
     val size: String = "",
     val sizeError: String? = null,
 
+    val rentalFeeUI: String = "",
     val rentalFee: String = "",
     val rentalFeeError: String? = null,
 

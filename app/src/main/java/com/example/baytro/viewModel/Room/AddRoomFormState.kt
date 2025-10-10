@@ -1,5 +1,6 @@
 package com.example.baytro.viewModel.Room
 
+import androidx.compose.ui.text.input.TextFieldValue
 import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.service.Service
 
@@ -16,6 +17,7 @@ data class AddRoomFormState(
     val size: String = "",
     val sizeError: String? = null,
 
+    val rentalFeeUI : String = "",
     val rentalFee: String = "",
     val rentalFeeError: String? = null,
 

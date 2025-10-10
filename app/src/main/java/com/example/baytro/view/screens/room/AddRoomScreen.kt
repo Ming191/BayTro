@@ -25,7 +25,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.baytro.data.room.Furniture
@@ -33,6 +35,7 @@ import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.ChoiceSelection
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.RequiredTextFieldRealTime
 import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
@@ -43,9 +46,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun AddRoomScreen(
     navController: NavHostController,
     viewModel: AddRoomVM = koinViewModel(),
-    //buildingId: String
 ) {
-    //Log.d("AddRoomScreen", "buildingIdInAddRoomScreen: $buildingId")
     // --- State for each TextField ---
     val roomNumber: (String) -> Unit = viewModel::onRoomNumberChange
     val floor: (String) -> Unit = viewModel::onFloorChange
@@ -84,7 +85,9 @@ fun AddRoomScreen(
                 errorMessage = null   ,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp),
+                    .padding(start = 16.dp, end = 16.dp)
+                    .alpha(0.3f),
+
                 readOnly = true
             )
         }
@@ -130,7 +133,7 @@ fun AddRoomScreen(
 
         item {
             RequiredTextField(
-                value = formState.rentalFee,
+                value = formState.rentalFeeUI,
                 onValueChange = defaultRentalFee,
                 label = "Default rental fee",
                 isError = formState.rentalFeeError != null,

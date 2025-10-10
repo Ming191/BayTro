@@ -15,6 +15,7 @@
     import androidx.compose.runtime.getValue
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
+    import androidx.compose.ui.draw.alpha
     import androidx.compose.ui.unit.dp
     import androidx.navigation.NavHostController
     import com.example.baytro.data.room.Furniture
@@ -49,7 +50,7 @@
             if (uiState is UiState.Success) {
                 Toast.makeText(
                     navController.context,
-                    "Room added successfully!",
+                    "Room edited successfully!",
                     Toast.LENGTH_SHORT
                 ).show()
                 navController.popBackStack()
@@ -70,7 +71,8 @@
                     errorMessage = null, // Also from ViewModel
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp),
+                        .padding(start = 16.dp, end = 16.dp)
+                        .alpha(0.3f),
                     readOnly = true
                 )
             }
@@ -80,8 +82,8 @@
                     value = formState.roomNumber,
                     onValueChange = roomNumber,
                     label = "Room number",
-                    isError = false,
-                    errorMessage = null,
+                    isError = formState.roomNumberError != null,
+                    errorMessage = formState.roomNumberError,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp)
@@ -93,8 +95,8 @@
                     value = formState.floor.toString(),
                     onValueChange = floor,
                     label = "Floor",
-                    isError = false,
-                    errorMessage = null,
+                    isError = formState.floorError != null,
+                    errorMessage = formState.floorError,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp)
@@ -106,8 +108,8 @@
                     value = formState.size.toString(),
                     onValueChange = size,
                     label = "Size",
-                    isError = false,
-                    errorMessage = null,
+                    isError = formState.sizeError != null,
+                    errorMessage = formState.sizeError,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp)
@@ -116,11 +118,11 @@
 
             item {
                 RequiredTextField(
-                    value = formState.rentalFee,
+                    value = formState.rentalFeeUI,
                     onValueChange = defaultRentalFee,
                     label = "Default rental fee",
-                    isError = false,
-                    errorMessage = null,
+                    isError = formState.rentalFeeError != null,
+                    errorMessage = formState.rentalFeeError,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp)
@@ -133,8 +135,8 @@
                     options = Furniture.entries.toList(),
                     selectedOption = formState.interior,
                     onOptionSelected = interior,
-                    isError = false,
-                    errorMessage = null
+                    isError = formState.interiorError != null,
+                    errorMessage = formState.interiorError,
                 )
             }
 
