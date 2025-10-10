@@ -6,7 +6,7 @@ import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
-import com.example.baytro.data.Request.RequestRepository
+import com.example.baytro.data.request.RequestRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.service.FptAiService
@@ -27,6 +27,7 @@ import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.EditContractVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
 import com.example.baytro.viewModel.dashboard.TenantDashboardVM
+import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
@@ -34,6 +35,7 @@ import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
 import com.example.baytro.viewModel.splash.SplashScreenVM
 import com.example.baytro.viewModel.splash.UploadIdCardVM
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.functions
@@ -64,7 +66,7 @@ val appModule = module {
             }
         }
     }
-    single<FirebaseFunctions> { com.google.firebase.Firebase.functions }
+    single<FirebaseFunctions> { Firebase.functions }
 }
 
 val authModule = module {
@@ -186,6 +188,7 @@ val authModule = module {
         get(),
         get(),
     ) }
+    viewModel { RequestListVM(get(), get(), get(), get(), get(), get()) }
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }

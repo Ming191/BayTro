@@ -11,7 +11,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.baytro.navigation.AppScaffold
-import com.example.baytro.navigation.NavigationType
 import com.example.baytro.ui.theme.AppTheme
 import com.example.baytro.view.navigationType.NavigationDrawerView
 import kotlinx.coroutines.launch
@@ -24,7 +23,6 @@ fun MainScreen() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val navController = rememberNavController()
     AppTheme {
-        val navigationType: NavigationType = NavigationType.NavigationDrawer
         ModalNavigationDrawer(
             drawerContent = {
                 ModalDrawerSheet {
@@ -83,7 +81,6 @@ fun MainScreen() {
             drawerState = drawerState
         ) {
             AppScaffold(
-                navigationType = navigationType,
                 navHostController = navController,
                 onDrawerClicked = {
                     scope.launch {

@@ -7,9 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.MediaRepository
-import com.example.baytro.data.Request.Request
-import com.example.baytro.data.Request.RequestRepository
-import com.example.baytro.data.Request.RequestStatus
+import com.example.baytro.data.request.Request
+import com.example.baytro.data.request.RequestRepository
+import com.example.baytro.data.request.RequestStatus
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.utils.ValidationResult
@@ -42,8 +42,6 @@ class AddRequestVM(
 
     private val _formState = MutableStateFlow(AddRequestFormState())
     val formState: StateFlow<AddRequestFormState> = _formState.asStateFlow()
-
-    private lateinit var roomId: String
 
     fun updateTitle(value: String) {
         _formState.value = _formState.value.copy(
@@ -145,13 +143,18 @@ class AddRequestVM(
                 val currentDateTime = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault()).format(Date())
                 val request = Request(
                     tenantId = currentUser.uid,
+                    landlordId = activeContract.landlordId,
                     roomId = roomId,
                     status = RequestStatus.PENDING,
                     createdAt = currentDateTime,
                     scheduledDate = state.scheduledDate,
                     imageUrls = emptyList(),
                     description = state.description,
-                    title = state.title
+                    title = state.title,
+                    assigneeName = null,
+                    completionDate = null,
+                    acceptedDate = null,
+                    assigneePhoneNumber = null,
                 )
                 val newId = requestRepository.add(request)
                 Log.d("AddRequestVM", "Request created with ID: $newId")
