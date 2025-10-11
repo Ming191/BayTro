@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.request
 
+import android.R.attr.bottom
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -9,8 +10,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,6 +44,7 @@ import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.request.AddRequestVM
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
+import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,40 +94,39 @@ fun AddRequestScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             bottomBar = {
-                BottomAppBar {
-                    AnimatedVisibility(
-                        visible = buttonsVisible,
-                        enter = fadeIn(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        ) + slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
-                            initialOffsetY = { -it / 4 }
+                AnimatedVisibility(
+                    visible = buttonsVisible,
+                    enter = fadeIn(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
                         )
+                    ) + slideInVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        initialOffsetY = { -it / 4 }
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 8.dp)
                     ) {
-                        Row(
+                        SubmitButton(
+                            text = "Submit Request",
+                            isLoading = uiState is UiState.Loading,
+                            onClick = {
+                                viewModel.addRequest(
+                                    context = context,
+                                )
+                            },
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        ) {
-                            SubmitButton(
-                                text = "Submit Request",
-                                isLoading = uiState is UiState.Loading,
-                                onClick = {
-                                    viewModel.addRequest(
-                                        context = context,
-                                    )
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp)
-                            )
-                        }
+                                .weight(1f)
+                                .height(50.dp)
+                        )
                     }
                 }
             }
@@ -130,7 +134,10 @@ fun AddRequestScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(paddingValues = PaddingValues(
+                        top = innerPadding.calculateTopPadding()-32.dp,
+                        bottom = innerPadding.calculateBottomPadding(),
+                    ))
                     .padding(16.dp)
             ) {
                 item {

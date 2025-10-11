@@ -45,10 +45,6 @@ class RequestListVM(
     authRepository: AuthRepository
 ) : ViewModel() {
 
-    companion object {
-        private const val TAG = "RequestListVM"
-    }
-
     private val _requestListUiState = MutableStateFlow<UiState<FilteredRequestData>>(UiState.Loading)
     val requestListUiState: StateFlow<UiState<FilteredRequestData>> = _requestListUiState
 
@@ -57,7 +53,6 @@ class RequestListVM(
 
     private var requestListenerJob: Job? = null
 
-    // Cache user ID and role to avoid repeated fetches
     private val currentUserId: String? = authRepository.getCurrentUser()?.uid
 
     // Pagination (per status tab)
@@ -141,7 +136,6 @@ class RequestListVM(
             _requestListUiState.value = UiState.Error("No authenticated user")
             Log.e(TAG, "init: No authenticated user")
         } else {
-            // Lazy load: Start loading data immediately without waiting for user role
             loadUserRoleAndData()
             Log.d(TAG, "init: COMPLETE in ${System.currentTimeMillis() - initStartTime}ms")
         }
@@ -153,7 +147,6 @@ class RequestListVM(
             Log.d(TAG, "loadUserRoleAndData: START")
 
             try {
-                // First, fetch only the user to determine their role
                 val userFetchStart = System.currentTimeMillis()
                 val user = userRepository.getById(currentUserId!!)
                 Log.d(TAG, "loadUserRoleAndData: Fetched user in ${System.currentTimeMillis() - userFetchStart}ms")
@@ -168,7 +161,6 @@ class RequestListVM(
                 Log.d(TAG, "loadUserRoleAndData: User is ${if (isLandlord) "LANDLORD" else "TENANT"}")
 
                 if (isLandlord) {
-                    // Landlords only need buildings data
                     val buildingsFetchStart = System.currentTimeMillis()
                     val buildings = buildingRepository.getBuildingsByUserId(currentUserId)
                     Log.d(TAG, "loadUserRoleAndData: Fetched ${buildings.size} buildings in ${System.currentTimeMillis() - buildingsFetchStart}ms")
@@ -183,7 +175,6 @@ class RequestListVM(
                         _requestListUiState.value = UiState.Success(FilteredRequestData())
                     }
                 } else {
-                    // Tenants only need contract data
                     val contractFetchStart = System.currentTimeMillis()
                     val contract = contractRepository.getActiveContract(currentUserId)
                     Log.d(TAG, "loadUserRoleAndData: Fetched contract in ${System.currentTimeMillis() - contractFetchStart}ms")
@@ -308,65 +299,42 @@ class RequestListVM(
         Log.d(TAG, "enrichRequestsWithDetails: START with ${requests.size} requests")
 
         try {
-            // Filter out empty/blank IDs before querying
             val tenantIds = requests.map { it.tenantId }.distinct().filter { it.isNotBlank() }
             val roomIds = requests.map { it.roomId }.distinct().filter { it.isNotBlank() }
             val landlordIds = requests.map { it.landlordId }.distinct().filter { it.isNotBlank() }
-            Log.d(TAG, "enrichRequestsWithDetails: Need to fetch ${tenantIds.size} tenants, ${roomIds.size} rooms, ${landlordIds.size} landlords")
-            Log.d(TAG, "enrichRequestsWithDetails: Landlord IDs: $landlordIds")
 
-            // Fetch tenants, rooms, and landlords in parallel (only if IDs are not empty)
+            Log.d(TAG, "enrichRequestsWithDetails: Need to fetch ${tenantIds.size} tenants, ${roomIds.size} rooms, ${landlordIds.size} landlords")
+
             val parallelStartTime = System.currentTimeMillis()
-            val tenantsDeferred = viewModelScope.async {
-                if (tenantIds.isEmpty()) {
-                    Log.w(TAG, "enrichRequestsWithDetails: No valid tenant IDs to fetch")
-                    emptyList()
-                } else {
-                    val t1 = System.currentTimeMillis()
-                    val result = userRepository.getUsersByIds(tenantIds)
-                    Log.d(TAG, "enrichRequestsWithDetails: Fetched ${result.size} tenants in ${System.currentTimeMillis() - t1}ms")
-                    result
-                }
+
+            val rooms = if (roomIds.isEmpty()) {
+                Log.w(TAG, "enrichRequestsWithDetails: No valid room IDs to fetch")
+                emptyList()
+            } else {
+                roomRepository.getRoomsByIds(roomIds)
             }
-            val roomsDeferred = viewModelScope.async {
-                if (roomIds.isEmpty()) {
-                    Log.w(TAG, "enrichRequestsWithDetails: No valid room IDs to fetch")
-                    emptyList()
-                } else {
-                    val t1 = System.currentTimeMillis()
-                    val result = roomRepository.getRoomsByIds(roomIds)
-                    Log.d(TAG, "enrichRequestsWithDetails: Fetched ${result.size} rooms in ${System.currentTimeMillis() - t1}ms")
-                    result
-                }
+
+            val buildingIds = rooms.map { it.buildingId }.distinct().filter { it.isNotBlank() }
+            Log.d(TAG, "enrichRequestsWithDetails: Fetched ${rooms.size} rooms, need ${buildingIds.size} buildings")
+
+            val tenantsDeferred = viewModelScope.async {
+                if (tenantIds.isEmpty()) emptyList()
+                else userRepository.getUsersByIds(tenantIds)
             }
             val landlordsDeferred = viewModelScope.async {
-                if (landlordIds.isEmpty()) {
-                    Log.w(TAG, "enrichRequestsWithDetails: No valid landlord IDs to fetch")
-                    emptyList()
-                } else {
-                    val t1 = System.currentTimeMillis()
-                    val result = userRepository.getUsersByIds(landlordIds)
-                    Log.d(TAG, "enrichRequestsWithDetails: Fetched ${result.size} landlords in ${System.currentTimeMillis() - t1}ms")
-                    result
-                }
+                if (landlordIds.isEmpty()) emptyList()
+                else userRepository.getUsersByIds(landlordIds)
+            }
+            val buildingsDeferred = viewModelScope.async {
+                if (buildingIds.isEmpty()) emptyList()
+                else buildingRepository.getBuildingsByIds(buildingIds)
             }
 
             val tenants = tenantsDeferred.await()
-            val rooms = roomsDeferred.await()
             val landlords = landlordsDeferred.await()
+            val buildings = buildingsDeferred.await()
+
             Log.d(TAG, "enrichRequestsWithDetails: Parallel fetch completed in ${System.currentTimeMillis() - parallelStartTime}ms")
-
-            val buildingIds = rooms.map { it.buildingId }.distinct().filter { it.isNotBlank() }
-            Log.d(TAG, "enrichRequestsWithDetails: Need to fetch ${buildingIds.size} buildings")
-
-            val buildingStartTime = System.currentTimeMillis()
-            val buildings = if (buildingIds.isEmpty()) {
-                Log.w(TAG, "enrichRequestsWithDetails: No valid building IDs to fetch")
-                emptyList()
-            } else {
-                buildingRepository.getBuildingsByIds(buildingIds)
-            }
-            Log.d(TAG, "enrichRequestsWithDetails: Fetched ${buildings.size} buildings in ${System.currentTimeMillis() - buildingStartTime}ms")
 
             val tenantsMap = tenants.associateBy { it.id }
             val roomsMap = rooms.associateBy { it.id }
@@ -380,7 +348,6 @@ class RequestListVM(
                 val landlord = landlordsMap[request.landlordId]
 
                 if (tenant == null || room == null || building == null || landlord == null) {
-                    Log.w(TAG, "Skipping request ${request.id}: Missing data - tenant=${tenant != null}, room=${room != null}, building=${building != null}, landlord != null}, landlordId='${request.landlordId}'")
                     return@mapNotNull null
                 }
 
@@ -406,9 +373,15 @@ class RequestListVM(
     }
 
     private fun updateUiWithFilteredRequests(requests: List<FullRequestInfo>) {
-        val pending = requests.filter { it.request.status == RequestStatus.PENDING }
-        val inProgress = requests.filter { it.request.status == RequestStatus.IN_PROGRESS }
-        val done = requests.filter { it.request.status == RequestStatus.DONE }
+        val pending = requests
+            .filter { it.request.status == RequestStatus.PENDING }
+            .sortedByDescending { it.request.createdAt }
+        val inProgress = requests
+            .filter { it.request.status == RequestStatus.IN_PROGRESS }
+            .sortedByDescending { it.request.createdAt }
+        val done = requests
+            .filter { it.request.status == RequestStatus.DONE }
+            .sortedByDescending { it.request.createdAt }
 
         val finalData = FilteredRequestData(
             pending = pending,
@@ -450,15 +423,13 @@ class RequestListVM(
     fun completeRequest(requestId: String) {
         viewModelScope.launch {
             try {
-                val currentDateTime = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault()).format(Date())
+                val currentDateTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date())
                 val updateFields = mapOf(
                     "status" to RequestStatus.DONE,
                     "completionDate" to currentDateTime
                 )
                 requestRepository.updateFields(requestId, updateFields)
-                Log.d(TAG, "completeRequest: Successfully completed request $requestId")
             } catch (e: Exception) {
-                Log.e(TAG, "completeRequest: ERROR", e)
             }
         }
     }
@@ -466,5 +437,9 @@ class RequestListVM(
     override fun onCleared() {
         super.onCleared()
         requestListenerJob?.cancel()
+    }
+
+    companion object {
+        private const val TAG = "RequestListVM"
     }
 }
