@@ -12,6 +12,8 @@ import com.example.baytro.data.user.UserRepository
 import com.example.baytro.service.FptAiService
 import com.example.baytro.viewModel.AddBuildingVM
 import com.example.baytro.viewModel.request.AddRequestVM
+import com.example.baytro.viewModel.request.AssignRequestVM
+import com.example.baytro.viewModel.request.UpdateRequestVM
 import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.EditBuildingVM
 import com.example.baytro.viewModel.Room.AddRoomVM
@@ -196,6 +198,8 @@ val authModule = module {
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
     viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
     viewModel { AddRequestVM(get(), get(), get(), get()) }
+    viewModel { (requestId: String) -> UpdateRequestVM(get(), get(), get(), requestId) }
+    viewModel { AssignRequestVM(get()) }
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }

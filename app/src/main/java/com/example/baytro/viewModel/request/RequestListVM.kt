@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.coroutines.cancellation.CancellationException
 
 data class FilteredRequestData(
@@ -295,7 +298,7 @@ class RequestListVM(
                 val landlord = landlordsMap[request.landlordId]
 
                 if (tenant == null || room == null || building == null || landlord == null) {
-                    Log.w(TAG, "Skipping request ${request.id}: Missing data - tenant=${tenant != null}, room=${room != null}, building=${building != null}, landlord=${landlord != null}, landlordId='${request.landlordId}'")
+                    Log.w(TAG, "Skipping request ${request.id}: Missing data - tenant=${tenant != null}, room=${room != null}, building=${building != null}, landlord != null}, landlordId='${request.landlordId}'")
                     return@mapNotNull null
                 }
 
@@ -337,5 +340,26 @@ class RequestListVM(
     fun refreshRequests() {
         requestListenerJob?.cancel()
         loadUserRoleAndData()
+    }
+
+    fun completeRequest(requestId: String) {
+        viewModelScope.launch {
+            try {
+                val currentDateTime = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault()).format(Date())
+                val updateFields = mapOf(
+                    "status" to RequestStatus.DONE,
+                    "completionDate" to currentDateTime
+                )
+                requestRepository.updateFields(requestId, updateFields)
+                Log.d(TAG, "completeRequest: Successfully completed request $requestId")
+            } catch (e: Exception) {
+                Log.e(TAG, "completeRequest: ERROR", e)
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        requestListenerJob?.cancel()
     }
 }

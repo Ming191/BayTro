@@ -71,6 +71,7 @@ import com.example.baytro.viewModel.request.RequestListFormState
 import com.example.baytro.viewModel.request.RequestListVM
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.core.net.toUri
 
 
 private val tabData: List<Pair<String, ImageVector>> = listOf(
@@ -83,7 +84,9 @@ private val tabData: List<Pair<String, ImageVector>> = listOf(
 @Composable
 fun RequestListScreen(
     viewModel: RequestListVM = koinViewModel(),
-    onAddRequest: () -> Unit
+    onAddRequest: () -> Unit,
+    onAssignRequest: (String) -> Unit = {},
+    onUpdateRequest: (String) -> Unit = {}
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabData.size })
@@ -139,7 +142,9 @@ fun RequestListScreen(
             pagerState = pagerState,
             onTabSelected = onTabSelected,
             uiState = uiState,
-            onAddRequest = onAddRequest
+            onAddRequest = onAddRequest,
+            onAssignRequest = onAssignRequest,
+            onUpdateRequest = onUpdateRequest
         )
     }
 }
@@ -152,7 +157,9 @@ private fun RequestListContent(
     pagerState: PagerState,
     onTabSelected: (Int) -> Unit,
     uiState: UiState<FilteredRequestData>,
-    onAddRequest: () -> Unit
+    onAddRequest: () -> Unit,
+    onAssignRequest: (String) -> Unit,
+    onUpdateRequest: (String) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -165,7 +172,7 @@ private fun RequestListContent(
             )
         },
         floatingActionButton = {
-            if (uiState is UiState.Success) {
+            if (uiState is UiState.Success && !formState.isLandlord) {
                 FloatingActionButton(
                     onClick = onAddRequest,
                     containerColor = MaterialTheme.colorScheme.primary
@@ -182,7 +189,10 @@ private fun RequestListContent(
                     pagerState = pagerState,
                     requestData = state.data,
                     isLandlord = formState.isLandlord,
-                    selectedTabIndex = selectedTabIndex
+                    selectedTabIndex = selectedTabIndex,
+                    onAssignRequest = onAssignRequest,
+                    viewModel = viewModel,
+                    onUpdateRequest = onUpdateRequest
                 )
                 is UiState.Error -> ErrorStateContent(
                     message = state.message,
@@ -243,7 +253,10 @@ private fun RequestListPager(
     pagerState: PagerState,
     requestData: FilteredRequestData,
     isLandlord: Boolean,
-    selectedTabIndex: Int
+    selectedTabIndex: Int,
+    onAssignRequest: (String) -> Unit,
+    viewModel: RequestListVM,
+    onUpdateRequest: (String) -> Unit
 ) {
     HorizontalPager(state = pagerState, key = { page -> tabData[page].first }) { page ->
         val (requestsForPage, statusText) = when (page) {
@@ -257,7 +270,10 @@ private fun RequestListPager(
             RequestListPage(
                 requests = requestsForPage,
                 emptyMessage = "No $statusText requests found.",
-                isLandlord = isLandlord
+                isLandlord = isLandlord,
+                onAssignRequest = onAssignRequest,
+                viewModel = viewModel,
+                onUpdateRequest = onUpdateRequest
             )
         } else {
             Box(modifier = Modifier.fillMaxSize())
@@ -269,7 +285,10 @@ private fun RequestListPager(
 private fun RequestListPage(
     requests: List<FullRequestInfo>,
     emptyMessage: String,
-    isLandlord: Boolean
+    isLandlord: Boolean,
+    onAssignRequest: (String) -> Unit,
+    viewModel: RequestListVM,
+    onUpdateRequest: (String) -> Unit
 ) {
     val animatedItemIds = remember { mutableSetOf<String>() }
     var emptyStateVisible by remember { mutableStateOf(false) }
@@ -322,7 +341,13 @@ private fun RequestListPage(
                         initialOffsetY = { it / 3 }
                     )
                 ) {
-                    RequestCard(info = info, isLandlord = isLandlord)
+                    RequestCard(
+                        info = info,
+                        isLandlord = isLandlord,
+                        onAssignRequest = onAssignRequest,
+                        onCompleteRequest = viewModel::completeRequest,
+                        onUpdateRequest = onUpdateRequest
+                    )
                 }
             }
         }
@@ -330,7 +355,13 @@ private fun RequestListPage(
 }
 
 @Composable
-fun RequestCard(info: FullRequestInfo, isLandlord: Boolean) {
+fun RequestCard(
+    info: FullRequestInfo,
+    isLandlord: Boolean,
+    onAssignRequest: (String) -> Unit,
+    onCompleteRequest: (String) -> Unit,
+    onUpdateRequest: (String) -> Unit = {}
+) {
     val request = info.request
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -378,7 +409,14 @@ fun RequestCard(info: FullRequestInfo, isLandlord: Boolean) {
             Spacer(modifier = Modifier.height(12.dp))
 
             // Actions
-            RequestCardActions(request = request, isLandlord = isLandlord)
+            RequestCardActions(
+                request = request,
+                isLandlord = isLandlord,
+                onAssignRequest = onAssignRequest,
+                info = info,
+                onCompleteRequest = onCompleteRequest,
+                onUpdateRequest = onUpdateRequest
+            )
         }
     }
 }
@@ -592,45 +630,142 @@ fun RequestCardImages(imageUrls: List<String>) {
 }
 
 @Composable
-fun RequestCardActions(request: Request, isLandlord: Boolean) {
+fun RequestCardActions(
+    request: Request,
+    info: FullRequestInfo,
+    isLandlord: Boolean,
+    onAssignRequest: (String) -> Unit,
+    onCompleteRequest: (String) -> Unit,
+    onUpdateRequest: (String) -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showContactDialog by remember { mutableStateOf(false) }
+    var isCompletingRequest by remember { mutableStateOf(false) }
+
+    // Contact dialog for tenant in IN_PROGRESS status (choice between landlord and assignee)
+    if (showContactDialog && request.status == RequestStatus.IN_PROGRESS && !isLandlord) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showContactDialog = false },
+            title = { Text("Contact") },
+            text = {
+                Column {
+                    Text("Who would you like to contact?")
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showContactDialog = false
+                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                            data = "tel:${info.landlordPhoneNumber}".toUri()
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text("Landlord")
+                }
+            },
+            dismissButton = {
+                request.assigneePhoneNumber?.let { phone ->
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            showContactDialog = false
+                            val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                            data = "tel:$phone".toUri()
+                            }
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Text("Assignee")
+                    }
+                }
+            }
+        )
+    }
+
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Contact button logic
         OutlinedButton(
-            onClick = { /* TODO: Contact */ },
+            onClick = {
+                if (!isLandlord && request.status == RequestStatus.IN_PROGRESS) {
+                    // Tenant in IN_PROGRESS: show dialog to choose between landlord and assignee
+                    showContactDialog = true
+                } else {
+                    // Other cases: direct call
+                    val phoneNumber = if (isLandlord) {
+                        info.tenantPhoneNumber
+                    } else {
+                        info.landlordPhoneNumber
+                    }
+                    val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                        data = "tel:$phoneNumber".toUri()
+                    }
+                    context.startActivity(intent)
+                }
+            },
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            enabled = !isCompletingRequest
         ) {
             Text("Contact", style = MaterialTheme.typography.labelLarge)
         }
 
-        // Only show action buttons for landlords
-        if (isLandlord) {
-            when (request.status) {
-                RequestStatus.PENDING -> {
-                    Button(
-                        onClick = { /* TODO: Update status */ },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Text("Assign", style = MaterialTheme.typography.labelLarge)
-                    }
+        // Action buttons
+        when {
+            // Landlord PENDING: show Assign button
+            isLandlord && request.status == RequestStatus.PENDING -> {
+                Button(
+                    onClick = { onAssignRequest(request.id) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Assign", style = MaterialTheme.typography.labelLarge)
                 }
-                RequestStatus.IN_PROGRESS -> {
-                    Button(
-                        onClick = { /* TODO: Update status */ },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiary
+            }
+            // Tenant IN_PROGRESS: show Complete button
+            !isLandlord && request.status == RequestStatus.IN_PROGRESS -> {
+                Button(
+                    onClick = {
+                        isCompletingRequest = true
+                        onCompleteRequest(request.id)
+                        android.widget.Toast.makeText(
+                            context,
+                            "Request marked as completed",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary
+                    ),
+                    enabled = !isCompletingRequest
+                ) {
+                    if (isCompletingRequest) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onTertiary
                         )
-                    ) {
+                    } else {
                         Text("Complete", style = MaterialTheme.typography.labelLarge)
                     }
                 }
-                RequestStatus.DONE -> {
-                    // No additional button for completed requests
+            }
+            // Tenant PENDING: show Update button
+            !isLandlord && request.status == RequestStatus.PENDING -> {
+                Button(
+                    onClick = { onUpdateRequest(request.id) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("Update", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

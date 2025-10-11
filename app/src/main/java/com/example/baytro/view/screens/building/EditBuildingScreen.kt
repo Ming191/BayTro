@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,7 +41,6 @@ import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.view.components.SecondaryButton
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.EditBuildingVM
@@ -496,11 +496,12 @@ fun EditBuildingContent(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    SecondaryButton(
-                        text = "Back",
+                    FilledTonalButton(
                         onClick = onCancel,
                         modifier = Modifier.weight(1f).fillMaxWidth()
-                    )
+                    ) {
+                        Text(text = "Back")
+                    }
                     SubmitButton(
                         text = "Save",
                         isLoading = uiState is UiState.Loading,

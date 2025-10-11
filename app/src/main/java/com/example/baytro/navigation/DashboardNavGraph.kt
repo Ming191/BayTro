@@ -30,8 +30,13 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
         RequestListScreen(
             onAddRequest = {
                 navController.navigate(Screens.AddRequest.route)
+            },
+            onAssignRequest = { requestId ->
+                navController.navigate(Screens.AssignRequest.createRoute(requestId))
+            },
+            onUpdateRequest = { requestId ->
+                navController.navigate(Screens.UpdateRequest.createRoute(requestId))
             }
         )
     }
 }
-

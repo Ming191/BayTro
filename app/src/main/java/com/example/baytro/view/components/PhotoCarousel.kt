@@ -451,7 +451,8 @@ fun PhotoCarousel(
                     } else if (selectedImageIndex >= totalImages) {
                         selectedImageIndex = totalImages - 1
                     }
-                }
+                },
+                showDelete = showDeleteButton
             )
         }
     }
