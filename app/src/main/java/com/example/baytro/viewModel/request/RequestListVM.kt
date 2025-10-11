@@ -19,7 +19,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -55,6 +59,79 @@ class RequestListVM(
 
     // Cache user ID and role to avoid repeated fetches
     private val currentUserId: String? = authRepository.getCurrentUser()?.uid
+
+    // Pagination (per status tab)
+    private val _itemsPerPage = 1
+
+    private val _currentPagePending = MutableStateFlow(0)
+    val currentPagePending: StateFlow<Int> = _currentPagePending
+
+    private val _currentPageInProgress = MutableStateFlow(0)
+    val currentPageInProgress: StateFlow<Int> = _currentPageInProgress
+
+    private val _currentPageDone = MutableStateFlow(0)
+    val currentPageDone: StateFlow<Int> = _currentPageDone
+
+    // Normalized filtered data stream for pagination
+    private val filteredRequests: StateFlow<FilteredRequestData> = requestListUiState
+        .map { state ->
+            when (state) {
+                is com.example.baytro.view.screens.UiState.Success -> state.data
+                else -> FilteredRequestData()
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FilteredRequestData())
+
+    // Paginated lists per tab
+    val paginatedPending: StateFlow<List<FullRequestInfo>> = combine(filteredRequests, _currentPagePending) { data, page ->
+        paginate(data.pending, page)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val paginatedInProgress: StateFlow<List<FullRequestInfo>> = combine(filteredRequests, _currentPageInProgress) { data, page ->
+        paginate(data.inProgress, page)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val paginatedDone: StateFlow<List<FullRequestInfo>> = combine(filteredRequests, _currentPageDone) { data, page ->
+        paginate(data.done, page)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // Total pages per tab
+    val totalPagesPending: StateFlow<Int> = filteredRequests
+        .map { totalPages(it.pending.size) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val totalPagesInProgress: StateFlow<Int> = filteredRequests
+        .map { totalPages(it.inProgress.size) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val totalPagesDone: StateFlow<Int> = filteredRequests
+        .map { totalPages(it.done.size) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    // Navigation availability per tab
+    val hasNextPagePending: StateFlow<Boolean> = combine(_currentPagePending, totalPagesPending) { page, total ->
+        page < total - 1
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val hasPreviousPagePending: StateFlow<Boolean> = _currentPagePending
+        .map { it > 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val hasNextPageInProgress: StateFlow<Boolean> = combine(_currentPageInProgress, totalPagesInProgress) { page, total ->
+        page < total - 1
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val hasPreviousPageInProgress: StateFlow<Boolean> = _currentPageInProgress
+        .map { it > 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val hasNextPageDone: StateFlow<Boolean> = combine(_currentPageDone, totalPagesDone) { page, total ->
+        page < total - 1
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val hasPreviousPageDone: StateFlow<Boolean> = _currentPageDone
+        .map { it > 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     init {
         val initStartTime = System.currentTimeMillis()
@@ -165,6 +242,11 @@ class RequestListVM(
         _requestListUiState.value = UiState.Loading
         _formState.value = _formState.value.copy(selectedBuilding = building)
         Log.d(TAG, "onBuildingChange: Set to Loading state")
+
+        // Reset pagination when building changes
+        _currentPagePending.value = 0
+        _currentPageInProgress.value = 0
+        _currentPageDone.value = 0
 
         viewModelScope.launch {
             try {
@@ -335,6 +417,29 @@ class RequestListVM(
         )
         _requestListUiState.value = UiState.Success(finalData)
     }
+
+    private fun totalPages(totalItems: Int): Int {
+        return if (totalItems == 0) 0 else ((totalItems - 1) / _itemsPerPage) + 1
+    }
+
+    private fun paginate(list: List<FullRequestInfo>, page: Int): List<FullRequestInfo> {
+        val startIndex = page * _itemsPerPage
+        if (startIndex >= list.size) return emptyList()
+        val endIndex = minOf(startIndex + _itemsPerPage, list.size)
+        return list.subList(startIndex, endIndex)
+    }
+
+    fun nextPagePending() { if (hasNextPagePending.value) _currentPagePending.value += 1 }
+    fun previousPagePending() { if (hasPreviousPagePending.value) _currentPagePending.value -= 1 }
+    fun goToPagePending(page: Int) { if (page >= 0 && page < totalPagesPending.value) _currentPagePending.value = page }
+
+    fun nextPageInProgress() { if (hasNextPageInProgress.value) _currentPageInProgress.value += 1 }
+    fun previousPageInProgress() { if (hasPreviousPageInProgress.value) _currentPageInProgress.value -= 1 }
+    fun goToPageInProgress(page: Int) { if (page >= 0 && page < totalPagesInProgress.value) _currentPageInProgress.value = page }
+
+    fun nextPageDone() { if (hasNextPageDone.value) _currentPageDone.value += 1 }
+    fun previousPageDone() { if (hasPreviousPageDone.value) _currentPageDone.value -= 1 }
+    fun goToPageDone(page: Int) { if (page >= 0 && page < totalPagesDone.value) _currentPageDone.value = page }
 
 
     fun refreshRequests() {

@@ -64,6 +64,7 @@ import com.example.baytro.view.components.CarouselOrientation
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequestListSkeleton
+import com.example.baytro.view.components.PaginationControls
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.request.FilteredRequestData
@@ -268,6 +269,7 @@ private fun RequestListPager(
 
         if (page == selectedTabIndex) {
             RequestListPage(
+                pageIndex = page,
                 requests = requestsForPage,
                 emptyMessage = "No $statusText requests found.",
                 isLandlord = isLandlord,
@@ -283,6 +285,7 @@ private fun RequestListPager(
 
 @Composable
 private fun RequestListPage(
+    pageIndex: Int,
     requests: List<FullRequestInfo>,
     emptyMessage: String,
     isLandlord: Boolean,
@@ -308,12 +311,54 @@ private fun RequestListPage(
             }
         }
     } else {
+        val items by when (pageIndex) {
+            0 -> viewModel.paginatedPending.collectAsState()
+            1 -> viewModel.paginatedInProgress.collectAsState()
+            else -> viewModel.paginatedDone.collectAsState()
+        }
+        val current by when (pageIndex) {
+            0 -> viewModel.currentPagePending.collectAsState()
+            1 -> viewModel.currentPageInProgress.collectAsState()
+            else -> viewModel.currentPageDone.collectAsState()
+        }
+        val total by when (pageIndex) {
+            0 -> viewModel.totalPagesPending.collectAsState()
+            1 -> viewModel.totalPagesInProgress.collectAsState()
+            else -> viewModel.totalPagesDone.collectAsState()
+        }
+        val next by when (pageIndex) {
+            0 -> viewModel.hasNextPagePending.collectAsState()
+            1 -> viewModel.hasNextPageInProgress.collectAsState()
+            else -> viewModel.hasNextPageDone.collectAsState()
+        }
+        val prev by when (pageIndex) {
+            0 -> viewModel.hasPreviousPagePending.collectAsState()
+            1 -> viewModel.hasPreviousPageInProgress.collectAsState()
+            else -> viewModel.hasPreviousPageDone.collectAsState()
+        }
+
+        val onNextPage: () -> Unit = when (pageIndex) {
+            0 -> viewModel::nextPagePending
+            1 -> viewModel::nextPageInProgress
+            else -> viewModel::nextPageDone
+        }
+        val onPrevPage: () -> Unit = when (pageIndex) {
+            0 -> viewModel::previousPagePending
+            1 -> viewModel::previousPageInProgress
+            else -> viewModel::previousPageDone
+        }
+        val onGoToPage: (Int) -> Unit = when (pageIndex) {
+            0 -> viewModel::goToPagePending
+            1 -> viewModel::goToPageInProgress
+            else -> viewModel::goToPageDone
+        }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            itemsIndexed(items = requests, key = { _, item -> item.request.id }) { index, info ->
+            itemsIndexed(items = items, key = { _, item -> item.request.id }) { index, info ->
                 val itemId = info.request.id
                 var visible by remember(itemId) {
                     mutableStateOf(animatedItemIds.contains(itemId))
@@ -347,6 +392,20 @@ private fun RequestListPage(
                         onAssignRequest = onAssignRequest,
                         onCompleteRequest = viewModel::completeRequest,
                         onUpdateRequest = onUpdateRequest
+                    )
+                }
+            }
+
+            if (total > 1) {
+                item {
+                    PaginationControls(
+                        currentPage = current,
+                        totalPages = total,
+                        hasNextPage = next,
+                        hasPreviousPage = prev,
+                        onNextPage = onNextPage,
+                        onPreviousPage = onPrevPage,
+                        onPageClick = onGoToPage
                     )
                 }
             }
@@ -671,7 +730,7 @@ fun RequestCardActions(
                         onClick = {
                             showContactDialog = false
                             val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
-                            data = "tel:$phone".toUri()
+                                data = "tel:$phone".toUri()
                             }
                             context.startActivity(intent)
                         }
