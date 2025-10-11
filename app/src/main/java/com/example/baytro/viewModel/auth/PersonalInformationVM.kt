@@ -14,9 +14,8 @@ class PersonalInformationVM (
     private val userRepository: UserRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
-    private val _user = MutableStateFlow(User())
-    val user: StateFlow<User> = _user
-
+    private val _user = MutableStateFlow<User?>(null)
+    val user: StateFlow<User?> = _user
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
@@ -28,8 +27,8 @@ class PersonalInformationVM (
                 val currentUser = authRepository.getCurrentUser()
                     ?: throw IllegalStateException("No logged in user found")
                 Log.d("PersonalInformationVM", "Fetching User Information: ${currentUser.uid}")
-                val user = userRepository.getById(currentUser.uid)
-                Log.d("PersonalInformationVM", "Fetched $user")
+
+                _user.value = userRepository.getById(currentUser.uid)
             } catch (e: Exception) {
                 Log.d("PersonalInformationVM", "error loadPersonalInformation()", e)
             } finally {

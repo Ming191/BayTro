@@ -76,6 +76,12 @@ fun MainScreen() {
                             scope.launch {
                                 drawerState.close()
                             }
+                        },
+                        onPersonalInformationClicked = {
+                            navController.navigate("personal_information_screen")
+                            scope.launch {
+                                drawerState.close()
+                            }
                         }
                     )
                 }

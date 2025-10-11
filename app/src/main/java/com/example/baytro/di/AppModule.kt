@@ -16,6 +16,7 @@ import com.example.baytro.viewModel.Room.AddRoomVM
 import com.example.baytro.viewModel.Room.EditRoomVM
 import com.example.baytro.viewModel.Room.RoomDetailsVM
 import com.example.baytro.viewModel.Room.RoomListVM
+import com.example.baytro.viewModel.auth.ChangePasswordVM
 import com.example.baytro.viewModel.auth.ForgotPasswordVM
 import com.example.baytro.viewModel.auth.PersonalInformationVM
 import com.example.baytro.viewModel.auth.SignInVM
@@ -106,6 +107,17 @@ val authModule = module {
         )
     }
     viewModel {
+        ChangePasswordVM(
+            get()
+        )
+    }
+    viewModel {
+        PersonalInformationVM(
+            get(),
+            get()
+        )
+    }
+    viewModel {
         AddBuildingVM(
             androidContext(),
             get(),
@@ -170,13 +182,6 @@ val authModule = module {
         ContractListVM(
             get(),
             get(),
-            get(),
-            get()
-        )
-    }
-
-    viewModel {
-        PersonalInformationVM(
             get(),
             get()
         )

@@ -24,19 +24,19 @@ sealed class Role() {
     @Serializable
     @SerialName("Tenant")
     data class Tenant(
-        val occupation: String = "",
-        val idCardNumber: String = "",
-        val idCardImageFrontUrl: String? = null,
-        val idCardImageBackUrl: String? = null,
-        val idCardIssueDate: String = "",
-        val emergencyContact: String = ""
+        val occupation: String,
+        val idCardNumber: String,
+        val idCardImageFrontUrl: String?,
+        val idCardImageBackUrl: String?,
+        val idCardIssueDate: String,
+        val emergencyContact: String
     ): Role()
 
     @Serializable
     @SerialName("Landlord")
     data class Landlord(
-        val bankCode: String = "",
-        val bankAccountNumber: String = "",
+        val bankCode: String,
+        val bankAccountNumber: String,
     ): Role()
 }
 
@@ -44,15 +44,15 @@ sealed class Role() {
 data class User (
     @kotlinx.serialization.Transient
     @DocumentId val id: String = "",
-    val email: String = "",
-    val phoneNumber: String = "",
+    val email: String,
+    val phoneNumber: String,
     val role: Role? = null,
 
-    val fullName: String = "",
-    val dateOfBirth: String = "",
+    val fullName: String,
+    val dateOfBirth: String,
 
-    val gender: Gender = Gender.MALE,
-    val address: String = "",
-    val profileImgUrl: String? = null,
+    val gender: Gender,
+    val address: String,
+    val profileImgUrl: String?,
     val fcmToken: String? = null,
 )
