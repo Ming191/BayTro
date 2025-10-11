@@ -1,6 +1,5 @@
 package com.example.baytro.navigation
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +23,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold (
-    navigationType: NavigationType,
     navHostController: NavHostController,
     onDrawerClicked: () -> Unit,
 ) {
@@ -32,11 +30,6 @@ fun AppScaffold (
         modifier = Modifier
             .fillMaxSize(),
     ) {
-        AnimatedVisibility(
-            visible = navigationType == NavigationType.NavigationRail
-        ) {
-            TODO("Navigation Rail")
-        }
         Scaffold(
             topBar = {
 			val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
@@ -84,13 +77,6 @@ fun AppScaffold (
                     )
                 }
             },
-            bottomBar = {
-                AnimatedVisibility(
-                    visible = navigationType == NavigationType.NavigationBottom
-                ) {
-                    TODO("Bottom Navigation")
-                }
-            }
         )
     }
 }

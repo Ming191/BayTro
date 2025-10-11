@@ -44,23 +44,25 @@ fun Modifier.shimmerEffect(): Modifier = composed {
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1500, easing = androidx.compose.animation.core.LinearEasing),
+            animation = tween(durationMillis = 1000, easing = androidx.compose.animation.core.LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "shimmerTranslate"
     )
 
     val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
     )
 
     background(
         brush = Brush.linearGradient(
             colors = shimmerColors,
-            start = Offset(shimmerTranslate - 200f, shimmerTranslate - 200f),
-            end = Offset(shimmerTranslate, shimmerTranslate)
+            start = Offset(shimmerTranslate - 500f, shimmerTranslate - 500f),
+            end = Offset(shimmerTranslate + 500f, shimmerTranslate + 500f)
         )
     )
 }
@@ -609,6 +611,194 @@ fun ContractDetailsSkeleton() {
                         .shimmerEffect()
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun RequestCardSkeleton(
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header with title and badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Title placeholder
+                Box(
+                    modifier = Modifier
+                        .width(150.dp)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .shimmerEffect()
+                )
+                // Badge placeholder
+                Box(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .shimmerEffect()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Description placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .shimmerEffect()
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .shimmerEffect()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Details card placeholder
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Date rows
+                    repeat(2) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clip(CircleShape)
+                                    .shimmerEffect()
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .height(12.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(80.dp)
+                                    .height(12.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Room and requester info
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .width(90.dp)
+                                    .height(14.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(120.dp)
+                                    .height(12.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Box(
+                                modifier = Modifier
+                                    .width(80.dp)
+                                    .height(14.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Action buttons placeholder
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .shimmerEffect()
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .shimmerEffect()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RequestListSkeleton(
+    itemCount: Int = 5
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(itemCount) {
+            RequestCardSkeleton()
         }
     }
 }

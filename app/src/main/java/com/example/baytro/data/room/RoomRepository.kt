@@ -1,6 +1,7 @@
 package com.example.baytro.data.room
 
 import android.util.Log
+import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -86,6 +87,37 @@ class RoomRepository(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching rooms for building $buildingId: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun getRoomsByIds(roomIds: List<String>): List<Room> {
+        if (roomIds.isEmpty()) {
+            return emptyList()
+        }
+
+        return try {
+            val batches = roomIds.chunked(10)
+            val rooms = mutableListOf<Room>()
+
+            batches.forEach { batch ->
+                val snapshot = collection.where {
+                    FieldPath.documentId inArray batch
+                }.get()
+
+                snapshot.documents.mapNotNullTo(rooms) { doc ->
+                    try {
+                        val room = doc.data<Room>()
+                        room.copy(id = doc.id)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error deserializing room ${doc.id}: ${e.message}")
+                        null
+                    }
+                }
+            }
+            rooms
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching rooms by IDs: ${e.message}")
             emptyList()
         }
     }

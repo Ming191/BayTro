@@ -5,10 +5,11 @@ import androidx.navigation.navArgument
 
 sealed class Screens(val route: String, val title: String) {
     companion object {
-        const val ARG_ID = "id"
+        const val ARG_ID = "userId"
         const val ARG_CONTRACT_ID = "contractId"
         const val ARG_BUILDING_ID = "buildingId"
         const val ARG_ROOM_ID = "roomId"
+        const val ARG_REQUEST_ID = "requestId"
     }
 
     object SplashScreen : Screens("splash_screen", "")
@@ -83,5 +84,19 @@ sealed class Screens(val route: String, val title: String) {
             navArgument(ARG_CONTRACT_ID) { type = NavType.StringType; nullable = true }
         )
         fun createRoute(contractId: String?) = "contract_edit/$contractId"
+    }
+
+    object AddRequest : Screens("add_request_screen", "Add Request")
+    object UpdateRequest : Screens("update_request_screen/{$ARG_REQUEST_ID}", "Update Request") {
+        val arguments = listOf(
+            navArgument(ARG_REQUEST_ID) { type = NavType.StringType }
+        )
+        fun createRoute(requestId: String) = "update_request_screen/$requestId"
+    }
+    object AssignRequest : Screens("assign_request_screen/{$ARG_REQUEST_ID}", "Assign Request") {
+        val arguments = listOf(
+            navArgument(ARG_REQUEST_ID) { type = NavType.StringType }
+        )
+        fun createRoute(requestId: String) = "assign_request_screen/$requestId"
     }
 }

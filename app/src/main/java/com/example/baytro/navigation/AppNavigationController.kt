@@ -51,6 +51,8 @@ fun AppNavigationController(
         // Dashboard and main features
         dashboardNavGraph(navHostController)
 
+        requestNavGraph(navHostController)
+
         // Main screen
         composable(Screens.MainScreen.route) { MainScreen() }
     }

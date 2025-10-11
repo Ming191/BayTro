@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.min
+import androidx.core.graphics.scale
 
 object ImageProcessor {
     
@@ -71,21 +72,18 @@ object ImageProcessor {
         val inputStream = context.contentResolver.openInputStream(uri)
             ?: throw IllegalArgumentException("Cannot open input stream for URI: $uri")
         
-        // Get image dimensions without loading full bitmap
         val options = BitmapFactory.Options().apply {
             inJustDecodeBounds = true
         }
         BitmapFactory.decodeStream(inputStream, null, options)
         inputStream.close()
         
-        // Calculate sample size for efficient loading
         val sampleSize = calculateInSampleSize(options, maxWidth, maxWidth)
         
-        // Load scaled bitmap
         val scaledOptions = BitmapFactory.Options().apply {
             inSampleSize = sampleSize
             inJustDecodeBounds = false
-            inPreferredConfig = Bitmap.Config.RGB_565 // Use less memory
+            inPreferredConfig = Bitmap.Config.RGB_565
         }
         
         val inputStream2 = context.contentResolver.openInputStream(uri)
@@ -101,7 +99,7 @@ object ImageProcessor {
             val newWidth = (bitmap.width * ratio).toInt()
             val newHeight = (bitmap.height * ratio).toInt()
             
-            val resized = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+            val resized = bitmap.scale(newWidth, newHeight)
             if (resized != bitmap) bitmap.recycle()
             resized
         } else {

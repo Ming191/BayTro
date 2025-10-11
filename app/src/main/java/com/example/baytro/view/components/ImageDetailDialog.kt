@@ -54,7 +54,8 @@ fun ImageDetailDialog(
     images: List<String>,
     initialIndex: Int = 0,
     onDismiss: () -> Unit,
-    onDelete: (Int) -> Unit
+    onDelete: (Int) -> Unit,
+    showDelete: Boolean
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var controlsVisible by remember { mutableStateOf(true) }
@@ -144,17 +145,19 @@ fun ImageDetailDialog(
                     Spacer(modifier = Modifier.weight(1f))
 
                     // Delete button
-                    Surface(
-                        onClick = { showDeleteConfirmation = true },
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                    ) {
-                        IconButton(onClick = { showDeleteConfirmation = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = Color.White
-                            )
+                    if (showDelete) {
+                        Surface(
+                            onClick = { showDeleteConfirmation = true },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                        ) {
+                            IconButton(onClick = { showDeleteConfirmation = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.White
+                                )
+                            }
                         }
                     }
                 }
