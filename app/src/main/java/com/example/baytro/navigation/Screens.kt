@@ -32,6 +32,7 @@ sealed class Screens(val route: String, val title: String) {
     object AddContract : Screens("add_contract_screen", "Add Contract")
     object UploadIdCard : Screens("upload_id_card_screen", "Upload ID Card")
     object TenantEmptyContract : Screens("tenant_empty_contract_screen", "Contract")
+    object ImportBuildingsRooms : Screens("import_buildings_rooms", "Import Buildings & Rooms")
 
 
     // =================================================================

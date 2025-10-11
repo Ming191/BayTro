@@ -27,6 +27,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -145,13 +147,36 @@ fun BuildingListScreen(
                     onAddBuilding = { controller.navigate(Screens.BuildingAdd.route) }
                 )
 
-                FloatingActionButton(
-                    onClick = { controller.navigate(Screens.BuildingAdd.route) },
+                var fabMenuExpanded by remember { mutableStateOf(false) }
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add building")
+                    FloatingActionButton(
+                        onClick = { fabMenuExpanded = true },
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add building")
+                    }
+                    DropdownMenu(
+                        expanded = fabMenuExpanded,
+                        onDismissRequest = { fabMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Add manually") },
+                            onClick = {
+                                fabMenuExpanded = false
+                                controller.navigate(Screens.BuildingAdd.route)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import from Excel") },
+                            onClick = {
+                                fabMenuExpanded = false
+                                controller.navigate(Screens.ImportBuildingsRooms.route)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -278,10 +303,32 @@ private fun BuildingListContent(
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut()
             ) {
-                FloatingActionButton(
-                    onClick = { navController.navigate(Screens.BuildingAdd.route) },
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add building")
+                var fabMenuExpanded by remember { mutableStateOf(false) }
+                Box {
+                    FloatingActionButton(
+                        onClick = { fabMenuExpanded = true },
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add building")
+                    }
+                    DropdownMenu(
+                        expanded = fabMenuExpanded,
+                        onDismissRequest = { fabMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Add manually") },
+                            onClick = {
+                                fabMenuExpanded = false
+                                navController.navigate(Screens.BuildingAdd.route)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import from Excel") },
+                            onClick = {
+                                fabMenuExpanded = false
+                                navController.navigate(Screens.ImportBuildingsRooms.route)
+                            }
+                        )
+                    }
                 }
             }
         }
