@@ -1,6 +1,5 @@
 package com.example.baytro.navigation
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -8,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,40 +15,30 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.baytro.data.user.Role
-import com.example.baytro.data.user.UserRepository
-import com.google.firebase.auth.FirebaseAuth
-import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppScaffold (
+fun TenantScaffold(
     navHostController: NavHostController,
     onDrawerClicked: () -> Unit,
 ) {
+    val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
+
     Scaffold(
         topBar = {
-            val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
             val titleText = when (currentRoute) {
-                Screens.BuildingList.route -> "Buildings"
-                Screens.BuildingAdd.route -> "Add building"
-                Screens.BuildingEdit.route -> "Edit building"
-                Screens.TenantList.route -> "Tenants"
-                Screens.BillList.route -> "Bills"
-                Screens.ContractList.route -> "Contracts"
+                Screens.TenantDashboard.route -> "Dashboard"
+                Screens.TenantEmptyContract.route -> "Contract"
+                Screens.ContractDetails.route -> "Contract Details"
+                Screens.AddRequest.route -> "Add Request"
+                Screens.UpdateRequest.route -> "Update Request"
                 Screens.MaintenanceRequestList.route -> "Maintenance"
-                Screens.Dashboard.route -> "BayTro"
                 else -> "BayTro"
             }
+
             CenterAlignedTopAppBar(
                 title = { Text(titleText) },
                 navigationIcon = {
@@ -72,17 +60,17 @@ fun AppScaffold (
                 ),
             )
         },
-        content = { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                AppNavigationController(
-                    navHostController = navHostController,
-                    startDestination = Screens.Dashboard.route
-                )
-            }
-        },
-    )
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            AppNavigationController(
+                navHostController = navHostController,
+                startDestination = Screens.TenantDashboard.route
+            )
+        }
+    }
 }

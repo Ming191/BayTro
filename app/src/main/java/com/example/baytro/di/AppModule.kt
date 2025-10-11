@@ -9,6 +9,7 @@ import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.request.RequestRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
+import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.service.FptAiService
 import com.example.baytro.viewModel.AddBuildingVM
 import com.example.baytro.viewModel.request.AddRequestVM
@@ -82,6 +83,7 @@ val authModule = module {
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
     single<RequestRepository> { RequestRepository(get()) }
     single { IdCardDataViewModel() }
+    single { UserRoleCache(androidContext()) }
 
     viewModel {
         SplashScreenVM(get()
@@ -90,6 +92,7 @@ val authModule = module {
     viewModel {
         NewLandlordUserVM(
             androidContext(),
+            get(),
             get(),
             get(),
             get()
@@ -148,6 +151,7 @@ val authModule = module {
     viewModel {
         NewTenantUserVM(
             androidContext(),
+            get(),
             get(),
             get(),
             get()

@@ -7,6 +7,7 @@ import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.TenantListScreen
 import com.example.baytro.view.screens.BillListScreen
 import com.example.baytro.view.screens.dashboard.TenantDashboard
+import com.example.baytro.view.screens.contract.TenantEmptyContractView
 import com.example.baytro.view.screens.request.RequestListScreen
 
 fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
@@ -15,7 +16,26 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     }
 
     composable(Screens.TenantDashboard.route) {
-        TenantDashboard(navController = navController)
+        TenantDashboard(
+            onNavigateToEmptyContract = {
+                navController.navigate(Screens.TenantEmptyContract.route) {
+                    popUpTo(Screens.TenantDashboard.route) { inclusive = true }
+                }
+            },
+            onNavigateToContractDetails = { contractId ->
+                navController.navigate("contract_details_screen/$contractId")
+            }
+        )
+    }
+
+    composable(Screens.TenantEmptyContract.route) {
+        TenantEmptyContractView(
+            onContractConfirmed = {
+                navController.navigate(Screens.TenantDashboard.route) {
+                    popUpTo(Screens.TenantEmptyContract.route) { inclusive = true }
+                }
+            }
+        )
     }
 
     composable(Screens.TenantList.route) {

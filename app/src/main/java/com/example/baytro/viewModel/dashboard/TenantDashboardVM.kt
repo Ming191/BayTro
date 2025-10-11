@@ -44,37 +44,63 @@ class TenantDashboardVM(
     val uiState: StateFlow<TenantDashboardUiState> = _uiState.asStateFlow()
 
     init {
+        Log.d("TenantDashboardVM", "ViewModel initialized")
+        loadDashboardData()
+    }
+
+    fun refresh() {
+        Log.d("TenantDashboardVM", "refresh() called")
         loadDashboardData()
     }
 
     private fun loadDashboardData() {
+        Log.d("TenantDashboardVM", "loadDashboardData() started")
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
+            Log.d("TenantDashboardVM", "Set isLoading = true")
             try {
                 val currentUser = authRepository.getCurrentUser()
+                Log.d("TenantDashboardVM", "Current user: ${currentUser?.uid}")
+
                 if (currentUser != null) {
                     val user = userRepository.getById(currentUser.uid)
+                    Log.d("TenantDashboardVM", "User fetched: ${user?.fullName}")
+
                     val contracts = contractRepository.getAll()
-                    val activeContract = contracts.firstOrNull { contract ->
-                        contract.tenantIds.contains(currentUser.uid) &&
-                        contract.status == Status.ACTIVE
+                    Log.d("TenantDashboardVM", "Total contracts fetched: ${contracts.size}")
+
+                    // Debug each contract
+                    contracts.forEachIndexed { index, contract ->
+                        Log.d("TenantDashboardVM", "Contract $index: id=${contract.id}, status=${contract.status}, tenantIds=${contract.tenantIds}, contains user=${contract.tenantIds.contains(currentUser.uid)}")
                     }
+
+                    val activeContract = contracts.firstOrNull { contract ->
+                        val containsUser = contract.tenantIds.contains(currentUser.uid)
+                        val isActive = contract.status == Status.ACTIVE
+                        Log.d("TenantDashboardVM", "Checking contract ${contract.id}: containsUser=$containsUser, isActive=$isActive")
+                        containsUser && isActive
+                    }
+                    Log.d("TenantDashboardVM", "Active contract found: ${activeContract?.id}")
 
                     val (months, days) = if (activeContract != null) {
                         calculateStayDuration(activeContract.startDate)
                     } else {
                         Pair(0, 0)
                     }
+                    Log.d("TenantDashboardVM", "Duration calculated: $months months, $days days")
 
                     val billPaymentDeadline = if (activeContract != null) {
                         val room = roomRepository.getById(activeContract.roomId)
+                        Log.d("TenantDashboardVM", "Room fetched: ${room?.roomNumber}")
                         val building = if (room != null) {
                             buildingRepository.getById(room.buildingId)
                         } else null
+                        Log.d("TenantDashboardVM", "Building fetched: ${building?.name}")
                         building?.paymentDue ?: 0
                     } else {
                         0
                     }
+                    Log.d("TenantDashboardVM", "Bill payment deadline: $billPaymentDeadline")
 
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -82,19 +108,23 @@ class TenantDashboardVM(
                         contract = activeContract,
                         monthsStayed = months,
                         daysStayed = days,
-                        billPaymentDeadline = billPaymentDeadline
+                        billPaymentDeadline = billPaymentDeadline,
+                        error = if (activeContract == null) "No active contract found" else null
                     )
+                    Log.d("TenantDashboardVM", "Set isLoading = false, data loaded successfully")
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = "User not authenticated"
                     )
+                    Log.e("TenantDashboardVM", "User not authenticated")
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = e.message ?: "Failed to load dashboard data"
                 )
+                Log.e("TenantDashboardVM", "Error loading dashboard data", e)
             }
         }
     }
