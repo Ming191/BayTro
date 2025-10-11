@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.Building
 import com.example.baytro.view.components.DropdownSelectField
+import com.example.baytro.view.components.PaginationControls
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.ContractTab
@@ -60,9 +61,14 @@ fun ContractListScreen(
 ) {
     val selectedTab by viewModel.selectedTab.collectAsState()
     val contracts by viewModel.contracts.collectAsState()
+    val paginatedContracts by viewModel.paginatedContracts.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
     val ownedBuildings by viewModel.ownedBuildings.collectAsState()
+    val currentPage by viewModel.currentPage.collectAsState()
+    val totalPages by viewModel.totalPages.collectAsState()
+    val hasNextPage by viewModel.hasNextPage.collectAsState()
+    val hasPreviousPage by viewModel.hasPreviousPage.collectAsState()
     val pagerState = rememberPagerState(initialPage = selectedTab.ordinal, pageCount = { tabData.size })
     val scope = rememberCoroutineScope()
 
@@ -75,6 +81,14 @@ fun ContractListScreen(
             }
         },
         contracts = contracts,
+        paginatedContracts = paginatedContracts,
+        currentPage = currentPage,
+        totalPages = totalPages,
+        hasNextPage = hasNextPage,
+        hasPreviousPage = hasPreviousPage,
+        onNextPage = viewModel::nextPage,
+        onPreviousPage = viewModel::previousPage,
+        onPageClick = viewModel::goToPage,
         loading = loading,
         error = error,
         ownedBuildings = ownedBuildings,
@@ -94,6 +108,14 @@ fun ContractListContent(
     pagerState: PagerState,
     onTabSelected: (Int) -> Unit = { _ -> },
     contracts: List<ContractWithRoom> = emptyList(),
+    paginatedContracts: List<ContractWithRoom> = emptyList(),
+    currentPage: Int = 0,
+    totalPages: Int = 0,
+    hasNextPage: Boolean = false,
+    hasPreviousPage: Boolean = false,
+    onNextPage: () -> Unit = {},
+    onPreviousPage: () -> Unit = {},
+    onPageClick: (Int) -> Unit = {},
     loading: Boolean = false,
     error: String? = null,
     ownedBuildings: List<Building> = emptyList(),
@@ -118,9 +140,9 @@ fun ContractListContent(
 
     // Filter contracts based on selected building (null/empty means show all)
     val filteredContracts = if (selectedBuildingId.isNullOrEmpty()) {
-        contracts
+        paginatedContracts
     } else {
-        contracts.filter { it.contract.buildingId == selectedBuildingId }
+        paginatedContracts.filter { it.contract.buildingId == selectedBuildingId }
     }
 
     if (showNoBuildingsDialog) {
@@ -180,6 +202,20 @@ fun ContractListContent(
                                 },
                                 onContractClick = onContractClick
                             )
+                            
+                            // Add pagination controls
+                            if (totalPages > 1 && !loading && error == null && ownedBuildings.isNotEmpty()) {
+                                PaginationControls(
+                                    currentPage = currentPage,
+                                    totalPages = totalPages,
+                                    hasNextPage = hasNextPage,
+                                    hasPreviousPage = hasPreviousPage,
+                                    onNextPage = onNextPage,
+                                    onPreviousPage = onPreviousPage,
+                                    onPageClick = onPageClick,
+                                    modifier = Modifier.padding(vertical = 16.dp)
+                                )
+                            }
                         } else {
                             Box(modifier = Modifier.fillMaxSize())
                         }

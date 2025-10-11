@@ -10,8 +10,11 @@ import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.contract.Status
 import com.example.baytro.data.room.RoomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class ContractTab {
@@ -52,6 +55,44 @@ class ContractListVM(
 
     private val _ownedBuildings = MutableStateFlow<List<Building>>(emptyList())
     val ownedBuildings: StateFlow<List<Building>> = _ownedBuildings.asStateFlow()
+    
+    // Pagination
+    private val _currentPage = MutableStateFlow(0)
+    val currentPage: StateFlow<Int> = _currentPage.asStateFlow()
+    
+    private val _itemsPerPage = 10
+    
+    // Paginated contracts for current page
+    val paginatedContracts: StateFlow<List<ContractWithRoom>> = combine(
+        _contracts,
+        _currentPage
+    ) { contracts, page ->
+        val startIndex = page * _itemsPerPage
+        val endIndex = minOf(startIndex + _itemsPerPage, contracts.size)
+        if (startIndex < contracts.size) {
+            contracts.subList(startIndex, endIndex)
+        } else {
+            emptyList()
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    
+    // Total pages
+    val totalPages: StateFlow<Int> = _contracts.combine(_currentPage) { contracts, _ ->
+        if (contracts.isEmpty()) 0 else ((contracts.size - 1) / _itemsPerPage) + 1
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+    
+    // Has next page
+    val hasNextPage: StateFlow<Boolean> = combine(
+        _currentPage,
+        totalPages
+    ) { page, total ->
+        page < total - 1
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    
+    // Has previous page
+    val hasPreviousPage: StateFlow<Boolean> = _currentPage.combine(totalPages) { page, _ ->
+        page > 0
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     init {
         fetchUserBuildingsAndContracts()
@@ -70,6 +111,7 @@ class ContractListVM(
 
     fun selectTab(tab: ContractTab) {
         _selectedTab.value = tab
+        _currentPage.value = 0 // Reset to first page when tab changes
         contractCache[tab]?.let {
             viewModelScope.launch {
                 _loading.value = true
@@ -113,6 +155,25 @@ class ContractListVM(
             } finally {
                 _loading.value = false
             }
+        }
+    }
+    
+    // Pagination methods
+    fun nextPage() {
+        if (hasNextPage.value) {
+            _currentPage.value += 1
+        }
+    }
+
+    fun previousPage() {
+        if (hasPreviousPage.value) {
+            _currentPage.value -= 1
+        }
+    }
+
+    fun goToPage(page: Int) {
+        if (page >= 0 && page < totalPages.value) {
+            _currentPage.value = page
         }
     }
 }
