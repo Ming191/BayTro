@@ -1,5 +1,6 @@
 package com.example.baytro.view.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -30,41 +31,46 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 /**
  * Advanced shimmer effect modifier with moving gradient animation
  */
 fun Modifier.shimmerEffect(): Modifier = composed {
-    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val shimmerColors = listOf(
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+    )
 
-    val shimmerTranslate by infiniteTransition.animateFloat(
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnimation by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000, easing = androidx.compose.animation.core.LinearEasing),
-            repeatMode = RepeatMode.Restart
+            animation = tween(
+                durationMillis = 1200,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Reverse
         ),
-        label = "shimmerTranslate"
+        label = "shimmer"
     )
 
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-    )
-
-    background(
-        brush = Brush.linearGradient(
+    drawWithCache {
+        val brush = Brush.linearGradient(
             colors = shimmerColors,
-            start = Offset(shimmerTranslate - 500f, shimmerTranslate - 500f),
-            end = Offset(shimmerTranslate + 500f, shimmerTranslate + 500f)
+            start = Offset(translateAnimation - size.width, translateAnimation - size.height),
+            end = Offset(translateAnimation, translateAnimation)
         )
-    )
+        onDrawBehind {
+            drawRect(brush)
+        }
+    }
 }
 
 @Composable
@@ -801,4 +807,16 @@ fun RequestListSkeleton(
             RequestCardSkeleton()
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewBuildingCardSkeleton() {
+    BuildingCardSkeleton()
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewBuildingListSkeleton() {
+    ServiceListSkeleton(itemCount = 2)
 }
