@@ -1,5 +1,7 @@
 package com.example.baytro.view.screens.request
 
+import SpeedDialFab
+import SpeedDialMenuItem
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -8,17 +10,21 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
@@ -28,14 +34,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -55,7 +65,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.example.baytro.data.Building
 import com.example.baytro.data.request.FullRequestInfo
 import com.example.baytro.data.request.Request
@@ -71,7 +83,6 @@ import com.example.baytro.viewModel.request.RequestListFormState
 import com.example.baytro.viewModel.request.RequestListVM
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
-import androidx.core.net.toUri
 
 
 private val tabData: List<Pair<String, ImageVector>> = listOf(
@@ -121,9 +132,7 @@ fun RequestListScreen(
             Scaffold(
                 topBar = {
                     RequestListTopBar(
-                        formState = formState,
                         selectedTabIndex = selectedTabIndex,
-                        onBuildingSelected = {},
                         onTabSelected = {},
                         isTabSelectionEnabled = false
                     )
@@ -161,44 +170,102 @@ private fun RequestListContent(
     onAssignRequest: (String) -> Unit,
     onUpdateRequest: (String) -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            RequestListTopBar(
-                formState = formState,
-                selectedTabIndex = selectedTabIndex,
-                onBuildingSelected = viewModel::onBuildingChange,
-                onTabSelected = onTabSelected,
-                isTabSelectionEnabled = uiState is UiState.Success
-            )
-        },
-        floatingActionButton = {
-            if (uiState is UiState.Success && !formState.isLandlord) {
-                FloatingActionButton(
-                    onClick = onAddRequest,
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(imageVector = Icons.Filled.Add, contentDescription = "Add Request")
+    var showFilterDialog by remember { mutableStateOf(false) }
+    var isSpeedDialOpen by remember { mutableStateOf(false) }
+
+    if (showFilterDialog) {
+        FilterDialog(
+            buildings = formState.availableBuildings,
+            selectedBuilding = formState.selectedBuilding,
+            onBuildingSelected = viewModel::onBuildingChange,
+            onDismiss = { showFilterDialog = false }
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                Tabs(
+                    selectedTabIndex = selectedTabIndex,
+                    onTabSelected = { if (uiState is UiState.Success) onTabSelected(it) },
+                    tabData = tabData
+                )
+            },
+            floatingActionButton = {}
+        ) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                when (val state = uiState) {
+                    is UiState.Loading -> RequestListSkeleton(itemCount = 5)
+                    is UiState.Success -> RequestListPager(
+                        pagerState = pagerState,
+                        requestData = state.data,
+                        isLandlord = formState.isLandlord,
+                        selectedTabIndex = selectedTabIndex,
+                        onAssignRequest = onAssignRequest,
+                        viewModel = viewModel,
+                        onUpdateRequest = onUpdateRequest
+                    )
+                    is UiState.Error -> ErrorStateContent(
+                        message = state.message,
+                        onRetry = viewModel::refreshRequests
+                    )
+                    else -> { /* No-op */ }
                 }
             }
         }
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            when (val state = uiState) {
-                is UiState.Loading -> RequestListSkeleton(itemCount = 5)
-                is UiState.Success -> RequestListPager(
-                    pagerState = pagerState,
-                    requestData = state.data,
-                    isLandlord = formState.isLandlord,
-                    selectedTabIndex = selectedTabIndex,
-                    onAssignRequest = onAssignRequest,
-                    viewModel = viewModel,
-                    onUpdateRequest = onUpdateRequest
-                )
-                is UiState.Error -> ErrorStateContent(
-                    message = state.message,
-                    onRetry = viewModel::refreshRequests
-                )
-                else -> { /* No-op */}
+
+        if (isSpeedDialOpen) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { isSpeedDialOpen = false }
+                    ),
+                color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)
+            ) {}
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.BottomEnd
+        ) {
+            if (uiState is UiState.Success) {
+                val speedDialItems = if (formState.isLandlord) {
+                    listOfNotNull(
+                        if (formState.availableBuildings.isNotEmpty()) {
+                            SpeedDialMenuItem(
+                                icon = Icons.Default.FilterList,
+                                label = "Filter"
+                            )
+                        } else null
+                    )
+                } else {
+                    listOf(
+                        SpeedDialMenuItem(
+                            icon = Icons.Default.Add,
+                            label = "New Request"
+                        )
+                    )
+                }
+
+                if (speedDialItems.isNotEmpty()) {
+                    SpeedDialFab(
+                        isMenuOpen = isSpeedDialOpen,
+                        onToggleMenu = { isSpeedDialOpen = !isSpeedDialOpen },
+                        items = speedDialItems,
+                        mainIconOpen = Icons.Filled.Menu,
+                        onItemClick = { item ->
+                            when (item.label) {
+                                "Filter" -> showFilterDialog = true
+                                "New Request" -> onAddRequest()
+                            }
+                        }
+                    )
+                }
             }
         }
     }
@@ -206,9 +273,7 @@ private fun RequestListContent(
 
 @Composable
 private fun RequestListTopBar(
-    formState: RequestListFormState,
     selectedTabIndex: Int,
-    onBuildingSelected: (Building) -> Unit,
     onTabSelected: (Int) -> Unit,
     isTabSelectionEnabled: Boolean
 ) {
@@ -218,22 +283,6 @@ private fun RequestListTopBar(
             onTabSelected = { if (isTabSelectionEnabled) onTabSelected(it) },
             tabData = tabData
         )
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (formState.isLandlord && formState.availableBuildings.isNotEmpty()) {
-                DropdownSelectField(
-                    label = "Building",
-                    options = formState.availableBuildings,
-                    selectedOption = formState.selectedBuilding,
-                    onOptionSelected = onBuildingSelected,
-                    optionToString = { it.name },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
     }
 }
 
@@ -363,60 +412,84 @@ fun RequestCard(
     onUpdateRequest: (String) -> Unit = {}
 ) {
     val request = info.request
+    val statusColor = when (request.status) {
+        RequestStatus.PENDING -> MaterialTheme.colorScheme.error
+        RequestStatus.IN_PROGRESS -> MaterialTheme.colorScheme.tertiary
+        RequestStatus.DONE -> MaterialTheme.colorScheme.primary
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Header with status badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Row {
+            // Dải màu chỉ báo trạng thái
+            Box(
+                modifier = Modifier
+                    .width(5.dp)
+                    .fillMaxHeight()
+                    .background(statusColor)
+            )
+
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                // Header: Tiêu đề và Badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = request.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Created: ${request.createdAt}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    StatusBadge(status = request.status)
+                }
+
+                // Mô tả
+                if (request.description.isNotBlank()) {
                     Text(
-                        text = info.request.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = request.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-                StatusBadge(status = request.status)
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                RequestCardDetails(info = info)
+
+                val validImageUrls = request.imageUrls.filter { it.isNotEmpty() }
+                if (validImageUrls.isNotEmpty()) {
+                    RequestCardImages(imageUrls = validImageUrls)
+                }
+
+                RequestCardActions(
+                    request = request,
+                    isLandlord = isLandlord,
+                    onAssignRequest = onAssignRequest,
+                    info = info,
+                    onCompleteRequest = onCompleteRequest,
+                    onUpdateRequest = onUpdateRequest
+                )
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Description
-            Text(
-                text = info.request.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Details section
-            RequestCardDetails(info)
-
-            val validImageUrls = request.imageUrls.filter { it.isNotEmpty() }
-            if (validImageUrls.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                RequestCardImages(imageUrls = validImageUrls)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Actions
-            RequestCardActions(
-                request = request,
-                isLandlord = isLandlord,
-                onAssignRequest = onAssignRequest,
-                info = info,
-                onCompleteRequest = onCompleteRequest,
-                onUpdateRequest = onUpdateRequest
-            )
         }
     }
 }
@@ -442,171 +515,108 @@ private fun StatusBadge(status: RequestStatus) {
     }
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(8.dp),
         color = backgroundColor
     ) {
         Text(
             text = statusText,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
             color = textColor
         )
     }
 }
 
+
 @Composable
 fun RequestCardDetails(info: FullRequestInfo) {
     val request = info.request
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f)
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Thông tin người yêu cầu và vị trí
+        DetailRow(
+            icon = Icons.Filled.Person,
+            label = "Requester",
+            value = info.tenantName
         )
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            // Using icons for better visual appeal
+        DetailRow(
+            icon = Icons.Filled.LocationOn,
+            label = "Location",
+            value = "${info.buildingName} - Room ${info.roomName}"
+        )
+
+        // Ngày hẹn
+        if (request.scheduledDate.isNotBlank()) {
             DetailRow(
-                icon = Icons.Filled.Schedule,
-                label = "Created",
-                value = request.createdAt
-            )
-            DetailRow(
-                icon = Icons.Filled.Schedule,
-                label = "Scheduled",
+                icon = Icons.Filled.DateRange,
+                label = "Scheduled for",
                 value = request.scheduledDate
             )
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Room ${info.roomName}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = info.buildingName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = info.tenantName,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Requester",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+        // Thông tin theo từng trạng thái
+        when (request.status) {
+            RequestStatus.IN_PROGRESS -> {
+                request.assigneeName?.let { name ->
+                    DetailRow(
+                        icon = Icons.Filled.Schedule,
+                        label = "Assigned to",
+                        value = "$name ${request.assigneePhoneNumber?.let { "($it)" } ?: ""}",
+                        valueColor = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
-
-            // Phase-specific fields
-            when (request.status) {
-                RequestStatus.PENDING -> {
-                    // Pending: Only show basic info (already shown above)
+            RequestStatus.DONE -> {
+                request.assigneeName?.let { name ->
+                    DetailRow(
+                        icon = Icons.Filled.CheckCircle,
+                        label = "Completed by",
+                        value = name,
+                        valueColor = MaterialTheme.colorScheme.primary
+                    )
                 }
-                RequestStatus.IN_PROGRESS -> {
-                    request.assigneeName?.let { name ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Assigned to",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = name,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.tertiary
-                                )
-                            }
-                            request.assigneePhoneNumber?.let { phone ->
-                                Text(
-                                    text = phone,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-                RequestStatus.DONE -> {
-                    request.assigneeName?.let { name ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Completed by",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = name,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            request.assigneePhoneNumber?.let { phone ->
-                                Text(
-                                    text = phone,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        request.completionDate?.let { date ->
-                            DetailRow(
-                                icon = Icons.Filled.CheckCircle,
-                                label = "Completed on",
-                                value = date
-                            )
-                        }
-                    }
+                request.completionDate?.let { date ->
+                    DetailRow(
+                        icon = Icons.Filled.DateRange,
+                        label = "Completed on",
+                        value = date
+                    )
                 }
             }
+            RequestStatus.PENDING -> {}
         }
     }
 }
 
 @Composable
-private fun DetailRow(icon: ImageVector, label: String, value: String) {
+private fun DetailRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
+            contentDescription = label,
+            modifier = Modifier.size(18.dp),
             tint = MaterialTheme.colorScheme.primary
         )
         Text(
             text = "$label:",
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = valueColor
         )
     }
 }
@@ -770,4 +780,53 @@ fun RequestCardActions(
             }
         }
     }
+}
+
+@Composable
+private fun FilterDialog(
+    buildings: List<Building>,
+    selectedBuilding: Building?,
+    onBuildingSelected: (Building) -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Filter Requests",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Select a building to view its maintenance requests",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                DropdownSelectField(
+                    modifier = Modifier.fillMaxWidth(),
+                    label = "Select Building",
+                    options = buildings,
+                    selectedOption = selectedBuilding,
+                    onOptionSelected = onBuildingSelected,
+                    optionToString = { it.name }
+                )
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(16.dp)
+    )
 }

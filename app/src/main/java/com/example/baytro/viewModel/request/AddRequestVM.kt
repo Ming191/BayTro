@@ -140,7 +140,7 @@ class AddRequestVM(
                 completedSteps++
                 _uploadProgress.value = completedSteps.toFloat() / totalSteps
 
-                val currentDateTime = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault()).format(Date())
+                val currentDateTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date())
                 val request = Request(
                     tenantId = currentUser.uid,
                     landlordId = activeContract.landlordId,
