@@ -49,6 +49,7 @@ import com.example.baytro.data.Building
 import com.example.baytro.view.components.CompactSearchBar
 import com.example.baytro.view.components.ContractListSkeleton
 import com.example.baytro.view.components.DropdownSelectField
+import com.example.baytro.view.components.PaginationControls
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.ContractTab
@@ -253,6 +254,7 @@ private fun ContractListContent(
                 ) { page ->
                     if (page == selectedTabIndex) {
                         ContractListPage(
+                            viewModel = viewModel,
                             contracts = if (ownedBuildings.isEmpty()) emptyList() else filteredContracts,
                             emptyMessage = if (ownedBuildings.isEmpty()) {
                                 "No buildings found. Please add a building first."
@@ -279,6 +281,7 @@ private fun ContractListContent(
 
 @Composable
 private fun ContractListPage(
+    viewModel: ContractListVM,
     contracts: List<ContractWithRoom>,
     emptyMessage: String,
     animatedItemIds: MutableSet<String>,
@@ -308,13 +311,19 @@ private fun ContractListPage(
             }
         }
         else {
+            val paginated by viewModel.paginatedContracts.collectAsState()
+            val currentPage by viewModel.currentPage.collectAsState()
+            val totalPages by viewModel.totalPages.collectAsState()
+            val hasNext by viewModel.hasNextPage.collectAsState()
+            val hasPrev by viewModel.hasPreviousPage.collectAsState()
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 itemsIndexed(
-                    items = contracts,
+                    items = paginated,
                     key = { _, item -> item.contract.id }
                 ) { index, contractWithRoom ->
                     val itemId = contractWithRoom.contract.id
@@ -351,6 +360,20 @@ private fun ContractListPage(
                                 Log.d("NavigationCheck", "Navigating with contractId: '${contractWithRoom.contract.id}'")
                                 onContractClick(contractWithRoom.contract.id)
                             }
+                        )
+                    }
+                }
+
+                if (totalPages > 1) {
+                    item {
+                        PaginationControls(
+                            currentPage = currentPage,
+                            totalPages = totalPages,
+                            hasNextPage = hasNext,
+                            hasPreviousPage = hasPrev,
+                            onNextPage = viewModel::nextPage,
+                            onPreviousPage = viewModel::previousPage,
+                            onPageClick = viewModel::goToPage
                         )
                     }
                 }

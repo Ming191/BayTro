@@ -23,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -285,28 +284,6 @@ private fun BuildingListContent(
                     Icon(Icons.Default.Add, contentDescription = "Add building")
                 }
             }
-        },
-        bottomBar = {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
-            ) {
-                if (totalPages > 1) {
-                    BottomAppBar {
-                        PaginationControls(
-                            modifier = Modifier.weight(1f),
-                            currentPage = currentPage,
-                            totalPages = totalPages,
-                            hasNextPage = hasNextPage,
-                            hasPreviousPage = hasPreviousPage,
-                            onNextPage = viewModel::nextPage,
-                            onPreviousPage = viewModel::previousPage,
-                            onPageClick = viewModel::goToPage
-                        )
-                    }
-                }
-            }
         }
     ) { innerPadding ->
         var isInitialLoad by remember { mutableStateOf(true) }
@@ -356,6 +333,21 @@ private fun BuildingListContent(
                             revenue = "$0",
                             onViewClick = { navController.navigate(Screens.RoomList.createRoute(buildingWithStats.building.id)) },
                             onEditClick = { navController.navigate(Screens.BuildingEdit.route.replace("{id}", buildingWithStats.building.id)) }
+                        )
+                    }
+                }
+
+                if (totalPages > 1) {
+                    item {
+                        PaginationControls(
+                            currentPage = currentPage,
+                            totalPages = totalPages,
+                            hasNextPage = hasNextPage,
+                            hasPreviousPage = hasPreviousPage,
+                            onNextPage = viewModel::nextPage,
+                            onPreviousPage = viewModel::previousPage,
+                            onPageClick = viewModel::goToPage,
+                            modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
                 }
