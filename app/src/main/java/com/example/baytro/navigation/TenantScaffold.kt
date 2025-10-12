@@ -36,14 +36,21 @@ fun TenantScaffold(
                 Screens.AddRequest.route -> "Add Request"
                 Screens.UpdateRequest.route -> "Update Request"
                 Screens.MaintenanceRequestList.route -> "Maintenance"
+                Screens.BillList.route -> "Bills"
                 else -> "BayTro"
             }
 
             CenterAlignedTopAppBar(
                 title = { Text(titleText) },
                 navigationIcon = {
-                    val canBack = navHostController.previousBackStackEntry != null
-                    if (canBack) {
+                    val isMainScreen = currentRoute in listOf(
+                        Screens.TenantDashboard.route,
+                        Screens.BillList.route,
+                        Screens.MaintenanceRequestList.route,
+                        Screens.TenantEmptyContract.route
+                    )
+
+                    if (!isMainScreen && navHostController.previousBackStackEntry != null) {
                         IconButton(onClick = { navHostController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }

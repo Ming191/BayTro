@@ -23,7 +23,17 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
                 }
             },
             onNavigateToContractDetails = { contractId ->
-                navController.navigate("contract_details_screen/$contractId")
+                navController.navigate("contract_details_screen/$contractId") {
+                    launchSingleTop = true
+                }
+            },
+            onNavigateToRequestList = {
+                navController.navigate(Screens.MaintenanceRequestList.route) {
+                    popUpTo(Screens.TenantDashboard.route) {
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                }
             }
         )
     }

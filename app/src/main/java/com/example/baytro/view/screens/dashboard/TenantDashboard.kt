@@ -33,13 +33,13 @@ import org.koin.compose.viewmodel.koinViewModel
 fun TenantDashboard(
     viewModel: TenantDashboardVM = koinViewModel(),
     onNavigateToEmptyContract: () -> Unit = {},
-    onNavigateToContractDetails: (String) -> Unit = {}
+    onNavigateToContractDetails: (String) -> Unit = {},
+    onNavigateToRequestList: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Log.d("TenantDashboard", "Composable recomposed - isLoading: ${uiState.isLoading}, hasError: ${uiState.error != null}, hasContract: ${uiState.contract != null}, hasUser: ${uiState.user != null}")
 
-    // Redirect to empty contract screen if no active contract
     LaunchedEffect(uiState.contract, uiState.isLoading) {
         if (!uiState.isLoading && uiState.contract == null && uiState.error != null) {
             Log.d("TenantDashboard", "No active contract found, navigating to empty contract screen")
@@ -54,7 +54,6 @@ fun TenantDashboard(
     }
 
     if (uiState.error != null && uiState.contract == null) {
-        // Don't show error, just let the navigation happen
         Log.d("TenantDashboard", "Waiting for navigation to empty contract screen")
         return
     }
@@ -76,6 +75,10 @@ fun TenantDashboard(
             onViewDetailsClick = { contractId ->
                 Log.d("TenantDashboard", "Navigating to contract details: $contractId")
                 onNavigateToContractDetails(contractId)
+            },
+            onRequestMaintenanceClick = {
+                Log.d("TenantDashboard", "Navigating to maintenance request list")
+                onNavigateToRequestList()
             }
         )
     } else {
@@ -94,7 +97,8 @@ fun TenantDashboardContent(
     rentalFee: Int = 0,
     deposit: Int = 0,
     contractId: String = "",
-    onViewDetailsClick: (String) -> Unit = {}
+    onViewDetailsClick: (String) -> Unit = {},
+    onRequestMaintenanceClick: () -> Unit = {}
 ) {
     var isVisible by remember { mutableStateOf(false) }
 
@@ -127,7 +131,6 @@ fun TenantDashboardContent(
                     }
                 }
 
-                // Contract Status Card
                 item {
                     AnimatedVisibility(
                         visible = isVisible,
@@ -160,7 +163,7 @@ fun TenantDashboardContent(
                                     animationSpec = tween(600, easing = FastOutSlowInEasing)
                                 )
                     ) {
-                        QuickActionsSection()
+                        QuickActionsSection(onRequestMaintenanceClick = onRequestMaintenanceClick)
                     }
                 }
 
@@ -348,7 +351,9 @@ fun ContractStatusCard(
 }
 
 @Composable
-fun QuickActionsSection() {
+fun QuickActionsSection(
+    onRequestMaintenanceClick: () -> Unit = {}
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "Quick Actions",
@@ -368,7 +373,7 @@ fun QuickActionsSection() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { }
+                    .clickable { onRequestMaintenanceClick() }
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically

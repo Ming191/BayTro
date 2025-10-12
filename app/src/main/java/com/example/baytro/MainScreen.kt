@@ -30,7 +30,6 @@ import kotlinx.coroutines.launch
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
 fun MainScreen() {
-    // Get role from shared state (loaded by MainActivity)
     val userRole by UserRoleState.userRole.collectAsState()
 
     AppTheme {
@@ -42,7 +41,6 @@ fun MainScreen() {
                 LandlordMainScreen()
             }
             null -> {
-                // Fallback loading (should rarely happen as MainActivity loads role first)
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
