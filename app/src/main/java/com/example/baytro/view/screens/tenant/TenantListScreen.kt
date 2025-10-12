@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,7 +21,6 @@ import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,7 +65,7 @@ fun TenantListScreen(
     Log.d("TenantListScreen", "Filtered tenant list size: ${filteredTenantList.size}")
 
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.Start,
         modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {
@@ -84,41 +85,62 @@ fun TenantListScreen(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant, // màu viền nhạt
                         shape = RoundedCornerShape(12.dp)
-                    ),
+                    )
+                    .clickable {
+                        // Có thể navigate với tenant ID: navController.navigate(Screens.TenantDetail.passId(display.tenant.id))
+                        navController.navigate(Screens.Dashboard.route)
+                    },
                 shape = RoundedCornerShape(12.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                onClick = {}
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                ListItem(
-                    headlineContent = { Text(text = display.tenant.fullName) },
-                    leadingContent = {
-                        AsyncImage(
-                            model = display.tenant.profileImgUrl,
-                            contentDescription = display.tenant.fullName,
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentScale = ContentScale.Crop
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp), // Padding bên trong card
+                    verticalAlignment = Alignment.CenterVertically, // Center toàn bộ row theo chiều dọc
+                    horizontalArrangement = Arrangement.SpaceBetween // Leading | Center | Trailing
+                ) {
+                    // Leading: Avatar
+                    AsyncImage(
+                        model = display.tenant.profileImgUrl,
+                        contentDescription = display.tenant.fullName,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = display.tenant.fullName,
+                            style = MaterialTheme.typography.titleMedium // Giống headline
                         )
-                    },
-                    supportingContent = {
                         Column {
-                            Text(text = display.tenant.phoneNumber)
-                            Text(text = "${display.room.roomNumber} - ${display.building.name}")
+                            Text(
+                                text = display.tenant.phoneNumber,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "${display.room.roomNumber} - ${display.building.name}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
-                    },
-                    trailingContent = {
-                        Icon(
-                            Icons.Outlined.KeyboardArrowRight,
-                            contentDescription = "Tenant Info",
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        navController.navigate(Screens.Dashboard.route)
                     }
-                )
+
+                    // Trailing: Icon mũi tên, center vertically (tự động vì Row CenterVertically)
+                    Icon(
+                        imageVector = Icons.Outlined.KeyboardArrowRight,
+                        contentDescription = "Tenant Info",
+                        modifier = Modifier.size(24.dp) // Size nhỏ để fit
+                    )
+                }
             }
         }
     }
