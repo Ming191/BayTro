@@ -67,9 +67,7 @@ fun PersonalInformationScreen(
 
     LaunchedEffect(Unit) {
         Log.d("PersonalInformationScreen", "Screen launched - Checking if need to load")
-        if (isLoading != true) {
-            viewModel.loadPersonalInformation()
-        }
+        viewModel.loadPersonalInformation()
     }
 
     if (isLoading) {

@@ -8,6 +8,7 @@ import com.example.baytro.view.screens.auth.SignUpScreen
 import com.example.baytro.view.screens.auth.PersonalInformationScreen
 import com.example.baytro.view.screens.auth.ForgotPasswordScreen
 import com.example.baytro.view.screens.auth.ChangePasswordScreen
+import com.example.baytro.view.screens.auth.EditPersonalInformationScreen
 
 fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
     composable(Screens.SignIn.route) {
@@ -67,6 +68,17 @@ fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
             },
             onNavigateToEditPersonalInformation = {
                 navController.navigate(Screens.EditPersonalInformation.route)
+            }
+        )
+    }
+
+    composable(Screens.EditPersonalInformation.route) {
+        EditPersonalInformationScreen (
+            onNavigateBack = {
+                navController.popBackStack()
+            },
+            onNavigateToPersonalInformation = {
+                navController.navigate(Screens.PersonalInformation.route)
             }
         )
     }
