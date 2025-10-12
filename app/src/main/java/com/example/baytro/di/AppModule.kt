@@ -37,6 +37,7 @@ import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
 import com.example.baytro.viewModel.splash.SplashScreenVM
 import com.example.baytro.viewModel.splash.UploadIdCardVM
+import com.example.baytro.viewModel.tenant.TenantListVM
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
@@ -200,6 +201,7 @@ val authModule = module {
     viewModel { AddRequestVM(get(), get(), get(), get()) }
     viewModel { (requestId: String) -> UpdateRequestVM(get(), get(), get(), requestId) }
     viewModel { AssignRequestVM(get()) }
+    viewModel { TenantListVM(get(), get(), get(), get(), get()) }
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }

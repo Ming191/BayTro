@@ -1,7 +1,10 @@
 package com.example.baytro.data.contract
 
 import android.util.Log
+import androidx.compose.foundation.content.MediaType.Companion.All
+import androidx.compose.ui.text.EmojiSupportMatch.Companion.All
 import com.example.baytro.data.Repository
+import com.example.baytro.data.user.User
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -150,6 +153,104 @@ class ContractRepository(
             }
         } catch (e: Exception) {
             Log.e("ContractRepository", "Error fetching active contract", e)
+            null
+        }
+    }
+
+    suspend fun getContractsByLandlordId(landlordId: String): List<Contract> {
+        if (landlordId.isBlank()) {
+            Log.d("ContractRepository", "Query skipped: landlordId is blank")
+            return emptyList()
+        }
+        Log.d("ContractRepository", "Querying for landlordId: '$landlordId'")
+        return try {
+            val querySnapshot = collection.where {
+                all(
+                    "landlordId" equalTo landlordId,
+                    "status" equalTo Status.ACTIVE.name
+                )
+            }.get()
+            Log.d("ContractRepository", "Found ${querySnapshot.documents.size} documents for landlordId: '$landlordId'")
+            querySnapshot.documents.map { doc ->
+                val contract = doc.data<Contract>()
+                Log.d("ContractRepository", "Fetched contract: ${contract.contractNumber}, landlordId: ${contract.landlordId}")
+                contract.copy(id = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching contracts by landlord ID", e)
+            emptyList()
+        }
+    }
+
+    suspend fun getContractsByRoomId(roomId: String): List<Contract> {
+        if (roomId.isBlank()) {
+            Log.d("ContractRepository", "RoomId is blank")
+            return emptyList()
+        }
+        return try {
+            val querySnapshot = collection.where {
+                "roomId" equalTo roomId
+            }.get()
+            querySnapshot.documents.map { doc ->
+                val contract = doc.data<Contract>()
+                contract.copy(id = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching contracts by room ID", e)
+            emptyList()
+        }
+    }
+
+    // get the number of tenants in a building that have a contract
+    suspend fun getTenantsByBuildingId(buildingId: String): List<String> {
+        if (buildingId.isBlank()) return emptyList()
+
+        return try {
+            val contracts = getContractsByBuildingId(buildingId)
+            Log.d("ContractRepository", "Found ${contracts.size} contracts for buildingId: '$buildingId'")
+            contracts.flatMap { it.tenantIds }.distinct()
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching tenant IDs by building ID", e)
+            emptyList()
+        }
+    }
+    suspend fun getTenantsByRoomId(roomId : String) : List<String> {
+        if (roomId.isBlank()) {
+            Log.d("ContractRepository", "RoomId is blank")
+            return emptyList()
+        }
+        return try {
+            val contracts = getContractsByRoomId(roomId)
+            Log.d("ContractRepository", "Found ${contracts.size} contracts for roomId: '$roomId'")
+            contracts.flatMap { it.tenantIds }.distinct()
+        } catch (e : Exception) {
+            Log.e("ContractRepository", "Error fetching tenant IDs by room ID", e)
+            emptyList()
+        }
+    }
+
+    suspend fun getContractByTenantId(tenantId: String): Contract? {
+        if (tenantId.isBlank()) {
+            Log.d("ContractRepository", "TenantId is blank")
+            return null
+        }
+        return try {
+            val querySnapshot = collection.where {
+                all(
+                    "status" equalTo Status.ACTIVE.name,
+                    "tenantIds" contains tenantId
+                )
+            }.get()
+            if (querySnapshot.documents.isEmpty()) {
+                Log.d("ContractRepository", "No contract found for tenantId: '$tenantId'")
+                null
+            } else {
+                val contract = querySnapshot.documents.first().data<Contract>()
+                Log.d("ContractRepository", "Found contract: ${contract.contractNumber}")
+                contract.copy(id = querySnapshot.documents.first().id)
+            }
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching contract by tenant ID", e)
             null
         }
     }

@@ -1,6 +1,8 @@
 package com.example.baytro.data.room
 
 import android.util.Log
+import com.example.baytro.data.Building
+import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
@@ -9,7 +11,7 @@ import kotlinx.coroutines.flow.map
 class RoomRepository(
     db: FirebaseFirestore
 ) {
-    private val collection = db.collection("rooms_test")
+    private val collection = db.collection("rooms")
 
     companion object {
         private const val TAG = "RoomRepository"
@@ -34,20 +36,12 @@ class RoomRepository(
     }
 
     suspend fun getById(id: String): Room? {
-        return try {
-            val snapshot = collection.document(id).get()
-            if (snapshot.exists) {
-                val room = snapshot.data<Room>()
-                room.copy(id = snapshot.id)
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching room $id: ${e.message}")
-            null
-        }
+        val snapshot = collection.document(id).get()
+        return if (snapshot.exists) {
+            val b = snapshot.data<Room>()
+            b.copy(id = snapshot.id)
+        } else null
     }
-
     suspend fun add(item: Room): String {
         val docRef = collection.add(item)
         return docRef.id
