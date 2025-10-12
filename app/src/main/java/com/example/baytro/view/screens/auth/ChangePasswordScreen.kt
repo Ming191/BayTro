@@ -67,7 +67,6 @@ fun ChangePasswordScreen(
             onNewPasswordChange = viewModel::onNewPasswordChange,
             onConfirmNewPasswordChange = viewModel::onConfirmNewPasswordChange,
             onChangePasswordClicked = viewModel::changePassword,
-            onNavigateToSignOut = onNavigateToSignOut,
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -97,7 +96,6 @@ fun ChangePasswordContent(
     onNewPasswordChange: (String) -> Unit,
     onConfirmNewPasswordChange: (String) -> Unit,
     onChangePasswordClicked: () -> Unit,
-    onNavigateToSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val passwordFocus = remember { FocusRequester() }
@@ -178,19 +176,13 @@ fun ChangePasswordContent(
 
         item {
             SubmitButton(
-                text = "Send reset email",
+                text = "Submit",
                 isLoading = uiState is AuthUIState.Loading,
                 onClick = onChangePasswordClicked,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextButton(onClick = onNavigateToSignOut) {
-                Text("Back to Sign In")
-            }
         }
     }
 }
