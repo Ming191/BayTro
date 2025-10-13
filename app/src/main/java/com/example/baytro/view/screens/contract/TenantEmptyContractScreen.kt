@@ -44,7 +44,8 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun TenantEmptyContractView(
-    viewModel: TenantJoinVM = koinViewModel()
+    viewModel: TenantJoinVM = koinViewModel(),
+    onContractConfirmed: () -> Unit
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
@@ -56,6 +57,7 @@ fun TenantEmptyContractView(
             is UiState.Success -> {
                 Log.d("TenantEmptyContract", "Success state triggered")
                 Toast.makeText(context, (state as UiState.Success<String>).data, Toast.LENGTH_LONG).show()
+                onContractConfirmed()
                 viewModel.clearState()
             }
             is UiState.Error -> {

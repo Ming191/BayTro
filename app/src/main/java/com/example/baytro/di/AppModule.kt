@@ -6,10 +6,14 @@ import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
+import com.example.baytro.data.request.RequestRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.service.FptAiService
 import com.example.baytro.viewModel.AddBuildingVM
+import com.example.baytro.viewModel.request.AddRequestVM
+import com.example.baytro.viewModel.request.AssignRequestVM
+import com.example.baytro.viewModel.request.UpdateRequestVM
 import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.EditBuildingVM
 import com.example.baytro.viewModel.Room.AddRoomVM
@@ -22,8 +26,10 @@ import com.example.baytro.viewModel.auth.SignUpVM
 import com.example.baytro.viewModel.contract.AddContractVM
 import com.example.baytro.viewModel.contract.ContractDetailsVM
 import com.example.baytro.viewModel.contract.ContractListVM
+import com.example.baytro.viewModel.contract.EditContractVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
 import com.example.baytro.viewModel.dashboard.TenantDashboardVM
+import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
@@ -31,6 +37,7 @@ import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
 import com.example.baytro.viewModel.splash.SplashScreenVM
 import com.example.baytro.viewModel.splash.UploadIdCardVM
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.functions
@@ -61,7 +68,7 @@ val appModule = module {
             }
         }
     }
-    single<FirebaseFunctions> { com.google.firebase.Firebase.functions }
+    single<FirebaseFunctions> { Firebase.functions }
 }
 
 val authModule = module {
@@ -73,6 +80,7 @@ val authModule = module {
     single<FptAiService> { FptAiService(get(), get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
+    single<RequestRepository> { RequestRepository(get()) }
     single { IdCardDataViewModel() }
 
     viewModel {
@@ -168,19 +176,31 @@ val authModule = module {
 
     viewModel {
         ContractListVM(
-            get(),
-            get(),
-            get(),
-            get()
+        get(),
+        get(),
+        get(),
+        get()
         )
     }
-    viewModel { BuildingListVM(get(), get(), get(),get()) }
-    viewModel { (handle: SavedStateHandle) -> AddRoomVM( get(), get(),handle) }
-    viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), get(),handle) }
-    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), get(), get(), handle) }
-    viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), get(), handle) }
+
+    viewModel {
+        EditContractVM(
+        get(),
+        get(),
+        get(),
+        get(),
+        get(),
+    ) }
+    viewModel { RequestListVM(get(), get(), get(), get(), get(), get()) }
+    viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), handle) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
     viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
+    viewModel { AddRequestVM(get(), get(), get(), get()) }
+    viewModel { (requestId: String) -> UpdateRequestVM(get(), get(), get(), requestId) }
+    viewModel { AssignRequestVM(get()) }
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }

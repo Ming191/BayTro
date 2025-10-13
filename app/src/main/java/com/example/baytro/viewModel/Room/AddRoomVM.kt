@@ -27,7 +27,7 @@ class AddRoomVM(
     private val _addRoomFormState = MutableStateFlow(AddRoomFormState())
     val addRoomFormState: StateFlow<AddRoomFormState> = _addRoomFormState
     
-    private val _buildingName = MutableStateFlow<String>("")
+    private val _buildingName = MutableStateFlow("")
     val buildingName: StateFlow<String> = _buildingName
 
     private val _services = MutableStateFlow<List<Service>>(emptyList())

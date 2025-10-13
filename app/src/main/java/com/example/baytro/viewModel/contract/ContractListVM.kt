@@ -13,9 +13,14 @@ import com.example.baytro.data.room.RoomRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class ContractTab {
@@ -73,6 +78,29 @@ class ContractListVM(
     private val contractCache = mutableMapOf<ContractTab, List<ContractWithRoom>>()
     private var userBuildingIds: List<String> = emptyList()
     private var isInitialLoadComplete = false
+
+    // Pagination state
+    private val _itemsPerPage = 10
+    private val _currentPage = MutableStateFlow(0)
+    val currentPage: StateFlow<Int> = _currentPage.asStateFlow()
+
+    // Derived pagination streams
+    val totalPages: StateFlow<Int> = filteredContracts
+        .map { list -> if (list.isEmpty()) 0 else ((list.size - 1) / _itemsPerPage) + 1 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val paginatedContracts: StateFlow<List<ContractWithRoom>> = combine(filteredContracts, _currentPage) { list, page ->
+        val startIndex = page * _itemsPerPage
+        if (startIndex >= list.size) emptyList() else list.subList(startIndex, minOf(startIndex + _itemsPerPage, list.size))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val hasNextPage: StateFlow<Boolean> = combine(_currentPage, totalPages) { page, total ->
+        page < total - 1
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val hasPreviousPage: StateFlow<Boolean> = _currentPage
+        .map { it > 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     init {
         initializeViewModel()
@@ -138,9 +166,10 @@ class ContractListVM(
         }
 
         Log.d(TAG, "No cache for tab: $tab, fetching contracts...")
-        _contracts.value = emptyList()
-        _filteredContracts.value = emptyList()
+        // Set loading to true IMMEDIATELY to prevent empty state flicker
+        _loading.value = true
         refreshContracts()
+        _currentPage.value = 0
     }
 
     fun refreshContracts() {
@@ -149,8 +178,6 @@ class ContractListVM(
             return
         }
 
-        _contracts.value = emptyList()
-        _filteredContracts.value = emptyList()
         _loading.value = true
         _error.value = null
 
@@ -202,6 +229,7 @@ class ContractListVM(
                 _filteredContracts.value = emptyList()
             } finally {
                 _loading.value = false
+                delay(100)
             }
         }
     }
@@ -213,6 +241,7 @@ class ContractListVM(
     fun setSelectedBuildingId(buildingId: String?) {
         _selectedBuildingId.value = buildingId
         applyFilters()
+        _currentPage.value = 0
     }
 
     // ==================== Private Helper Methods ====================
@@ -224,7 +253,12 @@ class ContractListVM(
         _filteredContracts.value = _contracts.value.filter { contractWithRoom ->
             matchesSearchQuery(contractWithRoom, query) && matchesBuildingFilter(contractWithRoom, buildingId)
         }
+        _currentPage.value = 0
     }
+
+    fun nextPage() { if (hasNextPage.value) _currentPage.value += 1 }
+    fun previousPage() { if (hasPreviousPage.value) _currentPage.value -= 1 }
+    fun goToPage(page: Int) { if (page >= 0 && page < totalPages.value) _currentPage.value = page }
 
     private fun matchesSearchQuery(contractWithRoom: ContractWithRoom, query: String): Boolean {
         if (query.isEmpty()) return true

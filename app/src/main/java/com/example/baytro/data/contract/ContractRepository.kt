@@ -174,4 +174,32 @@ class ContractRepository(
             emptyList()
         }
     }
+
+    suspend fun getActiveContract(userId: String): Contract? {
+        if (userId.isBlank()) {
+            Log.d("ContractRepository", "Query skipped: userId is blank")
+            return null
+        }
+        Log.d("ContractRepository", "Querying for active contract for userId: '$userId'")
+        return try {
+            val querySnapshot = collection.where {
+                all(
+                    "tenantIds" contains userId,
+                    "status" equalTo Status.ACTIVE.name
+                )
+            }.get()
+
+            if (querySnapshot.documents.isEmpty()) {
+                Log.d("ContractRepository", "No active contract found for userId: '$userId'")
+                null
+            } else {
+                val contract = querySnapshot.documents.first().data<Contract>()
+                Log.d("ContractRepository", "Found active contract: ${contract.contractNumber}, roomId: ${contract.roomId}")
+                contract.copy(id = querySnapshot.documents.first().id)
+            }
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching active contract", e)
+            null
+        }
+    }
 }

@@ -8,12 +8,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
+import com.example.baytro.service.TenantJoinEventBus
 import com.example.baytro.view.screens.UiState
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -24,12 +26,20 @@ class TenantJoinVM(
     private val qrSessionRepository: QrSessionRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
-        private val _uiState = MutableStateFlow<UiState<String>>(UiState.Loading)
+    private val _uiState = MutableStateFlow<UiState<String>>(UiState.Idle)
     val uiState : StateFlow<UiState<String>> = _uiState
+    private var eventJob: Job? = null
 
     init {
         Log.d("TenantJoinVM", "ViewModel initialized, starting pending session check")
         checkForPendingSession()
+
+        eventJob = viewModelScope.launch {
+            TenantJoinEventBus.contractConfirmed.collect { contractId ->
+                Log.d("TenantJoinVM", "Contract confirmed via FCM: $contractId")
+                _uiState.value = UiState.Success(contractId)
+            }
+        }
     }
 
     private fun checkForPendingSession() {
@@ -81,13 +91,19 @@ class TenantJoinVM(
                 )
                 Log.d("TenantJoinVM", "Calling Firebase function with data: $data")
 
-                functions
+                val result = functions
                     .getHttpsCallable("process_qr_scan")
                     .call(data)
                     .await()
 
-                Log.d("TenantJoinVM", "Firebase function successful, setting state to Waiting")
-                _uiState.value = UiState.Waiting
+                Log.d("TenantJoinVM", "Function raw result: ${result.data}")
+
+                val success = result.data as? Map<*, *>?
+                if (success?.get("status") == "ok") {
+                    _uiState.value = UiState.Waiting
+                } else {
+                    _uiState.value = UiState.Error("Invalid response from server")
+                }
             } catch (e : Exception) {
                 Log.e("TenantJoinVM", "Error processing QR scan: ${e.message}", e)
                 _uiState.value = UiState.Error(e.message ?: "An unexpected error occurred")
@@ -124,5 +140,11 @@ class TenantJoinVM(
     fun clearState() {
         Log.d("TenantJoinVM", "clearState() called, setting state to Idle")
         _uiState.value = UiState.Idle
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        eventJob?.cancel()
+        Log.d("TenantJoinVM", "ViewModel cleared, event listener canceled")
     }
 }

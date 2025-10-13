@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.firebase.functions)
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.firebase.messaging)
+    implementation(libs.androidx.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

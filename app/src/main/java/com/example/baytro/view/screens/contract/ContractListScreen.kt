@@ -49,6 +49,7 @@ import com.example.baytro.data.Building
 import com.example.baytro.view.components.CompactSearchBar
 import com.example.baytro.view.components.ContractListSkeleton
 import com.example.baytro.view.components.DropdownSelectField
+import com.example.baytro.view.components.PaginationControls
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.ContractTab
@@ -253,6 +254,7 @@ private fun ContractListContent(
                 ) { page ->
                     if (page == selectedTabIndex) {
                         ContractListPage(
+                            viewModel = viewModel,
                             contracts = if (ownedBuildings.isEmpty()) emptyList() else filteredContracts,
                             emptyMessage = if (ownedBuildings.isEmpty()) {
                                 "No buildings found. Please add a building first."
@@ -260,7 +262,8 @@ private fun ContractListContent(
                                 "No ${tabData[page].first.lowercase()} contracts found."
                             },
                             animatedItemIds = animatedItemIds,
-                            onContractClick = onContractClick
+                            onContractClick = onContractClick,
+                            loading = viewModel.loading.collectAsState().value
                         )
                     } else {
                         Box(modifier = Modifier.fillMaxSize())
@@ -278,87 +281,101 @@ private fun ContractListContent(
 
 @Composable
 private fun ContractListPage(
+    viewModel: ContractListVM,
     contracts: List<ContractWithRoom>,
     emptyMessage: String,
     animatedItemIds: MutableSet<String>,
-    onContractClick: (String) -> Unit
+    onContractClick: (String) -> Unit,
+    loading: Boolean = false
 ) {
-    if (contracts.isEmpty()) {
+    if (loading) {
+        ContractListSkeleton(itemCount = 5)
+    } else {
         var emptyStateVisible by remember { mutableStateOf(false) }
 
-        LaunchedEffect(Unit) {
-            Log.d("ContractList", "Empty state animation")
-            emptyStateVisible = false
-            delay(100)
-            emptyStateVisible = true
-        }
+        if (contracts.isEmpty()) {
+            LaunchedEffect(Unit) {
+                Log.d("ContractList", "Empty state animation")
+                delay(50)
+                emptyStateVisible = true
+            }
 
-        AnimatedVisibility(
-            visible = emptyStateVisible,
-            enter = fadeIn(animationSpec = tween(400)),
-            exit = fadeOut(animationSpec = tween(200))
-        ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = emptyMessage)
+            AnimatedVisibility(
+                visible = emptyStateVisible,
+                enter = fadeIn(animationSpec = tween(400)),
+                exit = fadeOut(animationSpec = tween(200))
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = emptyMessage)
+                }
             }
         }
-    } else {
-        var isInitialLoad by remember { mutableStateOf(true) }
+        else {
+            val paginated by viewModel.paginatedContracts.collectAsState()
+            val currentPage by viewModel.currentPage.collectAsState()
+            val totalPages by viewModel.totalPages.collectAsState()
+            val hasNext by viewModel.hasNextPage.collectAsState()
+            val hasPrev by viewModel.hasPreviousPage.collectAsState()
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            itemsIndexed(
-                items = contracts,
-                key = { _, item -> item.contract.id }
-            ) { index, contractWithRoom ->
-                val itemId = contractWithRoom.contract.id
-                var visible by remember(itemId) {
-                    mutableStateOf(animatedItemIds.contains(itemId))
-                }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                itemsIndexed(
+                    items = paginated,
+                    key = { _, item -> item.contract.id }
+                ) { index, contractWithRoom ->
+                    val itemId = contractWithRoom.contract.id
+                    var visible by remember(itemId) {
+                        mutableStateOf(animatedItemIds.contains(itemId))
+                    }
 
-                LaunchedEffect(itemId) {
-                    if (!visible) {
-                        // Only delay for initial load
-                        if (isInitialLoad) {
-                            delay(50)
+                    LaunchedEffect(itemId) {
+                        if (!visible) {
+                            delay(50L * index.coerceAtMost(10))
+                            visible = true
+                            animatedItemIds.add(itemId)
                         }
-                        visible = true
-                        animatedItemIds.add(itemId)
+                    }
+
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { it / 3 }
+                        )
+                    ) {
+                        ContractListItem(
+                            contractWithRoom = contractWithRoom,
+                            onClick = {
+                                Log.d("NavigationCheck", "Navigating with contractId: '${contractWithRoom.contract.id}'")
+                                onContractClick(contractWithRoom.contract.id)
+                            }
+                        )
                     }
                 }
 
-                LaunchedEffect(Unit) {
-                    if (isInitialLoad && index >= 2) {
-                        isInitialLoad = false
+                if (totalPages > 1) {
+                    item {
+                        PaginationControls(
+                            currentPage = currentPage,
+                            totalPages = totalPages,
+                            hasNextPage = hasNext,
+                            hasPreviousPage = hasPrev,
+                            onNextPage = viewModel::nextPage,
+                            onPreviousPage = viewModel::previousPage,
+                            onPageClick = viewModel::goToPage
+                        )
                     }
-                }
-
-                AnimatedVisibility(
-                    visible = visible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialAlpha = 0f
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { it / 3 }
-                    )
-                ) {
-                    ContractListItem(
-                        contractWithRoom = contractWithRoom,
-                        onClick = {
-                            Log.d("NavigationCheck", "Navigating with contractId: '${contractWithRoom.contract.id}'")
-                            onContractClick(contractWithRoom.contract.id)
-                        }
-                    )
                 }
             }
         }
