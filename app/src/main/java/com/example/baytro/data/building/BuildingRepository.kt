@@ -101,4 +101,14 @@ class BuildingRepository(
             }
         }
     }
+
+    suspend fun getServicesByBuildingId(buildingId: String): List<Service> {
+        val snapshot = collection.document(buildingId).get()
+        return if (snapshot.exists) {
+            val building = snapshot.data<Building>()
+            building.services
+        } else {
+            emptyList()
+        }
+    }
 }

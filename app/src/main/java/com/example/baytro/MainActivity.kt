@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
         FirebaseAuth.getInstance().signOut()
         val currentUser = FirebaseAuth.getInstance().currentUser
         val startDestination = if (currentUser != null) {
-            Screens.MaintenanceRequestList.route
+            Screens.MainScreen.route
         } else {
             Screens.SignIn.route
         }
