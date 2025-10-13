@@ -21,21 +21,39 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
         route = Screens.AddRoom.route,
         arguments = Screens.AddRoom.arguments
     ) {
-        AddRoomScreen(navController = navController)
+        AddRoomScreen(
+            backToRoomListScreen = {
+                navController.popBackStack()
+            }
+        )
     }
 
     composable(
         route = Screens.EditRoom.route,
         arguments = Screens.EditRoom.arguments
     ) {
-        EditRoomScreen(navController = navController)
+        EditRoomScreen(
+            backToRoomListScreen = {
+                navController.popBackStack()
+            }
+        )
     }
 
     composable(
         route = Screens.RoomDetails.route,
         arguments = Screens.RoomDetails.arguments
     ) {
-        RoomDetailsScreen(navController = navController)
+        RoomDetailsScreen(
+            onAddContractClick = { roomId ->
+                navController.navigate(Screens.AddContract.createRoute(roomId))
+            },
+            onEditRoomOnClick = {
+                navController.navigate(Screens.EditRoom.route)
+            },
+            onBackClick = {
+                navController.popBackStack()
+            }
+        )
     }
 }
 

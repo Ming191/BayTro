@@ -1,5 +1,6 @@
     package com.example.baytro.view.screens.room
 
+    import android.content.Context
     import android.util.Log
     import android.widget.Toast
     import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,7 @@
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.draw.alpha
+    import androidx.compose.ui.platform.LocalContext
     import androidx.compose.ui.unit.dp
     import androidx.navigation.NavHostController
     import com.example.baytro.data.room.Furniture
@@ -30,12 +32,13 @@
 
     @Composable
     fun EditRoomScreen(
-        navController: NavHostController,
+        backToRoomListScreen: () -> Unit,
         viewModel: EditRoomVM = koinViewModel(),
     ) {
         val room by viewModel.room.collectAsState()
         val uiState by viewModel.editRoomUIState.collectAsState()
         val formState by viewModel.editRoomFormState.collectAsState()
+        val context : Context = LocalContext.current
         Log.d("EditRoomScreen", "roomInterior: ${room?.interior}")
         // --- State for each TextField ---
         val buildingName: (String) -> Unit =  viewModel::onBuildingNameChange
@@ -49,11 +52,11 @@
             viewModel.loadRoom()
             if (uiState is UiState.Success) {
                 Toast.makeText(
-                    navController.context,
+                    context,
                     "Room edited successfully!",
                     Toast.LENGTH_SHORT
                 ).show()
-                navController.popBackStack()
+                backToRoomListScreen
             }
         }
 

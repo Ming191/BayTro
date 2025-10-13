@@ -33,7 +33,7 @@ class RoomDetailsVM(
     private val _tenants = MutableStateFlow<List<User>>(emptyList())
     val tenants: StateFlow<List<User>> = _tenants
 
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _isDeleteOnClicked = MutableStateFlow(false)

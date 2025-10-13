@@ -126,6 +126,7 @@ val authModule = module {
             get(), get(),
             get(),
             get(),
+            get(),
             get()
         )
     }

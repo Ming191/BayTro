@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.room
 
+import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -44,7 +46,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun AddRoomScreen(
-    navController: NavHostController,
+    backToRoomListScreen: () -> Unit,
     viewModel: AddRoomVM = koinViewModel(),
 ) {
     // --- State for each TextField ---
@@ -58,16 +60,17 @@ fun AddRoomScreen(
     val formState by viewModel.addRoomFormState.collectAsState()
     val buildingName by viewModel.buildingName.collectAsState()
     val services by viewModel.services.collectAsState()
+    val context : Context = LocalContext.current
     Log.d("AddRoomScreen", "services: ${services.size}")
 
     LaunchedEffect(uiState) {
         if (uiState is UiState.Success) {
             Toast.makeText(
-                navController.context,
+                context,
                 "Room added successfully!",
                 Toast.LENGTH_SHORT
             ).show()
-            navController.popBackStack()
+            backToRoomListScreen()
         }
     }
 
