@@ -16,7 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.example.baytro.auth.ChangePasswordFormState
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
-import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.auth.ChangePasswordVM
 import org.koin.compose.viewmodel.koinViewModel
@@ -67,6 +66,7 @@ fun ChangePasswordScreen(
             onNewPasswordChange = viewModel::onNewPasswordChange,
             onConfirmNewPasswordChange = viewModel::onConfirmNewPasswordChange,
             onChangePasswordClicked = viewModel::changePassword,
+            onNavigateToSignOut = onNavigateToSignOut,
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -96,6 +96,7 @@ fun ChangePasswordContent(
     onNewPasswordChange: (String) -> Unit,
     onConfirmNewPasswordChange: (String) -> Unit,
     onChangePasswordClicked: () -> Unit,
+    onNavigateToSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val passwordFocus = remember { FocusRequester() }
@@ -103,10 +104,12 @@ fun ChangePasswordContent(
     val confirmNewPasswordFocus = remember { FocusRequester() }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
         item {
-            RequiredTextField(
+            PasswordTextField(
                 value = formState.password,
                 onValueChange = onPasswordChange,
                 label = "Password *",
@@ -129,11 +132,11 @@ fun ChangePasswordContent(
         }
 
         item {
-            RequiredTextField(
+            PasswordTextField(
                 value = formState.newPassword,
                 onValueChange = onNewPasswordChange,
                 label = "New password *",
-                isError = formState.newPasswordError is ValidationResult.Error,
+                isError = formState.newPasswordError is ValidationResult.Error|| formState.newPasswordStrengthError is ValidationResult.Error,
                 errorMessage = formState.newPasswordError.let {
                     if (it is ValidationResult.Error) it.message else null
                 },
@@ -152,7 +155,7 @@ fun ChangePasswordContent(
         }
 
         item {
-            RequiredTextField(
+            PasswordTextField(
                 value = formState.confirmNewPassword,
                 onValueChange = onConfirmNewPasswordChange,
                 label = "Confirm password *",
@@ -178,7 +181,10 @@ fun ChangePasswordContent(
             SubmitButton(
                 text = "Submit",
                 isLoading = uiState is AuthUIState.Loading,
-                onClick = onChangePasswordClicked,
+                onClick = {
+                    onChangePasswordClicked
+                    onNavigateToSignOut
+                          },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)

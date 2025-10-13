@@ -35,40 +35,42 @@ data class ChangePasswordFormState(
 
     val newPassword: String = "",
     val newPasswordError: ValidationResult = ValidationResult.Success,
+    val newPasswordStrengthError:  ValidationResult = ValidationResult.Success,
 
     val confirmNewPassword: String = "",
     val confirmNewPasswordError: ValidationResult = ValidationResult.Success
 )
 
 sealed class RoleFormState {
-    data class Tenant(val form: EditTenantInformationFormState) : RoleFormState()
-    data class Landlord(val form: EditLandlordInformationFormState) : RoleFormState()
+    data class Tenant(
+        val idCardNumber: String = "",
+        val idCardImageFrontUrl: String? = null,
+        val idCardImageBackUrl: String? = null,
+        val idCardIssueDate: String = "",
+    ) : RoleFormState()
+    data class Landlord(
+        val bankCode: String = "",
+        val bankAccountNumber: String = ""
+    ) : RoleFormState()
 }
-
-data class EditTenantInformationFormState (
-    val occupation: String = "",
-    val idCardNumber: String = "",
-    val idCardImageFrontUrl: String? = null,
-    val idCardImageBackUrl: String? = null,
-    val idCardIssueDate: String = "",
-    val emergencyContact: String = ""
-)
-
-data class EditLandlordInformationFormState (
-    val bankCode: String = "",
-    val bankAccountNumber: String = ""
-)
 
 data class EditPersonalInformationFormState(
     val fullName: String = "",
-    val dateOfBirth: String = "",
-    val address: String = "",
-    val gender: Gender? = null,
-    val phoneNumber: String = "",
-    val email: String = "",
-    val imgProfile: String = "",
-    val role: Role? = null,
+    val fullNumberError: ValidationResult = ValidationResult.Success,
 
+    val dateOfBirth: String = "",
     val dateOfBirthError: ValidationResult = ValidationResult.Success,
-    val phoneNumberError: ValidationResult = ValidationResult.Success
+
+    val address: String = "",
+    val addressError: ValidationResult = ValidationResult.Success,
+
+    val gender: Gender? = null,
+    val genderError: ValidationResult = ValidationResult.Success,
+
+    val phoneNumber: String = "",
+    val phoneNumberError: ValidationResult = ValidationResult.Success,
+
+    val email: String = "",
+    val role: Role? = null,
+    val profileImgUrl: String? = null
 )

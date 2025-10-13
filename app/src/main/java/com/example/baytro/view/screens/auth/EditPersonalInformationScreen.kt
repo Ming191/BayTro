@@ -23,15 +23,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.baytro.auth.EditPersonalInformationFormState
+import com.example.baytro.auth.RoleFormState
 import com.example.baytro.data.user.Gender
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.ChoiceSelection
+import com.example.baytro.view.components.DividerWithSubhead
+import com.example.baytro.view.components.IDCardImages
 import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.auth.EditPersonalInformationVM
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -43,8 +46,8 @@ fun EditPersonalInformationScreen (
     onNavigateToPersonalInformation: () -> Unit,
 ) {
     val formState by viewModel.editPersonalInformationFormState.collectAsState()
+    val roleFormState by viewModel.editRoleInformationFormState.collectAsState()
     val uiState by viewModel.editPersonalInformationUIState.collectAsState()
-    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         Log.d("EditPersonalInformationScreen", "Screen launched - Checking if need to load")
@@ -75,13 +78,17 @@ fun EditPersonalInformationScreen (
         ) { paddingValues ->
             EditPersonalInformationContent(
                 formState = formState,
+                roleFormState = roleFormState,
                 uiState = uiState,
                 onFullNameChange = viewModel::onFullNameChange,
                 onDateOfBirthChange = viewModel::onDateOfBirthChange,
                 onAddressChange = viewModel::onAddressChange,
                 onPhoneNumberChange = viewModel::onPhoneNumberChange,
-                onEmailChange = viewModel::onEmailChange,
                 onGenderChange = viewModel::onGenderChange,
+                onBankCodeChange = viewModel::onBankCodeChange,
+                onBankAccountNumberChange = viewModel::onBankAccountNumberChange,
+                onChangePersonalInformationClicked = viewModel:: onChangePersonalInformationClicked,
+                onNavigateToPersonalInformation = onNavigateToPersonalInformation,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -91,16 +98,19 @@ fun EditPersonalInformationScreen (
 @Composable
 fun EditPersonalInformationContent(
     formState: EditPersonalInformationFormState,
+    roleFormState: RoleFormState?,
     uiState: AuthUIState,
     onFullNameChange: (String) -> Unit,
     onDateOfBirthChange: (String) -> Unit,
     onAddressChange: (String) -> Unit,
     onPhoneNumberChange: (String) -> Unit,
-    onEmailChange: (String) -> Unit,
     onGenderChange: (Gender) -> Unit,
-    modifier: Modifier =Modifier
+    onBankCodeChange: (String) -> Unit,
+    onBankAccountNumberChange: (String) -> Unit,
+    onChangePersonalInformationClicked: () -> Unit,
+    onNavigateToPersonalInformation: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -201,7 +211,7 @@ fun EditPersonalInformationContent(
         item {
             RequiredTextField (
                 value = formState.email,
-                onValueChange = onEmailChange,
+                onValueChange = {},
                 label = "Email",
                 isError = false,
                 errorMessage = null,
@@ -214,6 +224,128 @@ fun EditPersonalInformationContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(16.dp)
+            )
+        }
+
+        when (roleFormState) {
+            is RoleFormState.Tenant -> {
+                item {
+                    DividerWithSubhead(
+                        subhead = "ID card information"
+                    )
+
+                    IDCardImages(
+                        idCardFrontImageUrl = roleFormState.idCardImageFrontUrl,
+                        idCardBackImageUrl = roleFormState.idCardImageBackUrl
+                    )
+
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                    )
+                }
+
+                item {
+                    RequiredTextField(
+                        value = roleFormState.idCardNumber,
+                        onValueChange = {},
+                        label = "Id card number",
+                        isError = false,
+                        errorMessage = null,
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                    )
+                }
+
+                item {
+                    RequiredTextField(
+                        value = roleFormState.idCardIssueDate,
+                        onValueChange = {},
+                        label = "Issue date",
+                        isError = false,
+                        errorMessage = null,
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
+
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                    )
+                }
+            }
+
+            is RoleFormState.Landlord -> {
+                item {
+                    DividerWithSubhead(
+                        subhead = "Bank information"
+                    )
+
+                    RequiredTextField(
+                        value = roleFormState.bankCode,
+                        onValueChange = onBankCodeChange,
+                        label = "Bank",
+                        isError = false,
+                        errorMessage = null,
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
+
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                    )
+                }
+
+                item {
+                    RequiredTextField(
+                        value = roleFormState.bankAccountNumber,
+                        onValueChange = onBankAccountNumberChange,
+                        label = "Bank Account Number",
+                        isError = false,
+                        errorMessage = null,
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
+
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                    )
+                }
+            }
+
+            else -> {
+                item {
+                    Text("fail to get role information")
+                }
+            }
+        }
+
+        item {
+            SubmitButton(
+                text = "Submit",
+                isLoading = uiState is AuthUIState.Loading,
+                onClick = {
+                    onChangePersonalInformationClicked
+                    onNavigateToPersonalInformation
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
             )
         }
     }
