@@ -34,14 +34,15 @@ fun TenantDashboard(
     viewModel: TenantDashboardVM = koinViewModel(),
     onNavigateToEmptyContract: () -> Unit = {},
     onNavigateToContractDetails: (String) -> Unit = {},
-    onNavigateToRequestList: () -> Unit = {}
+    onNavigateToRequestList: () -> Unit = {},
+    onNavigateToMeterReading: (String, String, String) -> Unit = { _, _, _ -> },
+    onNavigateToMeterHistory: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
     Log.d("TenantDashboard", "Composable recomposed - isLoading: ${uiState.isLoading}, hasError: ${uiState.error != null}, hasContract: ${uiState.contract != null}, hasUser: ${uiState.user != null}")
 
     LaunchedEffect(uiState.contract, uiState.isLoading) {
-        if (!uiState.isLoading && uiState.contract == null && uiState.error != null) {
+        if (!uiState.isLoading && uiState.contract == null) {
             Log.d("TenantDashboard", "No active contract found, navigating to empty contract screen")
             onNavigateToEmptyContract()
         }
@@ -79,6 +80,14 @@ fun TenantDashboard(
             onRequestMaintenanceClick = {
                 Log.d("TenantDashboard", "Navigating to maintenance request list")
                 onNavigateToRequestList()
+            },
+            onMeterReadingClick = {
+                Log.d("TenantDashboard", "Navigating to meter reading screen")
+                onNavigateToMeterReading(contract.id, contract.roomId, contract.landlordId)
+            },
+            onMeterHistoryClick = {
+                Log.d("TenantDashboard", "Navigating to meter reading history")
+                onNavigateToMeterHistory(contract.id)
             }
         )
     } else {
@@ -98,7 +107,9 @@ fun TenantDashboardContent(
     deposit: Int = 0,
     contractId: String = "",
     onViewDetailsClick: (String) -> Unit = {},
-    onRequestMaintenanceClick: () -> Unit = {}
+    onRequestMaintenanceClick: () -> Unit = {},
+    onMeterReadingClick: () -> Unit = {},
+    onMeterHistoryClick: () -> Unit = {}
 ) {
     var isVisible by remember { mutableStateOf(false) }
 
@@ -195,7 +206,10 @@ fun TenantDashboardContent(
                                     animationSpec = tween(600, easing = FastOutSlowInEasing)
                                 )
                     ) {
-                        ActionButtonsSection()
+                        ActionButtonsSection(
+                            onMeterReadingClick = onMeterReadingClick,
+                            onMeterHistoryClick = onMeterHistoryClick
+                        )
                     }
                 }
 
@@ -650,7 +664,10 @@ fun UtilityCard(
 }
 
 @Composable
-fun ActionButtonsSection() {
+fun ActionButtonsSection(
+    onMeterReadingClick: () -> Unit = {},
+    onMeterHistoryClick: () -> Unit = {}
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -671,7 +688,10 @@ fun ActionButtonsSection() {
                 Text("Payments", fontWeight = FontWeight.SemiBold)
             }
             FilledTonalButton(
-                onClick = { },
+                onClick = {
+                    Log.d("ActionButtonsSection", "History button clicked!")
+                    onMeterHistoryClick()
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(vertical = 16.dp)
@@ -687,7 +707,7 @@ fun ActionButtonsSection() {
         }
 
         Button(
-            onClick = { },
+            onClick = onMeterReadingClick,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             contentPadding = PaddingValues(vertical = 16.dp)

@@ -245,7 +245,7 @@ fun BuildingCard(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        "View Building Details",
+                        "View building details",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )

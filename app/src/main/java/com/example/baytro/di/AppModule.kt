@@ -5,12 +5,15 @@ import com.example.baytro.auth.FirebaseAuthRepository
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.contract.ContractRepository
+import com.example.baytro.data.meter_reading.MeterReadingRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.request.RequestRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.service.FptAiService
+import com.example.baytro.service.MeterReadingApiService
+import com.example.baytro.service.MeterReadingCloudFunctions
 import com.example.baytro.viewModel.AddBuildingVM
 import com.example.baytro.viewModel.request.AddRequestVM
 import com.example.baytro.viewModel.request.AssignRequestVM
@@ -30,6 +33,9 @@ import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.EditContractVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
 import com.example.baytro.viewModel.dashboard.TenantDashboardVM
+import com.example.baytro.viewModel.dashboard.MeterReadingVM
+import com.example.baytro.viewModel.meter_reading.MeterReadingHistoryVM
+import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsVM
 import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
@@ -79,9 +85,12 @@ val authModule = module {
     single<MediaRepository> { MediaRepository(get()) }
     single<RoomRepository> { RoomRepository(get()) }
     single<FptAiService> { FptAiService(get(), get()) }
+    single<MeterReadingApiService> { MeterReadingApiService(get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
     single<RequestRepository> { RequestRepository(get()) }
+    single<MeterReadingRepository> { MeterReadingRepository(get()) }
+    single<MeterReadingCloudFunctions> { MeterReadingCloudFunctions(get()) }
     single { IdCardDataViewModel() }
     single { UserRoleCache(androidContext()) }
 
@@ -201,6 +210,9 @@ val authModule = module {
     viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), handle) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
     viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
+    viewModel { MeterReadingVM(get(), get(), get(), get(), get()) }
+    viewModel { PendingMeterReadingsVM(get(), get(), get()) }
+    viewModel { MeterReadingHistoryVM(get()) }
     viewModel { AddRequestVM(get(), get(), get(), get()) }
     viewModel { (requestId: String) -> UpdateRequestVM(get(), get(), get(), requestId) }
     viewModel { AssignRequestVM(get()) }
