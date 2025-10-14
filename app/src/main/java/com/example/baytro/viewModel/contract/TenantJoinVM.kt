@@ -92,7 +92,7 @@ class TenantJoinVM(
                 Log.d("TenantJoinVM", "Calling Firebase function with data: $data")
 
                 val result = functions
-                    .getHttpsCallable("process_qr_scan")
+                    .getHttpsCallable("processQrScan")
                     .call(data)
                     .await()
 

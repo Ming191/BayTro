@@ -24,7 +24,8 @@ class NewLandlordUserVM(
     private val context: Context,
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val mediaRepository: MediaRepository
+    private val mediaRepository: MediaRepository,
+    private val roleCache: com.example.baytro.data.user.UserRoleCache
 ) : ViewModel() {
     private val _newLandlordUserFormState = MutableStateFlow(NewLandlordUserFormState())
     val newLandlordUserFormState: StateFlow<NewLandlordUserFormState> = _newLandlordUserFormState
@@ -165,6 +166,14 @@ class NewLandlordUserVM(
 
                 userRepository.addWithId(user.id, user)
                 Log.d("NewLandlordUserVM", "User saved successfully")
+
+                // Cache the user role for faster app startup
+                Log.d("NewLandlordUserVM", "=== CACHING ROLE TYPE ===")
+                Log.d("NewLandlordUserVM", "User ID: ${authUser.uid}")
+                Log.d("NewLandlordUserVM", "Role: Landlord")
+                roleCache.setRoleType(authUser.uid, landlordRole)
+                Log.d("NewLandlordUserVM", "✅ User role cached successfully - future app launches will be faster!")
+                Log.d("NewLandlordUserVM", "=========================")
 
                 _newLandlordUserUIState.value = UiState.Success(user)
             } catch (e: Exception) {

@@ -206,11 +206,11 @@ fun BuildingCard(
                         modifier = Modifier.padding(4.dp)
                     ) {
                         DropdownMenuItem(
-                            text = { 
+                            text = {
                                 Text(
                                     "Edit",
                                     style = MaterialTheme.typography.bodyMedium
-                                ) 
+                                )
                             },
                             onClick = {
                                 showMenu = false
@@ -226,11 +226,11 @@ fun BuildingCard(
                             }
                         )
                         DropdownMenuItem(
-                            text = { 
+                            text = {
                                 Text(
                                     "Delete",
                                     style = MaterialTheme.typography.bodyMedium
-                                ) 
+                                )
                             },
                             onClick = {
                                 showMenu = false
@@ -305,7 +305,7 @@ fun BuildingCard(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        "View Building",
+                        "View building details",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )

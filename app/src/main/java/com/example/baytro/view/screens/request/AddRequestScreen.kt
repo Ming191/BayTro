@@ -1,6 +1,5 @@
 package com.example.baytro.view.screens.request
 
-import android.R.attr.bottom
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -10,19 +9,21 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.BottomAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,7 +45,6 @@ import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.request.AddRequestVM
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
-import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,6 +93,21 @@ fun AddRequestScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(text = "Add Request")
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    }
+                )
+            },
             bottomBar = {
                 AnimatedVisibility(
                     visible = buttonsVisible,
@@ -112,8 +127,7 @@ fun AddRequestScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = 8.dp)
+                            .padding(16.dp)
                     ) {
                         SubmitButton(
                             text = "Submit Request",
@@ -134,10 +148,7 @@ fun AddRequestScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues = PaddingValues(
-                        top = innerPadding.calculateTopPadding()-32.dp,
-                        bottom = innerPadding.calculateBottomPadding(),
-                    ))
+                    .padding(innerPadding)
                     .padding(16.dp)
             ) {
                 item {

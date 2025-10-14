@@ -113,4 +113,37 @@ class MediaRepository (
             tempFile
         }
     }
+
+    /**
+     * Uploads an image from URI to Firebase Storage.
+     *
+     * @param uri The URI of the image to upload.
+     * @param path The storage path where the image will be stored.
+     * @return The download URL of the uploaded image.
+     * @throws Exception if the upload fails.
+     */
+    suspend fun uploadImageFromUri(uri: Uri, path: String): String {
+        return try {
+            val storageRef = storage.reference.child(path)
+            storageRef.putFile(uri).await()
+            storageRef.downloadUrl.await().toString()
+        } catch (e: Exception) {
+            throw Exception("Failed to upload image: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Deletes an image from Firebase Storage using its download URL.
+     *
+     * @param downloadUrl The download URL of the image to delete.
+     * @throws Exception if the deletion fails.
+     */
+    suspend fun deleteImage(downloadUrl: String) {
+        try {
+            val storageRef = storage.getReferenceFromUrl(downloadUrl)
+            storageRef.delete().await()
+        } catch (e: Exception) {
+            throw Exception("Failed to delete image: ${e.message}", e)
+        }
+    }
 }

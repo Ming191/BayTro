@@ -8,21 +8,61 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.example.baytro.data.user.Role
+import com.example.baytro.data.user.UserRepository
+import com.example.baytro.data.user.UserRoleCache
+import com.example.baytro.data.user.UserRoleState
 import com.example.baytro.navigation.AppNavigation
 import com.example.baytro.navigation.Screens
 import com.example.baytro.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
+    private val userRepository: UserRepository by inject()
+    private val roleCache: UserRoleCache by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        FirebaseAuth.getInstance().signOut()
+
         val currentUser = FirebaseAuth.getInstance().currentUser
-        val startDestination = if (currentUser != null) {
-            Screens.MainScreen.route
+        val startDestination: String
+
+        // Load user role synchronously BEFORE setContent
+        if (currentUser != null) {
+            runBlocking {
+                val cachedRoleType = roleCache.getRoleType(currentUser.uid)
+
+                if (cachedRoleType != null) {
+                    val tempRole = if (cachedRoleType == "Tenant") {
+                        Role.Tenant("", "", "", "", "", "") as Role
+                    } else {
+                        Role.Landlord("", "") as Role
+                    }
+                    UserRoleState.setRole(tempRole)
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val user = userRepository.getById(currentUser.uid)
+                        user?.role?.let { UserRoleState.setRole(it) }
+                    }
+                } else {
+                    val user = userRepository.getById(currentUser.uid)
+                    UserRoleState.setRole(user?.role)
+
+                    user?.role?.let { role ->
+                        roleCache.setRoleType(currentUser.uid, role)
+                    }
+                }
+            }
+            startDestination = Screens.MainScreen.route
         } else {
-            Screens.SignIn.route
+            UserRoleState.clearRole()
+            startDestination = Screens.SignIn.route
         }
 
         setContent {
@@ -31,11 +71,14 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation(
-                        startDestination = startDestination
-                    )
+                    AppNavigation(startDestination = startDestination)
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        UserRoleState.clearRole()
     }
 }

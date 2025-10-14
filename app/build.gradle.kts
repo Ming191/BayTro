@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.ai)
     implementation(libs.firebase.auth)
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
 
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation("com.google.firebase:firebase-storage")
@@ -129,11 +130,11 @@ dependencies {
     implementation("io.insert-koin:koin-androidx-compose:4.1.1")
 
     // Ktor core
-    implementation("io.ktor:ktor-client-core:3.3.0")
-    implementation("io.ktor:ktor-client-android:3.3.0")
-    implementation("io.ktor:ktor-client-content-negotiation:3.3.0")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.0")
-    implementation("io.ktor:ktor-client-logging:3.3.0")
+    implementation("io.ktor:ktor-client-core:3.3.1")
+    implementation("io.ktor:ktor-client-android:3.3.1")
+    implementation("io.ktor:ktor-client-content-negotiation:3.3.1")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.1")
+    implementation("io.ktor:ktor-client-logging:3.3.1")
 
     //zxing barcode scanner
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
