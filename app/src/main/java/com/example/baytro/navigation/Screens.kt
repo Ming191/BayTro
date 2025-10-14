@@ -29,7 +29,12 @@ sealed class Screens(val route: String, val title: String) {
     object AddService : Screens("add_service_screen", "Add Service")
     object NewLandlordUser : Screens("new_landlord_user_screen", "New Landlord")
     object NewTenantUser : Screens("new_tenant_user_screen", "New Tenant")
-    object AddContract : Screens("add_contract_screen", "Add Contract")
+    object AddContract : Screens("add_contract_screen/{$ARG_ROOM_ID}", "Add Contract") {
+        val arguments = listOf(
+            navArgument(ARG_ROOM_ID) { type = NavType.StringType }
+        )
+        fun createRoute(roomId: String) = "add_contract_screen/$roomId"
+    }
     object UploadIdCard : Screens("upload_id_card_screen", "Upload ID Card")
     object TenantEmptyContract : Screens("tenant_empty_contract_screen", "Contract")
     object ImportBuildingsRooms : Screens("import_buildings_rooms", "Import Buildings & Rooms")

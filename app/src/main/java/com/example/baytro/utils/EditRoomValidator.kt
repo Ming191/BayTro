@@ -2,9 +2,8 @@ package com.example.baytro.utils
 
 import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.room.Room
-import com.example.baytro.data.room.RoomRepository
 
-object AddRoomValidator {
+object EditRoomValidator {
     fun validateBuildingName(buildingName: String): String? {
         return if (buildingName.isBlank()) "Building name is required" else null
     }
