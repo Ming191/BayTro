@@ -190,13 +190,13 @@ fun BuildingCard(
                     ) {
                         IconButton(
                             onClick = { showMenu = true },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
                                 contentDescription = "More options",
                                 tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
@@ -240,7 +240,7 @@ fun BuildingCard(
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -305,7 +305,7 @@ fun BuildingCard(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        "View Building Details",
+                        "View Building",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )

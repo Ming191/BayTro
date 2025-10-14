@@ -332,6 +332,7 @@ fun ViewBuildingDetails(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(8.dp))
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
             verticalAlignment = Alignment.Top,

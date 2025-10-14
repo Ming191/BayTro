@@ -23,16 +23,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -379,18 +379,18 @@ private fun BuildingListContent(
                     ) {
                         var showDeleteConfirm by remember(itemId) { mutableStateOf(false) }
                         if (showDeleteConfirm) {
-                            androidx.compose.material3.AlertDialog(
+                            AlertDialog(
                                 onDismissRequest = { showDeleteConfirm = false },
                                 title = { Text("Delete building") },
                                 text = { Text("Are you sure you want to delete this building? This action cannot be undone.") },
                                 confirmButton = {
-                                    androidx.compose.material3.TextButton(onClick = {
+                                    TextButton(onClick = {
                                         showDeleteConfirm = false
                                         viewModel.deleteBuilding(itemId)
                                     }) { Text("Delete") }
                                 },
                                 dismissButton = {
-                                    androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
                                 }
                             )
                         }
