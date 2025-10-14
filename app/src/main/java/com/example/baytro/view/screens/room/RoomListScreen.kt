@@ -83,7 +83,7 @@ fun ViewBuildingTabRow(
     navController : NavHostController,
     building : Building?,
     onEditBuilding: (String) -> Unit,
-    onDeleteBuilding: (String) -> Unit
+    onDeleteBuilding: (String) -> Unit,
     buildingTenants : List<String>,
     rooms : List<Room>
 ) {
@@ -116,7 +116,9 @@ fun ViewBuildingTabRow(
                     building = building,
                     floors = floors,
                     onEdit = { building?.id?.let(onEditBuilding) },
-                    onDelete = { building?.id?.let(onDeleteBuilding) }
+                    onDelete = { building?.id?.let(onDeleteBuilding) },
+                    buildingTenants = buildingTenants,
+                    rooms = rooms
                 )
             }
         }
@@ -215,8 +217,8 @@ fun ViewBuildingDetails(
     building: Building?,
     floors: List<Floor>,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
-    buildingTenant: List<String>,
+    onDelete: () -> Unit,
+    buildingTenants: List<String>,
     rooms : List<Room>
 ) {
     Log.d("BuildingDetails", "BuildingName: ${building?.name}")
@@ -233,7 +235,7 @@ fun ViewBuildingDetails(
         CardComponent(
             infoMap = mapOf(
                 "Num.Rooms" to totalRooms.toString(),
-                "Num.Tenants" to buildingTenant.size.toString(),
+                "Num.Tenants" to buildingTenants.size.toString(),
                 "Num.Floors" to (building?.floor?.toString() ?: "-"),
                 "Address" to (building?.address ?: "-"),
                 "Billing date" to (building?.billingDate?.toString() ?: "-"),
@@ -387,7 +389,7 @@ fun RoomListScreen(
         navController = navController,
         building = building,
         onEditBuilding = { id -> navController.navigate(Screens.BuildingEdit.createRoute(id)) },
-        onDeleteBuilding = { id -> viewModel.deleteBuilding(id) }
+        onDeleteBuilding = { id -> viewModel.deleteBuilding(id) },
         buildingTenants = buildingTenants,
         rooms = rooms
     )

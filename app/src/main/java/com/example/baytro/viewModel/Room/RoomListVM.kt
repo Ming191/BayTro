@@ -72,6 +72,10 @@ class RoomListVM(
                 buildingRepository.delete(id)
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
     fun fetchBuildingTenants() {
         viewModelScope.launch {
             try {
