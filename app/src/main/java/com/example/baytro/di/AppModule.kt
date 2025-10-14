@@ -29,6 +29,7 @@ import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.EditContractVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
 import com.example.baytro.viewModel.dashboard.TenantDashboardVM
+import com.example.baytro.viewModel.importExcel.ImportBuildingRoomVM
 import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
@@ -176,21 +177,21 @@ val authModule = module {
 
     viewModel {
         ContractListVM(
-        get(),
-        get(),
-        get(),
-        get()
+            get(),
+            get(),
+            get(),
+            get()
         )
     }
 
     viewModel {
         EditContractVM(
-        get(),
-        get(),
-        get(),
-        get(),
-        get(),
-    ) }
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+        ) }
     viewModel { RequestListVM(get(), get(), get(), get(), get(), get()) }
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), get(),handle) }
@@ -201,6 +202,14 @@ val authModule = module {
     viewModel { AddRequestVM(get(), get(), get(), get()) }
     viewModel { (requestId: String) -> UpdateRequestVM(get(), get(), get(), requestId) }
     viewModel { AssignRequestVM(get()) }
+    viewModel {
+        ImportBuildingRoomVM(
+            androidContext(),
+            get(),
+            get(),
+            get()
+        )
+    }
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }

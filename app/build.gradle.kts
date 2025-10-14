@@ -55,6 +55,21 @@ android {
         compose = true
         buildConfig = true
     }
+    packaging {
+        resources {
+            // Exclude duplicate and unnecessary metadata from POI and transitive deps
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*.kotlin_module",
+                "META-INF/versions/**"
+            )
+        }
+    }
     kotlin {
         jvmToolchain(17)
     }
@@ -122,4 +137,7 @@ dependencies {
 
     //zxing barcode scanner
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // Excel (XLSX) parsing - lightweight Apache POI for Android
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
 }

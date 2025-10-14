@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
@@ -21,13 +22,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -41,6 +46,7 @@ import com.example.baytro.view.components.RequiredTextFieldRealTime
 import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
+import com.example.baytro.utils.Utils
 import com.example.baytro.viewModel.Room.AddRoomVM
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -102,6 +108,7 @@ fun AddRoomScreen(
                 label = "Room number",
                 isError = formState.roomNumberError != null,
                 errorMessage = formState.roomNumberError,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp)
@@ -115,6 +122,7 @@ fun AddRoomScreen(
                 label = "Floor",
                 isError = formState.floorError != null,
                 errorMessage = formState.floorError,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp)
@@ -128,6 +136,7 @@ fun AddRoomScreen(
                 label = "Size",
                 isError = formState.sizeError != null,
                 errorMessage = formState.sizeError,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp)
@@ -135,12 +144,18 @@ fun AddRoomScreen(
         }
 
         item {
+            var displayValue by remember { mutableStateOf("") }
             RequiredTextField(
-                value = formState.rentalFeeUI,
-                onValueChange = defaultRentalFee,
+                value = displayValue,
+                onValueChange = { newValue ->
+                    val numericValue = Utils.parseVND(newValue)
+                    displayValue = Utils.formatVND(numericValue)
+                    defaultRentalFee(numericValue)
+                },
                 label = "Default rental fee",
                 isError = formState.rentalFeeError != null,
                 errorMessage = formState.rentalFeeError,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp)
