@@ -117,6 +117,7 @@ val authModule = module {
             get(),
             get(),
             get(),
+            get(),
             get()
         )
     }
@@ -148,6 +149,7 @@ val authModule = module {
             get(),
             get(),
             get(),
+            get()
         )
     }
     viewModel {
@@ -230,5 +232,5 @@ val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }
     single<RoomRepository> { RoomRepository(get()) }
     viewModel { ServiceListVM(get(), get()) }
-    viewModel { AddServiceVM(get(), get(), get()) }
+    viewModel {  (handle: SavedStateHandle) -> AddServiceVM(get(),get(),get(), handle) }
 }
