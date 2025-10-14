@@ -7,9 +7,12 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.background
+import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,7 +38,6 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.Divider
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -57,7 +59,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -343,21 +344,21 @@ fun ViewBuildingDetails(
         ) {
             ButtonComponent(text = "Edit", onButtonClick = { onEdit() })
             Spacer(Modifier.width(8.dp))
-            var showDeleteConfirm by androidx.compose.runtime.mutableStateOf(false)
+            var showDeleteConfirm by remember { mutableStateOf(false) }
             if (showDeleteConfirm) {
-                androidx.compose.material3.AlertDialog(
+                AlertDialog(
                     onDismissRequest = { showDeleteConfirm = false },
-                    title = { androidx.compose.material3.Text("Delete building") },
-                    text = { androidx.compose.material3.Text("Are you sure you want to delete this building? This action cannot be undone.") },
+                    title = { Text("Delete building") },
+                    text = { Text("Are you sure you want to delete this building?") },
                     confirmButton = {
-                        androidx.compose.material3.TextButton(onClick = {
+                        TextButton(onClick = {
                             showDeleteConfirm = false
                             onDelete()
                             navController.popBackStack()
-                        }) { androidx.compose.material3.Text("Delete") }
+                        }) { Text("Delete") }
                     },
                     dismissButton = {
-                        androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) { androidx.compose.material3.Text("Cancel") }
+                        TextButton(onClick = { showDeleteConfirm = false }) {Text("Cancel") }
                     }
                 )
             }
