@@ -1,6 +1,7 @@
 package com.example.baytro.view.screens.auth
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.baytro.auth.EditPersonalInformationFormState
 import com.example.baytro.auth.RoleFormState
@@ -48,6 +50,7 @@ fun EditPersonalInformationScreen (
     val formState by viewModel.editPersonalInformationFormState.collectAsState()
     val roleFormState by viewModel.editRoleInformationFormState.collectAsState()
     val uiState by viewModel.editPersonalInformationUIState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         Log.d("EditPersonalInformationScreen", "Screen launched - Checking if need to load")
@@ -88,9 +91,25 @@ fun EditPersonalInformationScreen (
                 onBankCodeChange = viewModel::onBankCodeChange,
                 onBankAccountNumberChange = viewModel::onBankAccountNumberChange,
                 onChangePersonalInformationClicked = viewModel:: onChangePersonalInformationClicked,
-                onNavigateToPersonalInformation = onNavigateToPersonalInformation,
                 modifier = Modifier.padding(paddingValues)
             )
+        }
+    }
+
+    LaunchedEffect(key1 = uiState) {
+        when (val state = uiState) {
+            is AuthUIState.EditPersonalInformationSuccess -> {
+                Toast.makeText(
+                    context,
+                    "Change password success!",
+                    Toast.LENGTH_LONG
+                ).show()
+                onNavigateToPersonalInformation()
+            }
+            is AuthUIState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+            }
+            else -> Unit
         }
     }
 }
@@ -108,7 +127,6 @@ fun EditPersonalInformationContent(
     onBankCodeChange: (String) -> Unit,
     onBankAccountNumberChange: (String) -> Unit,
     onChangePersonalInformationClicked: () -> Unit,
-    onNavigateToPersonalInformation: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -339,10 +357,7 @@ fun EditPersonalInformationContent(
             SubmitButton(
                 text = "Submit",
                 isLoading = uiState is AuthUIState.Loading,
-                onClick = {
-                    onChangePersonalInformationClicked
-                    onNavigateToPersonalInformation
-                },
+                onClick = onChangePersonalInformationClicked,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)

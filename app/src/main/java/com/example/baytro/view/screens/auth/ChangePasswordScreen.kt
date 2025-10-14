@@ -66,7 +66,6 @@ fun ChangePasswordScreen(
             onNewPasswordChange = viewModel::onNewPasswordChange,
             onConfirmNewPasswordChange = viewModel::onConfirmNewPasswordChange,
             onChangePasswordClicked = viewModel::changePassword,
-            onNavigateToSignOut = onNavigateToSignOut,
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -79,6 +78,7 @@ fun ChangePasswordScreen(
                     "Change password success!",
                     Toast.LENGTH_LONG
                 ).show()
+                onNavigateToSignOut()
             }
             is AuthUIState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
@@ -96,7 +96,6 @@ fun ChangePasswordContent(
     onNewPasswordChange: (String) -> Unit,
     onConfirmNewPasswordChange: (String) -> Unit,
     onChangePasswordClicked: () -> Unit,
-    onNavigateToSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val passwordFocus = remember { FocusRequester() }
@@ -181,10 +180,7 @@ fun ChangePasswordContent(
             SubmitButton(
                 text = "Submit",
                 isLoading = uiState is AuthUIState.Loading,
-                onClick = {
-                    onChangePasswordClicked
-                    onNavigateToSignOut
-                          },
+                onClick = onChangePasswordClicked,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)

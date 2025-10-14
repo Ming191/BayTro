@@ -226,7 +226,7 @@ class EditPersonalInformationVM (
                         editedUser.copy(role = editedRole)
                     }
                     userRepository.update(auth!!.uid, editedUser)
-                    _editPersonalInformationUIState.value = AuthUIState.Success(auth)
+                    _editPersonalInformationUIState.value = AuthUIState.EditPersonalInformationSuccess
                 } else {
                     Log.d("EditPersonalInformationVM", "fail to validate")
                 }
