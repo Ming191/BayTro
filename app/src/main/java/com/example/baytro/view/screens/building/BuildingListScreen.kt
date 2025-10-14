@@ -377,6 +377,23 @@ private fun BuildingListContent(
                         enter = fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialAlpha = 0f) +
                                 slideInVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialOffsetY = { it / 3 })
                     ) {
+                        var showDeleteConfirm by remember(itemId) { mutableStateOf(false) }
+                        if (showDeleteConfirm) {
+                            androidx.compose.material3.AlertDialog(
+                                onDismissRequest = { showDeleteConfirm = false },
+                                title = { Text("Delete building") },
+                                text = { Text("Are you sure you want to delete this building? This action cannot be undone.") },
+                                confirmButton = {
+                                    androidx.compose.material3.TextButton(onClick = {
+                                        showDeleteConfirm = false
+                                        viewModel.deleteBuilding(itemId)
+                                    }) { Text("Delete") }
+                                },
+                                dismissButton = {
+                                    androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                                }
+                            )
+                        }
                         BuildingCard(
                             name = buildingWithStats.building.name,
                             address = buildingWithStats.building.address,
@@ -384,7 +401,8 @@ private fun BuildingListContent(
                             roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
                             revenue = "$0",
                             onViewClick = { navController.navigate(Screens.RoomList.createRoute(buildingWithStats.building.id)) },
-                            onEditClick = { navController.navigate(Screens.BuildingEdit.createRoute(buildingWithStats.building.id)) }
+                            onEditClick = { navController.navigate(Screens.BuildingEdit.createRoute(buildingWithStats.building.id)) },
+                            onDeleteClick = { showDeleteConfirm = true }
                         )
                     }
                 }

@@ -40,6 +40,7 @@ import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
 import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
+import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
@@ -115,6 +116,15 @@ fun AddBuildingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            item {
+                DividerWithSubhead(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    subhead = "Building Details"
+                )
+            }
+            
             item {
                 RequiredTextField(
                     value = name,
@@ -192,7 +202,12 @@ fun AddBuildingScreen(
             }
 
             item {
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(3.dp))
+                DividerWithSubhead(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp, top = 8.dp),
+                    subhead = "Payment Schedule"
+                )
             }
 
             item {
@@ -288,6 +303,15 @@ fun AddBuildingScreen(
             }
 
             item {
+                DividerWithSubhead(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp, top = 8.dp),
+                    subhead = "Building Images"
+                )
+            }
+            
+            item {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     // Header with image count
                     Row(
@@ -295,17 +319,11 @@ fun AddBuildingScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = "Building Images",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = "${selectedImages.value.size}/3 images",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = "${selectedImages.value.size}/3 images selected",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
                     // Use PhotoCarousel component

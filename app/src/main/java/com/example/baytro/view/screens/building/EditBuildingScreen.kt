@@ -54,6 +54,7 @@ fun EditBuildingScreen(
     buildingId: String,
     viewModel: EditBuildingVM = koinViewModel()
 ) {
+    var showUnsavedChangesDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val uiState by viewModel.editUIState.collectAsState()
     val buildingState by viewModel.building.collectAsState()
@@ -93,9 +94,41 @@ fun EditBuildingScreen(
 
         EditBuildingContent(
             viewModel = viewModel,
-            onCancel = { navController?.popBackStack() },
+            onCancel = {
+                if (viewModel.hasUnsavedChanges()) {
+                    showUnsavedChangesDialog = true
+                } else {
+                    navController?.popBackStack()
+                }
+            },
             uiState = uiState
         )
+        
+        // Unsaved changes dialog
+        if (showUnsavedChangesDialog) {
+            AlertDialog(
+                onDismissRequest = { showUnsavedChangesDialog = false },
+                title = { Text("Unsaved Changes") },
+                text = { Text("Are you sure you want to leave? Your changes will not be saved.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showUnsavedChangesDialog = false
+                            navController?.popBackStack()
+                        }
+                    ) {
+                        Text("Leave")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showUnsavedChangesDialog = false }
+                    ) {
+                        Text("Stay")
+                    }
+                }
+            )
+        }
     }
 }
 
