@@ -114,7 +114,7 @@ fun LandlordMainScreen() {
     ModalNavigationDrawer(
         drawerContent = {
             ModalDrawerSheet {
-                NavigationDrawerView(
+                NavigationDrawerView (
                     currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route,
                     onDrawerClicked = {
                         scope.launch {
@@ -122,43 +122,71 @@ fun LandlordMainScreen() {
                         }
                     },
                     onPropertyClicked = {
-                        navController.navigate("buildings_screen")
+                        navController.navigate(Screens.BuildingList.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        }
                         scope.launch {
                             drawerState.close()
                         }
                     },
                     onTenantClicked = {
-                        navController.navigate("tenants_screen")
+                        navController.navigate(Screens.TenantList.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        }
                         scope.launch {
                             drawerState.close()
                         }
                     },
                     onMaintenanceClicked = {
-                        navController.navigate("maintenance_screen")
+                        navController.navigate(Screens.MaintenanceRequestList.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        }
                         scope.launch {
                             drawerState.close()
                         }
                     },
                     onDashboardClicked = {
-                        navController.navigate("dashboard_screen")
+                        navController.navigate(Screens.Dashboard.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        }
                         scope.launch {
                             drawerState.close()
                         }
                     },
                     onBillClicked = {
-                        navController.navigate("bills_screen")
+                        navController.navigate(Screens.BillList.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        }
                         scope.launch {
                             drawerState.close()
                         }
                     },
                     onContractClicked = {
-                        navController.navigate("contracts_screen")
+                        navController.navigate(Screens.ContractList.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        }
                         scope.launch {
                             drawerState.close()
                         }
                     },
                     onServiceClicked = {
-                        navController.navigate("services_screen")
+                        navController.navigate(Screens.ServiceList.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        }
                         scope.launch {
                             drawerState.close()
                         }

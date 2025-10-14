@@ -210,6 +210,18 @@ class BuildingListVM(
         }
     }
 
+    fun deleteBuilding(buildingId: String) {
+        viewModelScope.launch {
+            try {
+                buildingRepository.delete(buildingId)
+            } catch (e: Exception) {
+                Log.e("BuildingListVM", "Error deleting building $buildingId", e)
+            } finally {
+                refreshBuildings()
+            }
+        }
+    }
+
     enum class BuildingStatusFilter {
         ALL,
         ACTIVE,

@@ -8,13 +8,13 @@ import kotlinx.serialization.Serializable
 enum class Status {
     AVAILABLE,
     OCCUPIED,
-    MAINTENANCE
+    MAINTENANCE,
 }
 
 @Serializable
 enum class Furniture {
     FURNISHED,
-    UNFURNISHED
+    UNFURNISHED,
 }
 
 @Serializable

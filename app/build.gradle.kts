@@ -55,6 +55,21 @@ android {
         compose = true
         buildConfig = true
     }
+    packaging {
+        resources {
+            // Exclude duplicate and unnecessary metadata from POI and transitive deps
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*.kotlin_module",
+                "META-INF/versions/**"
+            )
+        }
+    }
     kotlin {
         jvmToolchain(17)
     }
@@ -64,7 +79,6 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -74,7 +88,6 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.ai)
     implementation(libs.firebase.auth)
-    implementation(libs.androidx.datastore.preferences)
 
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation("com.google.firebase:firebase-storage")
@@ -125,14 +138,6 @@ dependencies {
     //zxing barcode scanner
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
-    // ML Kit Text Recognition for OCR
-    implementation("com.google.mlkit:text-recognition:16.0.1")
-
-    // CameraX for camera functionality
-    implementation("androidx.camera:camera-camera2:1.5.1")
-    implementation("androidx.camera:camera-lifecycle:1.5.1")
-    implementation("androidx.camera:camera-view:1.5.1")
-
-    // Guava for ListenableFuture (required by CameraX)
-    implementation("com.google.guava:guava:33.5.0-android")
+    // Excel (XLSX) parsing - lightweight Apache POI for Android
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
 }

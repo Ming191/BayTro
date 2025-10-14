@@ -58,12 +58,14 @@ class EditBuildingVM(
     private val _formErrors = MutableStateFlow(BuildingFormErrors())
     val formErrors: StateFlow<BuildingFormErrors> = _formErrors.asStateFlow()
 
+    private var originalFormState: BuildingFormState? = null
+
     fun load(id: String) {
         viewModelScope.launch {
             try {
                 val b = buildingRepository.getById(id)
                 _building.value = b
-                _formState.value = BuildingFormState(
+                val initialFormState = BuildingFormState(
                     name = b?.name ?: "",
                     floor = b?.floor.toString(),
                     address = b?.address ?: "",
@@ -74,6 +76,8 @@ class EditBuildingVM(
                     selectedImages = emptyList(),
                     existingImageUrls = b?.imageUrls ?: emptyList()
                 )
+                _formState.value = initialFormState
+                originalFormState = initialFormState
                 _editUIState.value = UiState.Idle
             } catch (e: Exception) {
                 _editUIState.value = UiState.Error(e.message ?: "Failed to load building")
@@ -97,6 +101,19 @@ class EditBuildingVM(
 
     fun updateImages(images: List<Uri>) {
         _formState.value = _formState.value.copy(selectedImages = images)
+    }
+
+    fun hasUnsavedChanges(): Boolean {
+        val original = originalFormState ?: return false
+        val current = _formState.value
+        return original.name != current.name ||
+                original.floor != current.floor ||
+                original.address != current.address ||
+                original.status != current.status ||
+                original.billingDate != current.billingDate ||
+                original.paymentStart != current.paymentStart ||
+                original.paymentDue != current.paymentDue ||
+                current.selectedImages.isNotEmpty()
     }
 
     fun updateExistingImages(urls: List<String>) {

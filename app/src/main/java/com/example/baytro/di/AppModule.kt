@@ -36,6 +36,7 @@ import com.example.baytro.viewModel.dashboard.TenantDashboardVM
 import com.example.baytro.viewModel.dashboard.MeterReadingVM
 import com.example.baytro.viewModel.meter_reading.MeterReadingHistoryVM
 import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsVM
+import com.example.baytro.viewModel.importExcel.ImportBuildingRoomVM
 import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
@@ -146,7 +147,7 @@ val authModule = module {
             get(), get(),
             get(),
             get(),
-            get()
+            get(),
         )
     }
     viewModel {
@@ -188,26 +189,26 @@ val authModule = module {
 
     viewModel {
         ContractListVM(
-        get(),
-        get(),
-        get(),
-        get()
+            get(),
+            get(),
+            get(),
+            get()
         )
     }
 
     viewModel {
         EditContractVM(
-        get(),
-        get(),
-        get(),
-        get(),
-        get(),
-    ) }
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+        ) }
     viewModel { RequestListVM(get(), get(), get(), get(), get(), get()) }
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
-    viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), handle) }
-    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(), handle) }
-    viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), get(),handle) }
+    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(),get(),get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(),get(), handle) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
     viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
     viewModel { MeterReadingVM(get(), get(), get(), get(), get()) }
@@ -216,6 +217,14 @@ val authModule = module {
     viewModel { AddRequestVM(get(), get(), get(), get()) }
     viewModel { (requestId: String) -> UpdateRequestVM(get(), get(), get(), requestId) }
     viewModel { AssignRequestVM(get()) }
+    viewModel {
+        ImportBuildingRoomVM(
+            androidContext(),
+            get(),
+            get(),
+            get()
+        )
+    }
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }

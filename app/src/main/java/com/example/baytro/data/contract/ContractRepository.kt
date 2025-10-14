@@ -2,6 +2,9 @@ package com.example.baytro.data.contract
 
 import android.util.Log
 import com.example.baytro.data.Repository
+import com.example.baytro.data.room.Room
+import com.example.baytro.data.user.User
+import com.example.baytro.data.user.UserRepository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -122,6 +125,52 @@ class ContractRepository(
             }
         } catch (e: Exception) {
             Log.e("ContractRepository", "Error fetching contracts by building ID", e)
+            emptyList()
+        }
+    }
+    suspend fun getContractsByRoomId(roomId: String): List<Contract> {
+        if (roomId.isBlank()) {
+            Log.d("ContractRepository", "RoomId is blank")
+            return emptyList()
+        }
+        return try {
+            val querySnapshot = collection.where {
+                "roomId" equalTo roomId
+            }.get()
+            querySnapshot.documents.map { doc ->
+                val contract = doc.data<Contract>()
+                contract.copy(id = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching contracts by room ID", e)
+            emptyList()
+        }
+    }
+
+    // get the number of tenants in a building that have a contract
+    suspend fun getTenantsByBuildingId(buildingId: String): List<String> {
+        if (buildingId.isBlank()) return emptyList()
+
+        return try {
+            val contracts = getContractsByBuildingId(buildingId)
+            Log.d("ContractRepository", "Found ${contracts.size} contracts for buildingId: '$buildingId'")
+            contracts.flatMap { it.tenantIds }.distinct()
+        } catch (e: Exception) {
+            Log.e("ContractRepository", "Error fetching tenant IDs by building ID", e)
+            emptyList()
+        }
+    }
+    suspend fun getTenantsByRoomId(roomId : String) : List<String> {
+        if (roomId.isBlank()) {
+            Log.d("ContractRepository", "RoomId is blank")
+            return emptyList()
+        }
+        return try {
+            val contracts = getContractsByRoomId(roomId)
+            Log.d("ContractRepository", "Found ${contracts.size} contracts for roomId: '$roomId'")
+            contracts.flatMap { it.tenantIds }.distinct()
+        } catch (e : Exception) {
+            Log.e("ContractRepository", "Error fetching tenant IDs by room ID", e)
             emptyList()
         }
     }

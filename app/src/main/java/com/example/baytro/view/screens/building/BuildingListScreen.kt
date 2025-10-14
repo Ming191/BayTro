@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -145,13 +147,36 @@ fun BuildingListScreen(
                     onAddBuilding = { controller.navigate(Screens.BuildingAdd.route) }
                 )
 
-                FloatingActionButton(
-                    onClick = { controller.navigate(Screens.BuildingAdd.route) },
+                var fabMenuExpanded by remember { mutableStateOf(false) }
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add building")
+                    FloatingActionButton(
+                        onClick = { fabMenuExpanded = true },
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add building")
+                    }
+                    DropdownMenu(
+                        expanded = fabMenuExpanded,
+                        onDismissRequest = { fabMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Add manually") },
+                            onClick = {
+                                fabMenuExpanded = false
+                                controller.navigate(Screens.BuildingAdd.route)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import from Excel") },
+                            onClick = {
+                                fabMenuExpanded = false
+                                controller.navigate(Screens.ImportBuildingsRooms.route)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -278,10 +303,32 @@ private fun BuildingListContent(
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut()
             ) {
-                FloatingActionButton(
-                    onClick = { navController.navigate(Screens.BuildingAdd.route) },
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add building")
+                var fabMenuExpanded by remember { mutableStateOf(false) }
+                Box {
+                    FloatingActionButton(
+                        onClick = { fabMenuExpanded = true },
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add building")
+                    }
+                    DropdownMenu(
+                        expanded = fabMenuExpanded,
+                        onDismissRequest = { fabMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Add manually") },
+                            onClick = {
+                                fabMenuExpanded = false
+                                navController.navigate(Screens.BuildingAdd.route)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import from Excel") },
+                            onClick = {
+                                fabMenuExpanded = false
+                                navController.navigate(Screens.ImportBuildingsRooms.route)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -294,7 +341,12 @@ private fun BuildingListContent(
                 modifier = Modifier
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp),
+                contentPadding = PaddingValues(
+                    top = 16.dp,
+                    bottom = 96.dp,
+                    start = 0.dp,
+                    end = 0.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 itemsIndexed(
@@ -325,6 +377,23 @@ private fun BuildingListContent(
                         enter = fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialAlpha = 0f) +
                                 slideInVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialOffsetY = { it / 3 })
                     ) {
+                        var showDeleteConfirm by remember(itemId) { mutableStateOf(false) }
+                        if (showDeleteConfirm) {
+                            AlertDialog(
+                                onDismissRequest = { showDeleteConfirm = false },
+                                title = { Text("Delete building") },
+                                text = { Text("Are you sure you want to delete this building? This action cannot be undone.") },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        showDeleteConfirm = false
+                                        viewModel.deleteBuilding(itemId)
+                                    }) { Text("Delete") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                                }
+                            )
+                        }
                         BuildingCard(
                             name = buildingWithStats.building.name,
                             address = buildingWithStats.building.address,
@@ -332,7 +401,8 @@ private fun BuildingListContent(
                             roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
                             revenue = "$0",
                             onViewClick = { navController.navigate(Screens.RoomList.createRoute(buildingWithStats.building.id)) },
-                            onEditClick = { navController.navigate(Screens.BuildingEdit.route.replace("{id}", buildingWithStats.building.id)) }
+                            onEditClick = { navController.navigate(Screens.BuildingEdit.createRoute(buildingWithStats.building.id)) },
+                            onDeleteClick = { showDeleteConfirm = true }
                         )
                     }
                 }
