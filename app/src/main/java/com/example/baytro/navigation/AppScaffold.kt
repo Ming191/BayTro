@@ -32,38 +32,48 @@ fun AppScaffold (
     ) {
         Scaffold(
             topBar = {
-			val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
-			val titleText = when (currentRoute) {
-				Screens.BuildingList.route -> "Buildings"
-				Screens.BuildingAdd.route -> "Add building"
-                Screens.BuildingEdit.route -> "Edit building"
-				Screens.TenantList.route -> "Tenants"
-				Screens.BillList.route -> "Bills"
-				Screens.ContractList.route -> "Contracts"
-				Screens.MaintenanceRequestList.route -> "Maintenance"
-				Screens.Dashboard.route -> "BayTro"
-				else -> "BayTro"
-			}
-			CenterAlignedTopAppBar(
-				title = { Text(titleText) },
-                navigationIcon = {
-                    val canBack = navHostController.previousBackStackEntry != null
-                    if (canBack) {
-                        IconButton(onClick = { navHostController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
+                val topLevelRoutes = setOf(
+                    Screens.Dashboard.route,
+                    Screens.BuildingList.route,
+                    Screens.TenantList.route,
+                    Screens.BillList.route,
+                    Screens.ContractList.route,
+                    Screens.MaintenanceRequestList.route,
+                    Screens.ServiceList.route,
+                )
+                val isTopLevel = currentRoute in topLevelRoutes
+                val titleText = when (currentRoute) {
+                    Screens.BuildingList.route -> "Buildings"
+                    Screens.BuildingAdd.route -> "Add building"
+                    Screens.BuildingEdit.route -> "Edit building"
+                    Screens.TenantList.route -> "Tenants"
+                    Screens.BillList.route -> "Bills"
+                    Screens.ContractList.route -> "Contracts"
+                    Screens.MaintenanceRequestList.route -> "Maintenance"
+                    Screens.Dashboard.route -> "BayTro"
+                    Screens.ServiceList.route -> "Services"
+                    else -> "BayTro"
+                }
+                CenterAlignedTopAppBar(
+                    title = { Text(titleText) },
+                    navigationIcon = {
+                        if (isTopLevel) {
+                            IconButton(onClick = onDrawerClicked) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
+                        } else {
+                            IconButton(onClick = { navHostController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
                         }
-                    } else {
-                        IconButton(onClick = onDrawerClicked) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
-                        }
-                    }
-                },
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
-			    )
+                )
             },
             content = { paddingValues ->
                 Column(

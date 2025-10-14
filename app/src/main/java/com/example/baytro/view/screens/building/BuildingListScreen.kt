@@ -341,7 +341,12 @@ private fun BuildingListContent(
                 modifier = Modifier
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp),
+                contentPadding = PaddingValues(
+                    top = 16.dp,
+                    bottom = 96.dp,
+                    start = 0.dp,
+                    end = 0.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 itemsIndexed(
@@ -379,7 +384,7 @@ private fun BuildingListContent(
                             roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
                             revenue = "$0",
                             onViewClick = { navController.navigate(Screens.RoomList.createRoute(buildingWithStats.building.id)) },
-                            onEditClick = { navController.navigate(Screens.BuildingEdit.route.replace("{id}", buildingWithStats.building.id)) }
+                            onEditClick = { navController.navigate(Screens.BuildingEdit.createRoute(buildingWithStats.building.id)) }
                         )
                     }
                 }
