@@ -167,11 +167,27 @@ class ContractDetailsVM(
             try {
                 val request = mapOf("contractId" to id)
                 val result = functions.getHttpsCallable("generateQrSession").call(request).await()
-                val data = result.data as? Map<*, *>
+
+                Log.d("ContractDetailsVM", "generateQrSession result: ${result.data}")
+
+                val responseData = result.data as? Map<*, *>
+                if (responseData == null) {
+                    Log.e("ContractDetailsVM", "Response data is null or not a Map")
+                    throw Exception("Invalid response format from server")
+                }
+
+                // The response has a nested structure: { data: { sessionId: "..." }, status: "success" }
+                val data = responseData["data"] as? Map<*, *>
                 val sessionId = data?.get("sessionId") as? String
-                    ?: throw Exception("Session ID missing in response")
+
+                if (sessionId.isNullOrBlank()) {
+                    Log.e("ContractDetailsVM", "Session ID is null or blank. Response data: $responseData")
+                    throw Exception("Server did not return a valid session ID. Please check your internet connection and try again.")
+                }
+
                 _qrState.value = QrGenerationState.Success(sessionId)
             } catch (e: Exception) {
+                Log.e("ContractDetailsVM", "Error generating QR code", e)
                 _qrState.value = QrGenerationState.Error(parseFirebaseError(e))
             }
         }

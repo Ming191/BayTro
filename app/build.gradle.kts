@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("kotlinx-serialization")
     alias(libs.plugins.google.gms.google.services)
-    id("com.google.devtools.ksp") version "2.1.0-1.0.29"
 }
 
 val localProperties = Properties()
@@ -90,15 +89,6 @@ dependencies {
     implementation(libs.firebase.ai)
     implementation(libs.firebase.auth)
     implementation("androidx.datastore:datastore-preferences:1.1.7")
-
-    // Room Database for offline support
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
-
-    // WorkManager for background sync
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation("com.google.firebase:firebase-storage")
     implementation("com.google.android.gms:play-services-base:18.2.0")

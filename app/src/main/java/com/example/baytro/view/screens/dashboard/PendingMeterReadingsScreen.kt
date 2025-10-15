@@ -1,36 +1,44 @@
 package com.example.baytro.view.screens.dashboard
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
+import androidx.core.net.toUri
 import com.example.baytro.data.meter_reading.MeterReading
-import com.example.baytro.view.components.shimmerEffect
+import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsAction
 import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsVM
+import com.example.baytro.viewModel.meter_reading.PendingReadingGroup
 import org.koin.compose.viewmodel.koinViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PendingMeterReadingsScreen(
-    viewModel: PendingMeterReadingsVM = koinViewModel(),
-    onNavigateBack: () -> Unit
+    viewModel: PendingMeterReadingsVM = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showDeclineDialog by remember { mutableStateOf<MeterReading?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
 
     LaunchedEffect(Unit) {
         viewModel.errorEvent.collect { event ->
@@ -42,21 +50,10 @@ fun PendingMeterReadingsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Pending Meter Readings") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
         ) {
             when {
                 uiState.isLoading -> {
@@ -64,24 +61,31 @@ fun PendingMeterReadingsScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                uiState.pendingReadings.isEmpty() -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                uiState.pendingGroups.isEmpty() -> {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(600)) + scaleIn(
+                            initialScale = 0.8f,
+                            animationSpec = tween(600, easing = FastOutSlowInEasing)
+                        ),
+                        modifier = Modifier.align(Alignment.Center)
                     ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "No pending readings",
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No pending readings",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        }
                     }
                 }
                 else -> {
@@ -90,13 +94,48 @@ fun PendingMeterReadingsScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.pendingReadings, key = { it.id }) { reading ->
-                            PendingReadingCard(
-                                reading = reading,
-                                isProcessing = uiState.processingReadingIds.contains(reading.id),
-                                onApprove = { viewModel.onAction(PendingMeterReadingsAction.ApproveReading(reading.id)) },
-                                onDecline = { showDeclineDialog = reading }
-                            )
+                        itemsIndexed(
+                            items = uiState.pendingGroups,
+                            key = { _, group -> group.timestamp }
+                        ) { index, group ->
+                            val isBeingDismissed = uiState.dismissingGroupTimestamps.contains(group.timestamp)
+                            val isStillInList = uiState.pendingGroups.any { it.timestamp == group.timestamp }
+
+                            AnimatedVisibility(
+                                visible = isVisible && !isBeingDismissed,
+                                enter = fadeIn(tween(600, delayMillis = index * 100)) +
+                                        slideInVertically(
+                                            initialOffsetY = { 40 },
+                                            animationSpec = tween(600, delayMillis = index * 100, easing = FastOutSlowInEasing)
+                                        ),
+                                exit = fadeOut(tween(400)) +
+                                        slideOutVertically(
+                                            targetOffsetY = { -40 },
+                                            animationSpec = tween(400, easing = FastOutSlowInEasing)
+                                        ) +
+                                        shrinkVertically(tween(400))
+                            ) {
+                                PendingReadingGroupCard(
+                                    group = group,
+                                    isProcessing = { readingId ->
+                                        uiState.processingReadingIds.contains(readingId)
+                                    },
+                                    onApprove = { readingId ->
+                                        viewModel.onAction(PendingMeterReadingsAction.ApproveReading(readingId))
+                                    },
+                                    onDecline = { reading ->
+                                        showDeclineDialog = reading
+                                    },
+                                    onApproveGroup = {
+                                        viewModel.onAction(
+                                            PendingMeterReadingsAction.ApproveGroup(
+                                                electricityReadingId = group.electricityReading?.id,
+                                                waterReadingId = group.waterReading?.id
+                                            )
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -117,20 +156,19 @@ fun PendingMeterReadingsScreen(
 }
 
 @Composable
-fun PendingReadingCard(
-    reading: MeterReading,
-    isProcessing: Boolean,
-    onApprove: () -> Unit,
-    onDecline: () -> Unit
+fun PendingReadingGroupCard(
+    group: PendingReadingGroup,
+    isProcessing: (String) -> Boolean,
+    onApprove: (String) -> Unit,
+    onDecline: (MeterReading) -> Unit,
+    onApproveGroup: () -> Unit
 ) {
-    var approveClicked by remember { mutableStateOf(false) }
-    
-    // Reset local click state if the processing state changes
-    LaunchedEffect(isProcessing) {
-        if (!isProcessing) {
-            approveClicked = false
-        }
-    }
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
+    val hasMultipleReadings = group.electricityReading != null && group.waterReading != null
+    val anyProcessing = listOfNotNull(
+        group.electricityReading?.id,
+        group.waterReading?.id
+    ).any { isProcessing(it) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -152,105 +190,154 @@ fun PendingReadingCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        if (reading.type.name == "ELECTRICITY") Icons.Default.ElectricBolt else Icons.Default.Water,
+                        Icons.Default.Receipt,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = reading.type.name.lowercase().replaceFirstChar { it.uppercase() },
+                        text = "Meter Reading",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(8.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Pending",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "Pending",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
                 }
             }
+
+            Text(
+                text = dateFormat.format(Date(group.timestamp)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             HorizontalDivider()
 
-            // Reading Value
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Reading Value:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${reading.value}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+            // Reading Sections
+            group.electricityReading?.let { reading ->
+                PendingReadingSection(
+                    icon = Icons.Default.ElectricBolt,
+                    label = "Electricity",
+                    reading = reading
                 )
             }
 
-            // Image if available
-            reading.imageUrl?.let { url ->
-                SubcomposeAsyncImage(
-                    model = url,
-                    contentDescription = "Meter photo",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    loading = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .shimmerEffect()
-                        )
-                    }
+            if (group.electricityReading != null && group.waterReading != null) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            }
+
+            group.waterReading?.let { reading ->
+                PendingReadingSection(
+                    icon = Icons.Default.Water,
+                    label = "Water",
+                    reading = reading
                 )
             }
 
-            // Action Buttons
-            Row(
+            // Approve All Button
+            HorizontalDivider()
+            Button(
+                onClick = onApproveGroup,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                enabled = !anyProcessing
             ) {
-                OutlinedButton(
-                    onClick = onDecline,
-                    modifier = Modifier.weight(1f),
-                    enabled = !isProcessing,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
+                if (anyProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Decline")
+                    Spacer(modifier = Modifier.width(8.dp))
+                } else {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                Button(
-                    onClick = {
-                        approveClicked = true
-                        onApprove()
-                    },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isProcessing && !approveClicked
-                ) {
-                    if (isProcessing || approveClicked) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Approve")
-                    }
-                }
+                Text("Approve All")
             }
+
+            // Photo Carousel
+            val images = listOfNotNull(
+                group.electricityReading?.imageUrl,
+                group.waterReading?.imageUrl
+            )
+            if (images.isNotEmpty()) {
+                HorizontalDivider()
+                Text(
+                    text = "Photos",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                PhotoCarousel(
+                    selectedPhotos = images.map { it.toUri() },
+                    onPhotosSelected = {},
+                    maxSelectionCount = 2,
+                    showDeleteButton = false
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PendingReadingSection(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    reading: MeterReading
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        // Reading value
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Reading Value:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${reading.value}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }

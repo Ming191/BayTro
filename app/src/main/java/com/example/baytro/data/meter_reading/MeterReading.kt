@@ -28,9 +28,9 @@ data class MeterReading(
     @SerialName("createdAt")
     val createdAt: Long = 0,
     @SerialName("approvedAt")
-    val approvedAt: Long? = null,
+    val approvedAt: String? = null,
     @SerialName("declinedAt")
-    val declinedAt: Long? = null,
+    val declinedAt: String? = null,
     @SerialName("consumption")
     val consumption: Int? = null,
     @SerialName("cost")
@@ -46,4 +46,5 @@ enum class MeterType {
     @SerialName("water")
     WATER
 }
+
 

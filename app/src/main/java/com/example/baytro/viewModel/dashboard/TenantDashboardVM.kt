@@ -6,10 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.contract.Contract
+import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.User
 import com.example.baytro.data.user.UserRepository
-import com.example.baytro.data.offline.OfflineContractRepository
 import com.example.baytro.utils.SingleEvent
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +43,7 @@ sealed interface TenantDashboardEvent {
 class TenantDashboardVM(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val offlineContractRepository: OfflineContractRepository,
+    private val contractRepository: ContractRepository,
     private val roomRepository: RoomRepository,
     private val buildingRepository: BuildingRepository
 ) : ViewModel() {
@@ -85,9 +85,7 @@ class TenantDashboardVM(
                 }
 
                 val user = userRepository.getById(currentUser.uid)
-
-                // OFFLINE-FIRST: Get active contract from cache
-                val activeContract = offlineContractRepository.getActiveContractByUserId(currentUser.uid)
+                val activeContract = contractRepository.getActiveContract(currentUser.uid)
 
                 if (activeContract == null) {
                     _event.emit(TenantDashboardEvent.NavigateToEmptyContract)

@@ -3,9 +3,11 @@ package com.example.baytro.view.screens.dashboard
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,7 +46,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -150,6 +154,12 @@ fun MeterReadingContent(
     onAction: (MeterReadingAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -157,35 +167,72 @@ fun MeterReadingContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        InstructionsCard()
-        MeterPhotosSection(
-            selectedPhotos = uiState.selectedPhotos,
-            onAction = onAction
-        )
-        MeterReadingsSection(
-            readings = uiState.readings,
-            onAction = onAction
-        )
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(600)) + slideInVertically(
+                initialOffsetY = { -30 },
+                animationSpec = tween(600, easing = FastOutSlowInEasing)
+            )
+        ) {
+            InstructionsCard()
+        }
+
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(600, delayMillis = 100)) +
+                    slideInVertically(
+                        initialOffsetY = { 40 },
+                        animationSpec = tween(600, delayMillis = 100, easing = FastOutSlowInEasing)
+                    )
+        ) {
+            MeterPhotosSection(
+                selectedPhotos = uiState.selectedPhotos,
+                onAction = onAction
+            )
+        }
+
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(600, delayMillis = 200)) +
+                    slideInVertically(
+                        initialOffsetY = { 40 },
+                        animationSpec = tween(600, delayMillis = 200, easing = FastOutSlowInEasing)
+                    )
+        ) {
+            MeterReadingsSection(
+                readings = uiState.readings,
+                onAction = onAction
+            )
+        }
 
         val isButtonEnabled = !uiState.isProcessing &&
                 uiState.selectedPhotos.isNotEmpty() &&
                 uiState.readings.any { it.value.isNotEmpty() }
 
-        Button(
-            onClick = { onAction(MeterReadingAction.SubmitReadings) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(12.dp),
-            enabled = isButtonEnabled
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(600, delayMillis = 300)) +
+                    slideInVertically(
+                        initialOffsetY = { 40 },
+                        animationSpec = tween(600, delayMillis = 300, easing = FastOutSlowInEasing)
+                    )
         ) {
-            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                "Submit Readings",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
+            Button(
+                onClick = { onAction(MeterReadingAction.SubmitReadings) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = isButtonEnabled
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Submit Readings",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
