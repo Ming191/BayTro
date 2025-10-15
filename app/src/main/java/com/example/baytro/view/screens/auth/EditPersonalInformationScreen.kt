@@ -9,15 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,7 +40,6 @@ import org.koin.compose.viewmodel.koinViewModel
 fun EditPersonalInformationScreen (
     viewModel: EditPersonalInformationVM  = koinViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToPersonalInformation: () -> Unit,
 ) {
     val formState by viewModel.editPersonalInformationFormState.collectAsState()
     val roleFormState by viewModel.editRoleInformationFormState.collectAsState()
@@ -67,18 +61,7 @@ fun EditPersonalInformationScreen (
         }
     } else {
         // Load xong => hiển thị UI chính
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Personal Information") },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
-                    }
-                )
-            }
-        ) { paddingValues ->
+        Scaffold { paddingValues ->
             EditPersonalInformationContent(
                 formState = formState,
                 roleFormState = roleFormState,
@@ -104,7 +87,7 @@ fun EditPersonalInformationScreen (
                     "Change password success!",
                     Toast.LENGTH_LONG
                 ).show()
-                onNavigateToPersonalInformation()
+                onNavigateBack()
             }
             is AuthUIState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
@@ -237,7 +220,6 @@ fun EditPersonalInformationContent(
                 modifier = Modifier
                     .fillMaxWidth()
             )
-
             Spacer (
                 modifier = Modifier
                     .fillMaxWidth()

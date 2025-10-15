@@ -5,10 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.baytro.view.screens.auth.SignInScreen
 import com.example.baytro.view.screens.auth.SignUpScreen
-import com.example.baytro.view.screens.auth.PersonalInformationScreen
 import com.example.baytro.view.screens.auth.ForgotPasswordScreen
-import com.example.baytro.view.screens.auth.ChangePasswordScreen
-import com.example.baytro.view.screens.auth.EditPersonalInformationScreen
 
 fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
     composable(Screens.SignIn.route) {
@@ -51,45 +48,6 @@ fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
         SignUpScreen(
             onNavigateToSignIn = {
                 navController.popBackStack()
-            }
-        )
-    }
-
-    composable(Screens.PersonalInformation.route) {
-        PersonalInformationScreen(
-            onNavigateBack = {
-                navController.popBackStack()
-            },
-            onNavigateToChangePassword = {
-                navController.navigate(Screens.ChangePassword.route)
-            },
-            onNavigateToSignOut = {
-                navController.navigate(Screens.SignOut.route)
-            },
-            onNavigateToEditPersonalInformation = {
-                navController.navigate(Screens.EditPersonalInformation.route)
-            }
-        )
-    }
-
-    composable(Screens.EditPersonalInformation.route) {
-        EditPersonalInformationScreen (
-            onNavigateBack = {
-                navController.popBackStack()
-            },
-            onNavigateToPersonalInformation = {
-                navController.navigate(Screens.PersonalInformation.route)
-            }
-        )
-    }
-
-    composable(Screens.ChangePassword.route) {
-        ChangePasswordScreen(
-            onNavigateBack = {
-                navController.popBackStack()
-            },
-            onNavigateToSignOut = {
-                navController.navigate(Screens.SignOut.route)
             }
         )
     }

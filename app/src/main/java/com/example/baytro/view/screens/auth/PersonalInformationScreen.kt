@@ -80,18 +80,7 @@ fun PersonalInformationScreen(
         }
     } else {
         // Load xong => hiển thị UI chính
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Personal Information") },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
-                    }
-                )
-            }
-        ) { paddingValues ->
+        Scaffold { paddingValues ->
             user?.let {
                 PersonalInformationContent(
                     user = it,
@@ -136,101 +125,105 @@ fun PersonalInformationContent(
                     .padding(16.dp),
                 contentAlignment = Alignment.Companion.Center
             ) {
-                if (user.profileImgUrl != null) {
-                    SubcomposeAsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(user.profileImgUrl)
-                            .size(sizePx, sizePx)
-                            .memoryCachePolicy(CachePolicy.ENABLED)
-                            .diskCachePolicy(CachePolicy.ENABLED)
-                            .networkCachePolicy(CachePolicy.ENABLED)
-                            .crossfade(300)
-                            .allowHardware(true)
-                            .build(),
-                        contentDescription = "Upload Image success",
-                        contentScale = ContentScale.Companion.Crop,
-                        modifier = Modifier.Companion
-                            .size(200.dp)
-                            .clip(CircleShape)
-                            .border(
-                                width = 2.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = CircleShape
-                            ),
-                        loading = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp),
-                                contentAlignment = Alignment.Companion.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.Companion.size(40.dp),
-                                    strokeWidth = 3.dp
-                                )
-                            }
-                                  },
-                        error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp),
-                                contentAlignment = Alignment.Companion.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.Companion.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.BrokenImage,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(150.dp)
-                                            .clip(CircleShape),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                            alpha = 0.6f
-                                        )
-                                    )
-                                    Text(
-                                        "Image unavailable",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                                },
-                        )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Companion.Center
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .size(200.dp, 200.dp)
+                Column(horizontalAlignment = Alignment.Companion.CenterHorizontally) {
+                    if (user.profileImgUrl != null) {
+                        SubcomposeAsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(user.profileImgUrl)
+                                .size(sizePx, sizePx)
+                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                .diskCachePolicy(CachePolicy.ENABLED)
+                                .networkCachePolicy(CachePolicy.ENABLED)
+                                .crossfade(300)
+                                .allowHardware(true)
+                                .build(),
+                            contentDescription = "Upload Image success",
+                            contentScale = ContentScale.Companion.Crop,
+                            modifier = Modifier.Companion
+                                .size(200.dp)
+                                .clip(CircleShape)
                                 .border(
                                     width = 2.dp,
                                     color = MaterialTheme.colorScheme.primary,
                                     shape = CircleShape
                                 ),
-                            horizontalAlignment = Alignment.Companion.CenterHorizontally
+                            loading = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    contentAlignment = Alignment.Companion.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.Companion.size(40.dp),
+                                        strokeWidth = 3.dp
+                                    )
+                                }
+                            },
+                            error = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    contentAlignment = Alignment.Companion.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.Companion.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.BrokenImage,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(150.dp)
+                                                .clip(CircleShape),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                alpha = 0.6f
+                                            )
+                                        )
+                                        Text(
+                                            "Image unavailable",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            },
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            contentAlignment = Alignment.Companion.Center
                         ) {
-                            Icon(
-                                Icons.Default.Image,
-                                contentDescription = null,
-                                modifier = Modifier.size(150.dp),
-                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            )
-                            Text(
-                                text = "No Image",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Companion.Medium
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .size(200.dp, 200.dp)
+                                    .border(
+                                        width = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = CircleShape
+                                    ),
+                                horizontalAlignment = Alignment.Companion.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.Default.Image,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(150.dp),
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                )
+                                Text(
+                                    text = "No Image",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Companion.Medium
+                                )
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = user.fullName, style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
@@ -304,7 +297,6 @@ fun PersonalInformationContent(
 
                 PersonalInformationCard(
                     infoMap = mapOf(
-                        "Full Name:" to user.fullName,
                         "Date of birth:" to user.dateOfBirth,
                         "Gender:" to user.gender.toString(),
                         "Phone Number:" to user.phoneNumber,

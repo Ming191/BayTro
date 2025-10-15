@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +33,7 @@ import com.example.baytro.auth.ChangePasswordFormState
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.PasswordTextField
+import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.auth.ChangePasswordVM
 import org.koin.compose.viewmodel.koinViewModel
@@ -47,18 +49,7 @@ fun ChangePasswordScreen(
     val uiState by viewModel.changePasswordUIState.collectAsState()
     val context = LocalContext.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Change Password") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         ChangePasswordContent(
             formState = formState,
             uiState = uiState,
@@ -78,7 +69,7 @@ fun ChangePasswordScreen(
                     "Change password success!",
                     Toast.LENGTH_LONG
                 ).show()
-                onNavigateToSignOut()
+                onNavigateBack()
             }
             is AuthUIState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
