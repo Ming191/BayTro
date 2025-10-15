@@ -36,6 +36,7 @@ fun NavigationDrawerView(
     onBillClicked: () -> Unit = {},
     onContractClicked: () -> Unit = {},
     onServiceClicked: () -> Unit = {},
+    onMeterReadingsClicked: () -> Unit = {},
     isTenant: Boolean = false
 ) {
     val selectedItem = remember(currentRoute) {
@@ -47,6 +48,7 @@ fun NavigationDrawerView(
                 currentRoute == Screens.MaintenanceRequestList.route -> Screens.MaintenanceRequestList
                 currentRoute == Screens.BillList.route -> Screens.BillList
                 currentRoute == Screens.ContractList.route -> Screens.ContractList
+                currentRoute == Screens.PendingMeterReadings.route -> Screens.PendingMeterReadings
                 else -> Screens.Dashboard
             }
         )
@@ -118,6 +120,15 @@ fun NavigationDrawerView(
                     onClick = {
                         onContractClicked()
                         selectedItem.value = Screens.ContractList
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
+                    label = { Text(text = "Meter Readings") },
+                    selected = selectedItem.value == Screens.PendingMeterReadings,
+                    onClick = {
+                        onMeterReadingsClicked()
+                        selectedItem.value = Screens.PendingMeterReadings
                     },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )

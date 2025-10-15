@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.view.components.shimmerEffect
+import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsAction
 import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsVM
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -29,8 +30,18 @@ fun PendingMeterReadingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showDeclineDialog by remember { mutableStateOf<MeterReading?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { event ->
+            event.getContentIfNotHandled()?.let {
+                snackbarHostState.showSnackbar(message = it)
+            }
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Pending Meter Readings") },
@@ -52,30 +63,6 @@ fun PendingMeterReadingsScreen(
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
-                }
-                uiState.error != null -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Error,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = uiState.error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.clearError() }) {
-                            Text("Dismiss")
-                        }
-                    }
                 }
                 uiState.pendingReadings.isEmpty() -> {
                     Column(
@@ -103,11 +90,11 @@ fun PendingMeterReadingsScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.pendingReadings) { reading ->
+                        items(uiState.pendingReadings, key = { it.id }) { reading ->
                             PendingReadingCard(
                                 reading = reading,
                                 isProcessing = uiState.processingReadingIds.contains(reading.id),
-                                onApprove = { viewModel.approveReading(reading.id) },
+                                onApprove = { viewModel.onAction(PendingMeterReadingsAction.ApproveReading(reading.id)) },
                                 onDecline = { showDeclineDialog = reading }
                             )
                         }
@@ -121,7 +108,7 @@ fun PendingMeterReadingsScreen(
             DeclineReasonDialog(
                 onDismiss = { showDeclineDialog = null },
                 onConfirm = { reason ->
-                    viewModel.declineReading(reading.id, reason)
+                    viewModel.onAction(PendingMeterReadingsAction.DeclineReading(reading.id, reason))
                     showDeclineDialog = null
                 }
             )
@@ -136,6 +123,15 @@ fun PendingReadingCard(
     onApprove: () -> Unit,
     onDecline: () -> Unit
 ) {
+    var approveClicked by remember { mutableStateOf(false) }
+    
+    // Reset local click state if the processing state changes
+    LaunchedEffect(isProcessing) {
+        if (!isProcessing) {
+            approveClicked = false
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -235,11 +231,14 @@ fun PendingReadingCard(
                     Text("Decline")
                 }
                 Button(
-                    onClick = onApprove,
+                    onClick = {
+                        approveClicked = true
+                        onApprove()
+                    },
                     modifier = Modifier.weight(1f),
-                    enabled = !isProcessing
+                    enabled = !isProcessing && !approveClicked
                 ) {
-                    if (isProcessing) {
+                    if (isProcessing || approveClicked) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
@@ -262,6 +261,7 @@ fun DeclineReasonDialog(
     onConfirm: (String) -> Unit
 ) {
     var reason by remember { mutableStateOf("") }
+    var isConfirming by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -281,8 +281,11 @@ fun DeclineReasonDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(reason) },
-                enabled = reason.isNotBlank()
+                onClick = {
+                    isConfirming = true
+                    onConfirm(reason)
+                },
+                enabled = reason.isNotBlank() && !isConfirming
             ) {
                 Text("Decline")
             }
@@ -294,4 +297,3 @@ fun DeclineReasonDialog(
         }
     )
 }
-

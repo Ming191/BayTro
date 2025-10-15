@@ -39,6 +39,7 @@ fun AppScaffold (
                     Screens.ContractList.route,
                     Screens.MaintenanceRequestList.route,
                     Screens.ServiceList.route,
+                    Screens.PendingMeterReadings.route,
                 )
                 val isTopLevel = currentRoute in topLevelRoutes
                 val titleText = when (currentRoute) {
@@ -51,6 +52,7 @@ fun AppScaffold (
                     Screens.MaintenanceRequestList.route -> "Maintenance"
                     Screens.Dashboard.route -> "BayTro"
                     Screens.ServiceList.route -> "Services"
+                    Screens.PendingMeterReadings.route -> "Meter Readings"
                     else -> "BayTro"
                 }
                 CenterAlignedTopAppBar(
@@ -83,8 +85,3 @@ fun AppScaffold (
         )
     }
 }
-
-
-
-
-

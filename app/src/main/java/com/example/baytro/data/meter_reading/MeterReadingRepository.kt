@@ -2,7 +2,6 @@ package com.example.baytro.data.meter_reading
 
 import com.example.baytro.data.MeterStatus
 import com.example.baytro.data.Repository
-import com.example.baytro.data.contract.Status
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
@@ -65,7 +64,7 @@ class MeterReadingRepository(
     fun listenForPendingReadings(landlordId: String): Flow<List<MeterReading>> {
         return collection
             .where { "landlordId" equalTo landlordId }
-            .where { "status" equalTo MeterStatus.METER_PENDING }
+            .where { "status" equalTo MeterStatus.PENDING }
             .orderBy("createdAt", Direction.DESCENDING)
             .snapshots
             .map { snapshot ->
@@ -94,6 +93,32 @@ class MeterReadingRepository(
             .where { "tenantId" equalTo tenantId }
             .orderBy("createdAt", Direction.DESCENDING)
             .get()
+        return snapshot.documents.map {
+            it.data<MeterReading>().copy(id = it.id)
+        }
+    }
+
+    // Get readings by contract with pagination
+    suspend fun getReadingsByContractPaginated(
+        contractId: String,
+        pageSize: Long,
+        startAfterTimestamp: Long? = null
+    ): List<MeterReading> {
+        var query = collection
+            .where { "contractId" equalTo contractId }
+            .orderBy("createdAt", Direction.DESCENDING)
+            .limit(pageSize)
+
+        // If we have a timestamp to start after, add it to the query
+        startAfterTimestamp?.let {
+            query = collection
+                .where { "contractId" equalTo contractId }
+                .orderBy("createdAt", Direction.DESCENDING)
+                .where { "createdAt" lessThan it }
+                .limit(pageSize)
+        }
+
+        val snapshot = query.get()
         return snapshot.documents.map {
             it.data<MeterReading>().copy(id = it.id)
         }

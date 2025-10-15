@@ -61,10 +61,18 @@ import io.ktor.serialization.kotlinx.json.json
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import androidx.room.Room
+import com.example.baytro.data.local.AppDatabase
+import com.example.baytro.data.offline.NetworkConnectivityObserver
+import com.example.baytro.data.offline.OfflineMeterReadingRepository
+import com.example.baytro.data.offline.OfflineContractRepository
+import com.example.baytro.data.sync.SyncManager
 
 val appModule = module {
     single<FirebaseAuth> { FirebaseAuth.getInstance() }
-    single<FirebaseFirestore> { dev.gitlive.firebase.Firebase.firestore }
+    single<FirebaseFirestore> {
+        dev.gitlive.firebase.Firebase.firestore
+    }
     single<FirebaseStorage> { FirebaseStorage.getInstance() }
     single {
         HttpClient(Android) {
@@ -77,6 +85,29 @@ val appModule = module {
         }
     }
     single<FirebaseFunctions> { Firebase.functions }
+
+    // Room Database for offline support
+    single {
+        Room.databaseBuilder(
+            androidContext(),
+            AppDatabase::class.java,
+            "baytro_database"
+        )
+            .fallbackToDestructiveMigration()
+            .build()
+    }
+
+    // DAOs
+    single { get<AppDatabase>().meterReadingDao() }
+    single { get<AppDatabase>().buildingDao() }
+    single { get<AppDatabase>().contractDao() }
+    single { get<AppDatabase>().roomDao() }
+
+    // Network connectivity observer
+    single { NetworkConnectivityObserver(androidContext()) }
+
+    // Sync manager
+    single { SyncManager(androidContext()) }
 }
 
 val authModule = module {
@@ -92,6 +123,11 @@ val authModule = module {
     single<RequestRepository> { RequestRepository(get()) }
     single<MeterReadingRepository> { MeterReadingRepository(get()) }
     single<MeterReadingCloudFunctions> { MeterReadingCloudFunctions(get()) }
+
+    // Offline-first repositories
+    single { OfflineMeterReadingRepository(get(), get(), get()) }
+    single { OfflineContractRepository(get(), get(), get()) }
+
     single { IdCardDataViewModel() }
     single { UserRoleCache(androidContext()) }
 
@@ -191,7 +227,7 @@ val authModule = module {
 
     viewModel {
         ContractListVM(
-            get(),
+            get(), // OfflineContractRepository
             get(),
             get(),
             get()

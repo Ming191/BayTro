@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class MeterReading(
+    @Transient
     @SerialName("id")
     val id: String = "",
     @SerialName("contractId")
@@ -23,7 +24,7 @@ data class MeterReading(
     @SerialName("imageUrl")
     val imageUrl: String? = null,
     @SerialName("status")
-    val status: MeterStatus = MeterStatus.METER_PENDING,
+    val status: MeterStatus = MeterStatus.PENDING,
     @SerialName("createdAt")
     val createdAt: Long = 0,
     @SerialName("approvedAt")

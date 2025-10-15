@@ -1,11 +1,12 @@
 package com.example.baytro.view.screens.dashboard
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,87 +14,100 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.example.baytro.data.MeterStatus
 import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.view.components.PhotoCarousel
+import com.example.baytro.viewModel.meter_reading.MeterReadingGroup
+import com.example.baytro.viewModel.meter_reading.MeterReadingHistoryAction
 import com.example.baytro.viewModel.meter_reading.MeterReadingHistoryVM
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeterReadingHistoryScreen(
     contractId: String,
-    viewModel: MeterReadingHistoryVM = koinViewModel()
+    viewModel: MeterReadingHistoryVM = koinViewModel(),
+    onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val lazyListState = rememberLazyListState()
 
     LaunchedEffect(contractId) {
-        viewModel.loadReadings(contractId)
+        viewModel.onAction(MeterReadingHistoryAction.LoadReadings(contractId))
     }
 
-    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-    Scaffold{
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { event ->
+            event.getContentIfNotHandled()?.let {
+                snackbarHostState.showSnackbar(message = it)
+            }
+        }
+    }
+
+    // Infinite scroll trigger
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            val lastVisibleItem = lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()
+            lastVisibleItem != null && lastVisibleItem.index == uiState.groupedReadings.size - 1 && !uiState.isLoadingNextPage && !uiState.allReadingsLoaded
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value) {
+            viewModel.onAction(MeterReadingHistoryAction.LoadNextPage)
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Meter Reading History") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
         ) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-                uiState.error != null -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Error,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = uiState.error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-                uiState.readings.isEmpty() -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.History,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "No readings yet",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
+                uiState.groupedReadings.isEmpty() -> {
+                    EmptyState()
                 }
                 else -> {
                     LazyColumn(
+                        state = lazyListState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.groupedReadings) { group ->
+                        itemsIndexed(uiState.groupedReadings) { index, group ->
                             MergedReadingCard(group = group)
+                        }
+                        item {
+                            if (uiState.isLoadingNextPage) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
                         }
                     }
                 }
@@ -103,8 +117,31 @@ fun MeterReadingHistoryScreen(
 }
 
 @Composable
-fun MergedReadingCard(group: com.example.baytro.viewModel.meter_reading.MeterReadingGroup) {
-    val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+private fun EmptyState() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            Icons.Default.History,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "No readings yet",
+            style = MaterialTheme.typography.titleLarge
+        )
+    }
+}
+
+@Composable
+fun MergedReadingCard(group: MeterReadingGroup) {
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -115,6 +152,7 @@ fun MergedReadingCard(group: com.example.baytro.viewModel.meter_reading.MeterRea
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Card Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -142,26 +180,31 @@ fun MergedReadingCard(group: com.example.baytro.viewModel.meter_reading.MeterRea
                 )
             }
             HorizontalDivider()
-            group.electricityReading?.let { reading ->
+
+            // Reading Sections
+            group.electricityReading?.let {
                 ReadingSection(
                     icon = Icons.Default.ElectricBolt,
                     label = "Electricity",
-                    reading = reading
+                    reading = it
                 )
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            group.waterReading?.let { reading ->
+            if (group.electricityReading != null && group.waterReading != null) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            }
+            group.waterReading?.let {
                 ReadingSection(
                     icon = Icons.Default.Water,
                     label = "Water",
-                    reading = reading
+                    reading = it
                 )
             }
+
+            // Photo Carousel
             val images = listOfNotNull(
                 group.electricityReading?.imageUrl,
                 group.waterReading?.imageUrl
             )
-
             if (images.isNotEmpty()) {
                 HorizontalDivider()
                 Text(
@@ -169,22 +212,12 @@ fun MergedReadingCard(group: com.example.baytro.viewModel.meter_reading.MeterRea
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
-
                 Spacer(modifier = Modifier.height(8.dp))
-
-                val imageUris = images.mapNotNull { imageUrl ->
-                try {
-                        imageUrl.toUri()
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-
                 PhotoCarousel(
-                    selectedPhotos = imageUris,
-                    onPhotosSelected = { /* Read-only, do nothing */ },
+                    selectedPhotos = images.map { it.toUri() },
+                    onPhotosSelected = {},
                     maxSelectionCount = 2,
-                    showDeleteButton = false // Hide delete buttons
+                    showDeleteButton = false
                 )
             }
         }
@@ -197,10 +230,8 @@ fun ReadingSection(
     label: String,
     reading: MeterReading
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Header with icon and status
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -242,7 +273,6 @@ fun ReadingSection(
                     fontWeight = FontWeight.Bold
                 )
             }
-
             reading.consumption?.let { consumption ->
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
@@ -259,7 +289,7 @@ fun ReadingSection(
             }
         }
 
-        // Cost if approved
+        // Cost or Decline Reason
         reading.cost?.let { cost ->
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -270,22 +300,15 @@ fun ReadingSection(
                     modifier = Modifier.padding(8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "Cost:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    Text("Cost:", style = MaterialTheme.typography.bodySmall)
                     Text(
                         text = "₫${String.format(Locale.US, "%,d", cost.toLong())}",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
-
-        // Decline reason if declined
         reading.declineReason?.let { reason ->
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
@@ -294,16 +317,11 @@ fun ReadingSection(
             ) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Text(
-                        text = "Decline Reason:",
+                        "Decline Reason:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Text(
-                        text = reason,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                    Text(reason, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -313,15 +331,11 @@ fun ReadingSection(
 @Composable
 fun StatusChip(status: MeterStatus) {
     val (color, text) = when (status) {
-        MeterStatus.METER_PENDING -> MaterialTheme.colorScheme.secondaryContainer to "Pending"
-        MeterStatus.METER_APPROVED -> MaterialTheme.colorScheme.primaryContainer to "Approved"
-        MeterStatus.METER_DECLINED -> MaterialTheme.colorScheme.errorContainer to "Declined"
+        MeterStatus.PENDING -> MaterialTheme.colorScheme.secondaryContainer to "Pending"
+        MeterStatus.APPROVED -> MaterialTheme.colorScheme.primaryContainer to "Approved"
+        MeterStatus.DECLINED -> MaterialTheme.colorScheme.errorContainer to "Declined"
     }
-
-    Surface(
-        color = color,
-        shape = RoundedCornerShape(8.dp)
-    ) {
+    Surface(color = color, shape = RoundedCornerShape(8.dp)) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
