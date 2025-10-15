@@ -49,6 +49,7 @@ fun EditPersonalInformationScreen (
     LaunchedEffect(Unit) {
         Log.d("EditPersonalInformationScreen", "Screen launched - Checking if need to load")
         viewModel.loadEditPersonalInformation()
+        Log.d("EditPersonalInformationScreen", "Screen is loaded")
     }
 
     if (uiState == AuthUIState.Loading) {
@@ -84,7 +85,7 @@ fun EditPersonalInformationScreen (
             is AuthUIState.EditPersonalInformationSuccess -> {
                 Toast.makeText(
                     context,
-                    "Change password success!",
+                    "Edit personal information success!",
                     Toast.LENGTH_LONG
                 ).show()
                 onNavigateBack()

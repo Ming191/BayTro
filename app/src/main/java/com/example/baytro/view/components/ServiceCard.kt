@@ -117,17 +117,19 @@ fun ServiceCard(
                             .width(16.dp)
                     )
 
-                    ServiceActionButton(
-                        icon = Icons.Filled.Delete,
-                        contentDescription = "Delete",
-                        backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                        onClick = { onDelete(service) }
-                    )
+                    if (onDelete(service) != {}) {
+                        ServiceActionButton(
+                            icon = Icons.Filled.Delete,
+                            contentDescription = "Delete",
+                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                            onClick = { onDelete(service) }
+                        )
 
-                    Spacer(
-                        modifier = Modifier
-                            .width(16.dp)
-                    )
+                        Spacer(
+                            modifier = Modifier
+                                .width(16.dp)
+                        )
+                    }
                 }
             }
 

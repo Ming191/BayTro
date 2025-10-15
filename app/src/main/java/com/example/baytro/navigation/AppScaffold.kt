@@ -1,10 +1,14 @@
 package com.example.baytro.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
@@ -19,16 +23,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.google.firebase.auth.FirebaseAuth
+import coil3.compose.rememberAsyncImagePainter
+import com.example.baytro.auth.AuthRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold (
     navigationType: NavigationType,
     navHostController: NavHostController,
-    onDrawerClicked: () -> Unit,
+    onDrawerClicked: () -> Unit
 ) {
     val authState = LocalAuthState.current
     Row(
@@ -70,6 +77,31 @@ fun AppScaffold (
                             } else {
                                 IconButton(onClick = onDrawerClicked) {
                                     Icon(Icons.Default.Menu, contentDescription = "Menu")
+                                }
+                            }
+                        },
+                        actions = {
+                            if (currentRoute == Screens.Dashboard.route) {
+                                IconButton(
+                                    onClick = {
+                                        navHostController.navigate(Screens.PersonalInformation.route)
+                                    }
+                                ) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(
+                                            authState.currentUser?.photoUrl
+                                                ?: "https://i.pravatar.cc/150?img=3"
+                                        ),
+                                        contentDescription = "Profile picture",
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .border(
+                                                width = 2.dp,
+                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
+                                                shape = CircleShape
+                                            )
+                                    )
                                 }
                             }
                         },

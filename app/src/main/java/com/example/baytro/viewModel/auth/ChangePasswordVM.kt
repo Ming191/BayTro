@@ -71,6 +71,7 @@ class ChangePasswordVM (
                                 _changePasswordUIState.value = AuthUIState.PasswordChangedSuccess
                             }
                         }
+                    _changePasswordUIState.value = AuthUIState.Success(user)
                 } catch (e: Exception) {
                     _changePasswordUIState.value = AuthUIState.Error(
                         e.message ?: "Failed to change password"

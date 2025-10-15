@@ -47,6 +47,7 @@ import coil3.request.allowHardware
 import coil3.request.crossfade
 import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.User
+import com.example.baytro.navigation.LocalAuthState
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.IDCardImages
 import com.example.baytro.view.components.PersonalInformationCard
@@ -68,6 +69,7 @@ fun PersonalInformationScreen(
     LaunchedEffect(Unit) {
         Log.d("PersonalInformationScreen", "Screen launched - Checking if need to load")
         viewModel.loadPersonalInformation()
+        Log.d("EditPersonalInformationScreen", "Screen is loaded")
     }
 
     if (isLoading) {
@@ -141,12 +143,7 @@ fun PersonalInformationContent(
                             contentScale = ContentScale.Companion.Crop,
                             modifier = Modifier.Companion
                                 .size(200.dp)
-                                .clip(CircleShape)
-                                .border(
-                                    width = 2.dp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape
-                                ),
+                                .clip(CircleShape),
                             loading = {
                                 Box(
                                     modifier = Modifier

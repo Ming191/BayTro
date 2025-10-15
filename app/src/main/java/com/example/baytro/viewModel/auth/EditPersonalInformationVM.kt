@@ -48,15 +48,18 @@ class EditPersonalInformationVM (
                     phoneNumber = user.phoneNumber,
                     email = user.email,
                     role = user.role,
-                    profileImgUrl = user.profileImgUrl
+                    profileImgUrl = user.profileImgUrl,
+                    fcmToken = user.fcmToken
                 )
                 when (user.role) {
                     is Role.Tenant -> {
                         _editRoleInformationFormState.value = RoleFormState.Tenant(
+                            occupation = user.role.occupation,
                             idCardImageBackUrl = user.role.idCardImageBackUrl,
                             idCardImageFrontUrl = user.role.idCardImageFrontUrl,
                             idCardNumber = user.role.idCardNumber,
-                            idCardIssueDate = user.role.idCardIssueDate
+                            idCardIssueDate = user.role.idCardIssueDate,
+                            emergencyContact = user.role.emergencyContact
                         )
                     }
                     is Role.Landlord -> {
@@ -216,6 +219,7 @@ class EditPersonalInformationVM (
                         email = user.email,
                         phoneNumber = user.phoneNumber,
                         profileImgUrl = user.profileImgUrl,
+                        fcmToken = user.fcmToken
                     )
                     if (user.role is Role.Landlord) {
                         val roleUser = _editRoleInformationFormState.value as RoleFormState.Landlord
@@ -224,9 +228,13 @@ class EditPersonalInformationVM (
                             bankAccountNumber = roleUser.bankAccountNumber
                         )
                         editedUser.copy(role = editedRole)
+                        _editPersonalInformationUIState.value = AuthUIState.EditPersonalInformationSuccess
+                    } else {
+                        user.role as Role.Tenant
+                        _editPersonalInformationUIState.value = AuthUIState.EditPersonalInformationSuccess
                     }
                     userRepository.update(auth!!.uid, editedUser)
-                    _editPersonalInformationUIState.value = AuthUIState.EditPersonalInformationSuccess
+                    _editPersonalInformationUIState.value = AuthUIState.Success(auth)
                 } else {
                     Log.d("EditPersonalInformationVM", "fail to validate")
                 }

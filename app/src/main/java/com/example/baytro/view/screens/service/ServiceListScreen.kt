@@ -282,8 +282,18 @@ fun ServiceListContent (
                                     onEdit(it)
                                 },
                                 onDelete = {
-                                    Log.d("ServiceListContent", "Delete clicked for service: ${service.name}")
-                                    onDelete(it)
+                                    if (service.name != "Water" && service.name != "Electrics") {
+                                        Log.d(
+                                            "ServiceListContent",
+                                            "Delete clicked for service: ${service.name}"
+                                        )
+                                        onDelete(it)
+                                    } else {
+                                        Log.d(
+                                            "ServiceListContent",
+                                            "Delete clicked unable for service: ${service.name}"
+                                        )
+                                    }
                                 }
                             )
                         }

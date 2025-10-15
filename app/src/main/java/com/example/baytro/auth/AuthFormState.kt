@@ -43,10 +43,12 @@ data class ChangePasswordFormState(
 
 sealed class RoleFormState {
     data class Tenant(
+        val occupation: String = "",
         val idCardNumber: String = "",
         val idCardImageFrontUrl: String? = null,
         val idCardImageBackUrl: String? = null,
         val idCardIssueDate: String = "",
+        val emergencyContact: String = ""
     ) : RoleFormState()
     data class Landlord(
         val bankCode: String = "",
@@ -72,5 +74,6 @@ data class EditPersonalInformationFormState(
 
     val email: String = "",
     val role: Role? = null,
-    val profileImgUrl: String? = null
+    val profileImgUrl: String? = null,
+    val fcmToken: String? = null
 )
