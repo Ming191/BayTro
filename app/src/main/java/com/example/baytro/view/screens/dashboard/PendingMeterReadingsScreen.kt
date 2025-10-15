@@ -1,87 +1,61 @@
 package com.example.baytro.view.screens.dashboard
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
+import androidx.core.net.toUri
 import com.example.baytro.data.meter_reading.MeterReading
-import com.example.baytro.view.components.shimmerEffect
+import com.example.baytro.view.components.PhotoCarousel
+import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsAction
 import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsVM
 import org.koin.compose.viewmodel.koinViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PendingMeterReadingsScreen(
-    viewModel: PendingMeterReadingsVM = koinViewModel(),
-    onNavigateBack: () -> Unit
+    viewModel: PendingMeterReadingsVM = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showDeclineDialog by remember { mutableStateOf<MeterReading?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // --- LaunchedEffects remain the same ---
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { event ->
+            event.getContentIfNotHandled()?.let {
+                snackbarHostState.showSnackbar(message = it)
+            }
+        }
+    }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Pending Meter Readings") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize()
         ) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                uiState.error != null -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Error,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = uiState.error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.clearError() }) {
-                            Text("Dismiss")
-                        }
-                    }
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 uiState.pendingReadings.isEmpty() -> {
                     Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
+                        modifier = Modifier.padding(16.dp).align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(
@@ -103,25 +77,42 @@ fun PendingMeterReadingsScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.pendingReadings) { reading ->
-                            PendingReadingCard(
-                                reading = reading,
-                                isProcessing = uiState.processingReadingIds.contains(reading.id),
-                                onApprove = { viewModel.approveReading(reading.id) },
-                                onDecline = { showDeclineDialog = reading }
-                            )
+                        itemsIndexed(
+                            items = uiState.pendingReadings,
+                            key = { _, reading -> reading.id }
+                        ) { index, reading ->
+                            val isBeingDismissed = uiState.dismissingReadingIds.contains(reading.id)
+
+                            AnimatedVisibility(
+                                visible = !isBeingDismissed,
+                                enter = fadeIn(tween(600, delayMillis = index * 100)) +
+                                        slideInVertically(
+                                            initialOffsetY = { 40 },
+                                            animationSpec = tween(600, delayMillis = index * 100, easing = FastOutSlowInEasing)
+                                        ),
+                                exit = fadeOut(tween(400)) + slideOutVertically(targetOffsetY = { -40 }) + shrinkVertically(tween(400))
+                            ) {
+                                PendingReadingCard(
+                                    reading = reading,
+                                    isProcessing = uiState.processingReadingIds.contains(reading.id),
+                                    onApprove = {
+                                        viewModel.onAction(PendingMeterReadingsAction.ApproveReading(reading.id))
+                                    },
+                                    onDecline = {
+                                        showDeclineDialog = reading
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
         }
-
-        // Decline Dialog
         showDeclineDialog?.let { reading ->
             DeclineReasonDialog(
                 onDismiss = { showDeclineDialog = null },
                 onConfirm = { reason ->
-                    viewModel.declineReading(reading.id, reason)
+                    viewModel.onAction(PendingMeterReadingsAction.DeclineReading(reading.id, reason))
                     showDeclineDialog = null
                 }
             )
@@ -136,6 +127,8 @@ fun PendingReadingCard(
     onApprove: () -> Unit,
     onDecline: () -> Unit
 ) {
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -156,12 +149,12 @@ fun PendingReadingCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        if (reading.type.name == "ELECTRICITY") Icons.Default.ElectricBolt else Icons.Default.Water,
+                        Icons.Default.Receipt,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = reading.type.name.lowercase().replaceFirstChar { it.uppercase() },
+                        text = "Meter Reading Submission",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -179,43 +172,51 @@ fun PendingReadingCard(
                 }
             }
 
+            Text(
+                text = dateFormat.format(Date(reading.createdAt)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             HorizontalDivider()
 
-            // Reading Value
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            // Reading Sections
+            PendingReadingSection(
+                icon = Icons.Default.ElectricBolt,
+                label = "Electricity",
+                value = reading.electricityValue
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            PendingReadingSection(
+                icon = Icons.Default.Water,
+                label = "Water",
+                value = reading.waterValue
+            )
+
+            // Photo Carousel
+            val images = listOfNotNull(
+                reading.electricityImageUrl,
+                reading.waterImageUrl
+            )
+            if (images.isNotEmpty()) {
+                HorizontalDivider()
                 Text(
-                    text = "Reading Value:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Photos",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
                 )
-                Text(
-                    text = "${reading.value}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                Spacer(modifier = Modifier.height(8.dp))
+                PhotoCarousel(
+                    selectedPhotos = images.map { it.toUri() },
+                    onPhotosSelected = {},
+                    maxSelectionCount = 2,
+                    showDeleteButton = false
                 )
             }
 
-            // Image if available
-            reading.imageUrl?.let { url ->
-                SubcomposeAsyncImage(
-                    model = url,
-                    contentDescription = "Meter photo",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    loading = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .shimmerEffect()
-                        )
-                    }
-                )
-            }
+            HorizontalDivider()
 
             // Action Buttons
             Row(
@@ -225,13 +226,10 @@ fun PendingReadingCard(
                 OutlinedButton(
                     onClick = onDecline,
                     modifier = Modifier.weight(1f),
-                    enabled = !isProcessing,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                    enabled = !isProcessing
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text("Decline")
                 }
                 Button(
@@ -246,13 +244,49 @@ fun PendingReadingCard(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Approve")
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Approve")
                 }
             }
         }
+    }
+}
+
+@Composable
+fun PendingReadingSection(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: Int
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            text = "$value",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -262,6 +296,7 @@ fun DeclineReasonDialog(
     onConfirm: (String) -> Unit
 ) {
     var reason by remember { mutableStateOf("") }
+    var isConfirming by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -281,8 +316,11 @@ fun DeclineReasonDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(reason) },
-                enabled = reason.isNotBlank()
+                onClick = {
+                    isConfirming = true
+                    onConfirm(reason)
+                },
+                enabled = reason.isNotBlank() && !isConfirming
             ) {
                 Text("Decline")
             }
@@ -294,4 +332,3 @@ fun DeclineReasonDialog(
         }
     )
 }
-

@@ -111,7 +111,7 @@ private fun QrCodeDisplayWithActions(sessionId: String) {
 
         Button(onClick = {
             qrBitmap?.let { bitmap ->
-                shareBitmap(context, bitmap, "Share QR Code")
+                shareBitmap(context, bitmap)
             }
         }) {
             Icon(Icons.Default.Share, contentDescription = null)
@@ -121,7 +121,7 @@ private fun QrCodeDisplayWithActions(sessionId: String) {
     }
 }
 
-private fun shareBitmap(context: Context, bitmap: Bitmap, title: String) {
+private fun shareBitmap(context: Context, bitmap: Bitmap) {
     try {
         // Create a file in the app's cache directory
         val cachePath = File(context.cacheDir, "images")
@@ -149,7 +149,7 @@ private fun shareBitmap(context: Context, bitmap: Bitmap, title: String) {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        context.startActivity(Intent.createChooser(shareIntent, title))
+        context.startActivity(Intent.createChooser(shareIntent, "Share QR Code"))
 
     } catch (e: IOException) {
         e.printStackTrace()
@@ -158,11 +158,22 @@ private fun shareBitmap(context: Context, bitmap: Bitmap, title: String) {
 
 @Composable
 private fun ErrorDisplay(message: String, onRetryClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("An Error Occurred", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
-        Spacer(Modifier.height(8.dp))
-        Text(message, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(16.dp))
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text(
+            "Unable to generate QR code",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.error
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            message,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Spacer(Modifier.height(20.dp))
         Button(onClick = onRetryClick) {
             Text("TRY AGAIN")
         }

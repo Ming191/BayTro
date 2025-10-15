@@ -64,7 +64,9 @@ import org.koin.dsl.module
 
 val appModule = module {
     single<FirebaseAuth> { FirebaseAuth.getInstance() }
-    single<FirebaseFirestore> { dev.gitlive.firebase.Firebase.firestore }
+    single<FirebaseFirestore> {
+        dev.gitlive.firebase.Firebase.firestore
+    }
     single<FirebaseStorage> { FirebaseStorage.getInstance() }
     single {
         HttpClient(Android) {
@@ -77,6 +79,7 @@ val appModule = module {
         }
     }
     single<FirebaseFunctions> { Firebase.functions }
+
 }
 
 val authModule = module {
@@ -92,6 +95,8 @@ val authModule = module {
     single<RequestRepository> { RequestRepository(get()) }
     single<MeterReadingRepository> { MeterReadingRepository(get()) }
     single<MeterReadingCloudFunctions> { MeterReadingCloudFunctions(get()) }
+
+
     single { IdCardDataViewModel() }
     single { UserRoleCache(androidContext()) }
 
@@ -191,7 +196,7 @@ val authModule = module {
 
     viewModel {
         ContractListVM(
-            get(),
+            get(), // OfflineContractRepository
             get(),
             get(),
             get()

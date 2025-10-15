@@ -2,11 +2,11 @@ package com.example.baytro.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-
+@Serializable
 enum class MeterStatus {
-    METER_PENDING,
-    METER_APPROVED,
-    METER_DECLINED
+    PENDING,
+    APPROVED,
+    DECLINED
 }
 
 @Serializable

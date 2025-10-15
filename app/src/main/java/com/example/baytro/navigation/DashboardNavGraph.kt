@@ -107,9 +107,6 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
 
     composable(Screens.PendingMeterReadings.route) {
         PendingMeterReadingsScreen(
-            onNavigateBack = {
-                navController.popBackStack()
-            }
         )
     }
 

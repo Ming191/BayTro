@@ -3,7 +3,8 @@ package com.example.baytro.view.screens.dashboard
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,15 +14,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.example.baytro.data.MeterStatus
 import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.view.components.PhotoCarousel
+import com.example.baytro.viewModel.meter_reading.MeterReadingHistoryAction
 import com.example.baytro.viewModel.meter_reading.MeterReadingHistoryVM
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.core.net.toUri
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeterReadingHistoryScreen(
@@ -29,71 +32,67 @@ fun MeterReadingHistoryScreen(
     viewModel: MeterReadingHistoryVM = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val lazyListState = rememberLazyListState()
 
     LaunchedEffect(contractId) {
-        viewModel.loadReadings(contractId)
+        viewModel.onAction(MeterReadingHistoryAction.LoadReadings(contractId))
     }
 
-    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-    Scaffold{
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { event ->
+            event.getContentIfNotHandled()?.let {
+                snackbarHostState.showSnackbar(message = it)
+            }
+        }
+    }
+
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            val lastVisibleItem = lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()
+            lastVisibleItem != null && lastVisibleItem.index == uiState.readings.size - 1 && !uiState.isLoadingNextPage && !uiState.allReadingsLoaded
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value) {
+            viewModel.onAction(MeterReadingHistoryAction.LoadNextPage)
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                uiState.error != null -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Error,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = uiState.error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 uiState.readings.isEmpty() -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.History,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "No readings yet",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
+                    EmptyState()
                 }
                 else -> {
                     LazyColumn(
+                        state = lazyListState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.groupedReadings) { group ->
-                            MergedReadingCard(group = group)
+                        itemsIndexed(
+                            items = uiState.readings,
+                            key = { _, reading -> reading.id }
+                        ) { index, reading ->
+                            HistoryReadingCard(reading = reading)
+                        }
+                        item {
+                            if (uiState.isLoadingNextPage) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
                         }
                     }
                 }
@@ -103,8 +102,21 @@ fun MeterReadingHistoryScreen(
 }
 
 @Composable
-fun MergedReadingCard(group: com.example.baytro.viewModel.meter_reading.MeterReadingGroup) {
-    val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+private fun EmptyState() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("No readings yet", style = MaterialTheme.typography.titleLarge)
+    }
+}
+
+@Composable
+fun HistoryReadingCard(reading: MeterReading) {
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -115,6 +127,7 @@ fun MergedReadingCard(group: com.example.baytro.viewModel.meter_reading.MeterRea
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Card Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -124,105 +137,83 @@ fun MergedReadingCard(group: com.example.baytro.viewModel.meter_reading.MeterRea
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.Receipt,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Meter Reading",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Icon(Icons.Default.Receipt, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("Meter Submission", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
-                Text(
-                    text = dateFormat.format(Date(group.timestamp)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                StatusChip(status = reading.status)
             }
+            Text(
+                text = dateFormat.format(Date(reading.createdAt)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             HorizontalDivider()
-            group.electricityReading?.let { reading ->
-                ReadingSection(
-                    icon = Icons.Default.ElectricBolt,
-                    label = "Electricity",
-                    reading = reading
-                )
-            }
+
+            HistoryReadingSection(
+                icon = Icons.Default.ElectricBolt,
+                label = "Electricity",
+                value = reading.electricityValue,
+                consumption = reading.electricityConsumption,
+                cost = reading.electricityCost
+            )
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            group.waterReading?.let { reading ->
-                ReadingSection(
-                    icon = Icons.Default.Water,
-                    label = "Water",
-                    reading = reading
-                )
-            }
-            val images = listOfNotNull(
-                group.electricityReading?.imageUrl,
-                group.waterReading?.imageUrl
+            HistoryReadingSection(
+                icon = Icons.Default.Water,
+                label = "Water",
+                value = reading.waterValue,
+                consumption = reading.waterConsumption,
+                cost = reading.waterCost
             )
 
+            val images = listOfNotNull(
+                reading.electricityImageUrl,
+                reading.waterImageUrl
+            )
             if (images.isNotEmpty()) {
                 HorizontalDivider()
-                Text(
-                    text = "Photos",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-
+                Text("Photos", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
-
-                val imageUris = images.mapNotNull { imageUrl ->
-                try {
-                        imageUrl.toUri()
-                    } catch (_: Exception) {
-                        null
+                PhotoCarousel(
+                    selectedPhotos = images.map { it.toUri() },
+                    onPhotosSelected = {},
+                    maxSelectionCount = 2,
+                    showDeleteButton = false
+                )
+            }
+            reading.declineReason?.let { reason ->
+                HorizontalDivider()
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Text("Decline Reason:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text(reason, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-
-                PhotoCarousel(
-                    selectedPhotos = imageUris,
-                    onPhotosSelected = { /* Read-only, do nothing */ },
-                    maxSelectionCount = 2,
-                    showDeleteButton = false // Hide delete buttons
-                )
             }
         }
     }
 }
 
 @Composable
-fun ReadingSection(
+fun HistoryReadingSection(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    reading: MeterReading
+    value: Int,
+    consumption: Int?,
+    cost: Double?
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Header with icon and status
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            StatusChip(status = reading.status)
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         }
 
         // Reading value and consumption
@@ -231,80 +222,30 @@ fun ReadingSection(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text(
-                    text = "Reading",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${reading.value}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Reading", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("$value", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
-
-            reading.consumption?.let { consumption ->
+            consumption?.let {
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Consumption",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "$consumption",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text("Consumption", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$it", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
 
-        // Cost if approved
-        reading.cost?.let { cost ->
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
+        // Cost
+        cost?.let {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    modifier = Modifier.padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Cost:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "₫${String.format(Locale.US, "%,d", cost.toLong())}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        }
-
-        // Decline reason if declined
-        reading.declineReason?.let { reason ->
-            Surface(
-                color = MaterialTheme.colorScheme.errorContainer,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(8.dp)) {
-                    Text(
-                        text = "Decline Reason:",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = reason,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
+                Text("Cost", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = "₫${String.format(Locale.US, "%,d", it.toLong())}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
@@ -312,20 +253,17 @@ fun ReadingSection(
 
 @Composable
 fun StatusChip(status: MeterStatus) {
-    val (color, text) = when (status) {
-        MeterStatus.METER_PENDING -> MaterialTheme.colorScheme.secondaryContainer to "Pending"
-        MeterStatus.METER_APPROVED -> MaterialTheme.colorScheme.primaryContainer to "Approved"
-        MeterStatus.METER_DECLINED -> MaterialTheme.colorScheme.errorContainer to "Declined"
+    val (color, textColor, text) = when (status) {
+        MeterStatus.PENDING -> Triple(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, "Pending")
+        MeterStatus.APPROVED -> Triple(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, "Approved")
+        MeterStatus.DECLINED -> Triple(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, "Declined")
     }
-
-    Surface(
-        color = color,
-        shape = RoundedCornerShape(8.dp)
-    ) {
+    Surface(color = color, shape = RoundedCornerShape(8.dp)) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelMedium
+            style = MaterialTheme.typography.labelMedium,
+            color = textColor
         )
     }
 }

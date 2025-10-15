@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class MeterReading(
+    @Transient
     @SerialName("id")
     val id: String = "",
     @SerialName("contractId")
@@ -16,33 +17,38 @@ data class MeterReading(
     val landlordId: String = "",
     @SerialName("tenantId")
     val tenantId: String = "",
-    @SerialName("type")
-    val type: MeterType = MeterType.ELECTRICITY,
-    @SerialName("value")
-    val value: Int = 0,
-    @SerialName("imageUrl")
-    val imageUrl: String? = null,
     @SerialName("status")
-    val status: MeterStatus = MeterStatus.METER_PENDING,
+    val status: MeterStatus = MeterStatus.PENDING,
     @SerialName("createdAt")
     val createdAt: Long = 0,
     @SerialName("approvedAt")
-    val approvedAt: Long? = null,
+    val approvedAt: String? = null,
     @SerialName("declinedAt")
-    val declinedAt: Long? = null,
-    @SerialName("consumption")
-    val consumption: Int? = null,
-    @SerialName("cost")
-    val cost: Double? = null,
+    val declinedAt: String? = null,
     @SerialName("declineReason")
-    val declineReason: String? = null
+    val declineReason: String? = null,
+
+
+    @SerialName("electricityValue")
+    val electricityValue: Int = 0,
+    @SerialName("waterValue")
+    val waterValue: Int = 0,
+
+    @SerialName("electricityImageUrl")
+    val electricityImageUrl: String? = null,
+    @SerialName("waterImageUrl")
+    val waterImageUrl: String? = null,
+
+    @SerialName("electricityConsumption")
+    val electricityConsumption: Int? = null,
+    @SerialName("waterConsumption")
+    val waterConsumption: Int? = null,
+
+    @SerialName("electricityCost")
+    val electricityCost: Double? = null,
+    @SerialName("waterCost")
+    val waterCost: Double? = null,
+
+    @SerialName("totalCost")
+    val totalCost: Double? = null
 )
-
-@Serializable
-enum class MeterType {
-    @SerialName("electricity")
-    ELECTRICITY,
-    @SerialName("water")
-    WATER
-}
-

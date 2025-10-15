@@ -2,19 +2,60 @@ package com.example.baytro.view.screens.dashboard
 
 import android.annotation.SuppressLint
 import android.util.Log
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.House
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Water
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,9 +67,13 @@ import com.example.baytro.data.contract.Status
 import com.example.baytro.utils.Utils
 import com.example.baytro.utils.Utils.formatOrdinal
 import com.example.baytro.view.components.TenantDashboardSkeleton
+import com.example.baytro.viewModel.dashboard.TenantDashboardEvent
+import com.example.baytro.viewModel.dashboard.TenantDashboardUiState
 import com.example.baytro.viewModel.dashboard.TenantDashboardVM
 import org.koin.compose.viewmodel.koinViewModel
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TenantDashboard(
     viewModel: TenantDashboardVM = koinViewModel(),
@@ -39,73 +84,66 @@ fun TenantDashboard(
     onNavigateToMeterHistory: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    Log.d("TenantDashboard", "Composable recomposed - isLoading: ${uiState.isLoading}, hasError: ${uiState.error != null}, hasContract: ${uiState.contract != null}, hasUser: ${uiState.user != null}")
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.contract, uiState.isLoading) {
-        if (!uiState.isLoading && uiState.contract == null) {
-            Log.d("TenantDashboard", "No active contract found, navigating to empty contract screen")
-            onNavigateToEmptyContract()
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { event ->
+            event.getContentIfNotHandled()?.let {
+                snackbarHostState.showSnackbar(message = it)
+            }
         }
     }
 
-    if (uiState.isLoading) {
-        Log.d("TenantDashboard", "Showing skeleton")
-        TenantDashboardSkeleton()
-        return
-    }
-
-    if (uiState.error != null && uiState.contract == null) {
-        Log.d("TenantDashboard", "Waiting for navigation to empty contract screen")
-        return
-    }
-
-    val contract = uiState.contract
-    val user = uiState.user
-
-    if (contract != null && user != null) {
-        Log.d("TenantDashboard", "Showing content for user: ${user.fullName}, contract: ${contract.id}")
-        TenantDashboardContent(
-            username = user.fullName,
-            month = uiState.monthsStayed,
-            days = uiState.daysStayed,
-            status = contract.status,
-            billPaymentDeadline = uiState.billPaymentDeadline,
-            rentalFee = contract.rentalFee,
-            deposit = contract.deposit,
-            contractId = contract.id,
-            onViewDetailsClick = { contractId ->
-                Log.d("TenantDashboard", "Navigating to contract details: $contractId")
-                onNavigateToContractDetails(contractId)
-            },
-            onRequestMaintenanceClick = {
-                Log.d("TenantDashboard", "Navigating to maintenance request list")
-                onNavigateToRequestList()
-            },
-            onMeterReadingClick = {
-                Log.d("TenantDashboard", "Navigating to meter reading screen")
-                onNavigateToMeterReading(contract.id, contract.roomId, contract.landlordId)
-            },
-            onMeterHistoryClick = {
-                Log.d("TenantDashboard", "Navigating to meter reading history")
-                onNavigateToMeterHistory(contract.id)
+    LaunchedEffect(Unit) {
+        viewModel.event.collect { event ->
+            when (event) {
+                is TenantDashboardEvent.NavigateToEmptyContract -> {
+                    Log.d("TenantDashboard", "Navigating to empty contract screen")
+                    onNavigateToEmptyContract()
+                }
             }
-        )
-    } else {
-        Log.w("TenantDashboard", "Not showing content - contract is null: ${contract == null}, user is null: ${user == null}")
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        if (uiState.isLoading) {
+            TenantDashboardSkeleton()
+        } else if (uiState.contract != null && uiState.user != null) {
+            TenantDashboardContent(
+                uiState = uiState,
+                onViewDetailsClick = { contractId ->
+                    Log.d("TenantDashboard", "Navigating to contract details: $contractId")
+                    onNavigateToContractDetails(contractId)
+                },
+                onRequestMaintenanceClick = {
+                    Log.d("TenantDashboard", "Navigating to maintenance request list")
+                    onNavigateToRequestList()
+                },
+                onMeterReadingClick = {
+                    Log.d("TenantDashboard", "Navigating to meter reading screen")
+                    onNavigateToMeterReading(
+                        uiState.contract!!.id,
+                        uiState.contract!!.roomId,
+                        uiState.contract!!.landlordId
+                    )
+                },
+                onMeterHistoryClick = {
+                    Log.d("TenantDashboard", "Navigating to meter reading history")
+                    onNavigateToMeterHistory(uiState.contract!!.id)
+                }
+            )
+        }
     }
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun TenantDashboardContent(
-    username: String,
-    month: Int = 0,
-    days: Int = 0,
-    status: Status = Status.ACTIVE,
-    billPaymentDeadline: Int = 0,
-    rentalFee: Int = 0,
-    deposit: Int = 0,
-    contractId: String = "",
+    uiState: TenantDashboardUiState,
+    modifier: Modifier = Modifier,
     onViewDetailsClick: (String) -> Unit = {},
     onRequestMaintenanceClick: () -> Unit = {},
     onMeterReadingClick: () -> Unit = {},
@@ -114,109 +152,96 @@ fun TenantDashboardContent(
     var isVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        Log.d("TenantDashboardContent", "LaunchedEffect triggered, setting isVisible = true")
         isVisible = true
     }
 
-    Log.d("TenantDashboardContent", "Rendering content - isVisible: $isVisible")
-
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
-        content = {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier
-                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+    LazyColumn(
+        modifier = modifier
+            .padding(start = 16.dp, end = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(600)) + slideInVertically(
+                    initialOffsetY = { -30 },
+                    animationSpec = tween(600, easing = FastOutSlowInEasing)
+                )
             ) {
-
-                // Welcome Header
-                item {
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(tween(600)) + slideInVertically(
-                            initialOffsetY = { -30 },
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        )
-                    ) {
-                        WelcomeHeader(username)
-                    }
-                }
-
-                item {
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(tween(600, delayMillis = 100)) +
-                                slideInVertically(
-                                    initialOffsetY = { 40 },
-                                    animationSpec = tween(600, easing = FastOutSlowInEasing)
-                                )
-                    ) {
-                        ContractStatusCard(
-                            month = month,
-                            days = days,
-                            status = status,
-                            onViewDetailsClick = {
-                                if (contractId.isNotEmpty()) {
-                                    onViewDetailsClick(contractId)
-                                }
-                            }
-                        )
-                    }
-                }
-
-                // Quick Actions
-                item {
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(tween(600, delayMillis = 200)) +
-                                slideInVertically(
-                                    initialOffsetY = { 40 },
-                                    animationSpec = tween(600, easing = FastOutSlowInEasing)
-                                )
-                    ) {
-                        QuickActionsSection(onRequestMaintenanceClick = onRequestMaintenanceClick)
-                    }
-                }
-
-                // Payment Info
-                item {
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(tween(600, delayMillis = 300)) +
-                                slideInVertically(
-                                    initialOffsetY = { 40 },
-                                    animationSpec = tween(600, easing = FastOutSlowInEasing)
-                                )
-                    ) {
-                        PaymentSection(
-                            billPaymentDeadline = billPaymentDeadline,
-                            rentalFee = rentalFee,
-                            deposit = deposit
-                        )
-                    }
-                }
-
-                // Action Buttons
-                item {
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(tween(600, delayMillis = 400)) +
-                                slideInVertically(
-                                    initialOffsetY = { 40 },
-                                    animationSpec = tween(600, easing = FastOutSlowInEasing)
-                                )
-                    ) {
-                        ActionButtonsSection(
-                            onMeterReadingClick = onMeterReadingClick,
-                            onMeterHistoryClick = onMeterHistoryClick
-                        )
-                    }
-                }
-
-                item { Spacer(modifier = Modifier.height(32.dp)) }
+                WelcomeHeader(uiState.user?.fullName ?: "")
             }
         }
-    )
+
+        item {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(600, delayMillis = 100)) +
+                        slideInVertically(
+                            initialOffsetY = { 40 },
+                            animationSpec = tween(600, easing = FastOutSlowInEasing)
+                        )
+            ) {
+                ContractStatusCard(
+                    month = uiState.monthsStayed,
+                    days = uiState.daysStayed,
+                    status = uiState.contract?.status ?: Status.PENDING,
+                    onViewDetailsClick = {
+                        if (uiState.contract != null) {
+                            onViewDetailsClick(uiState.contract.id)
+                        }
+                    }
+                )
+            }
+        }
+
+        item {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(600, delayMillis = 200)) +
+                        slideInVertically(
+                            initialOffsetY = { 40 },
+                            animationSpec = tween(600, easing = FastOutSlowInEasing)
+                        )
+            ) {
+                QuickActionsSection(onRequestMaintenanceClick = onRequestMaintenanceClick)
+            }
+        }
+
+        item {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(600, delayMillis = 300)) +
+                        slideInVertically(
+                            initialOffsetY = { 40 },
+                            animationSpec = tween(600, easing = FastOutSlowInEasing)
+                        )
+            ) {
+                PaymentSection(
+                    billPaymentDeadline = uiState.billPaymentDeadline,
+                    rentalFee = uiState.contract?.rentalFee ?: 0,
+                    deposit = uiState.contract?.deposit ?: 0
+                )
+            }
+        }
+
+        item {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(600, delayMillis = 400)) +
+                        slideInVertically(
+                            initialOffsetY = { 40 },
+                            animationSpec = tween(600, easing = FastOutSlowInEasing)
+                        )
+            ) {
+                ActionButtonsSection(
+                    onMeterReadingClick = onMeterReadingClick,
+                    onMeterHistoryClick = onMeterHistoryClick
+                )
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+    }
 }
 
 @Composable
