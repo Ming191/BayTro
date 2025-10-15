@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.dashboard
 
+import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -8,17 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,33 +20,16 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Water
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.baytro.data.meter_reading.MeterType
+// DELETE THIS IMPORT: MeterType is no longer used
+// import com.example.baytro.data.meter_reading.MeterType
 import com.example.baytro.view.components.CameraOnlyPhotoCapture
 import com.example.baytro.view.components.LoadingOverlay
 import com.example.baytro.viewModel.dashboard.MeterReadingAction
@@ -124,14 +98,7 @@ fun MeterReadingScreen(
         ) { paddingValues ->
             MeterReadingContent(
                 uiState = uiState,
-                onAction = { action ->
-                    when (action) {
-                        is MeterReadingAction.ProcessImage -> viewModel.onAction(
-                            MeterReadingAction.ProcessImage(action.meterType, action.uri, context)
-                        )
-                        else -> viewModel.onAction(action)
-                    }
-                },
+                onAction = viewModel::onAction,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -154,12 +121,6 @@ fun MeterReadingContent(
     onAction: (MeterReadingAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        isVisible = true
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -167,75 +128,40 @@ fun MeterReadingContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(tween(600)) + slideInVertically(
-                initialOffsetY = { -30 },
-                animationSpec = tween(600, easing = FastOutSlowInEasing)
-            )
-        ) {
-            InstructionsCard()
-        }
+        InstructionsCard()
 
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(tween(600, delayMillis = 100)) +
-                    slideInVertically(
-                        initialOffsetY = { 40 },
-                        animationSpec = tween(600, delayMillis = 100, easing = FastOutSlowInEasing)
-                    )
-        ) {
-            MeterPhotosSection(
-                selectedPhotos = uiState.selectedPhotos,
-                onAction = onAction
-            )
-        }
+        MeterPhotosSection(
+            electricityPhotoUri = uiState.electricityPhotoUri,
+            waterPhotoUri = uiState.waterPhotoUri,
+            onAction = onAction
+        )
 
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(tween(600, delayMillis = 200)) +
-                    slideInVertically(
-                        initialOffsetY = { 40 },
-                        animationSpec = tween(600, delayMillis = 200, easing = FastOutSlowInEasing)
-                    )
+        MeterReadingsSection(
+            electricityReading = uiState.electricityReading,
+            waterReading = uiState.waterReading,
+            onAction = onAction
+        )
+
+        val isButtonEnabled = !uiState.isSubmitting &&
+                uiState.electricityReading.isNotBlank() &&
+                uiState.waterReading.isNotBlank()
+
+        Button(
+            onClick = { onAction(MeterReadingAction.SubmitReadings) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            enabled = isButtonEnabled
         ) {
-            MeterReadingsSection(
-                readings = uiState.readings,
-                onAction = onAction
+            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "Submit Readings",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
             )
         }
-
-        val isButtonEnabled = !uiState.isProcessing &&
-                uiState.selectedPhotos.isNotEmpty() &&
-                uiState.readings.any { it.value.isNotEmpty() }
-
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(tween(600, delayMillis = 300)) +
-                    slideInVertically(
-                        initialOffsetY = { 40 },
-                        animationSpec = tween(600, delayMillis = 300, easing = FastOutSlowInEasing)
-                    )
-        ) {
-            Button(
-                onClick = { onAction(MeterReadingAction.SubmitReadings) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                enabled = isButtonEnabled
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Submit Readings",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -243,9 +169,7 @@ fun MeterReadingContent(
 private fun InstructionsCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
@@ -260,7 +184,7 @@ private fun InstructionsCard() {
                 modifier = Modifier.size(24.dp)
             )
             Text(
-                text = "Please capture photos of both electricity and water meters",
+                text = "Please enter values for both electricity and water meters.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -270,7 +194,8 @@ private fun InstructionsCard() {
 
 @Composable
 private fun MeterPhotosSection(
-    selectedPhotos: Map<MeterType, Uri>,
+    electricityPhotoUri: Uri?,
+    waterPhotoUri: Uri?,
     onAction: (MeterReadingAction) -> Unit
 ) {
     Column(
@@ -278,36 +203,35 @@ private fun MeterPhotosSection(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Meter Photos (Required)",
+            text = "Meter photos",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )
 
         MeterPhotoCapture(
-            meterType = MeterType.ELECTRICITY,
             label = "Electricity Meter",
-            selectedPhoto = selectedPhotos[MeterType.ELECTRICITY],
-            onAction = onAction
+            selectedPhoto = electricityPhotoUri,
+            onPhotoSelected = { uri -> onAction(MeterReadingAction.SelectElectricityPhoto(uri)) },
+            onProcessImage = { uri, context -> onAction(MeterReadingAction.ProcessImage(uri, true, context))}
         )
 
         MeterPhotoCapture(
-            meterType = MeterType.WATER,
             label = "Water Meter",
-            selectedPhoto = selectedPhotos[MeterType.WATER],
-            onAction = onAction
+            selectedPhoto = waterPhotoUri,
+            onPhotoSelected = { uri -> onAction(MeterReadingAction.SelectWaterPhoto(uri)) },
+            onProcessImage = { uri, context -> onAction(MeterReadingAction.ProcessImage(uri, false, context))}
         )
     }
 }
 
 @Composable
 private fun MeterPhotoCapture(
-    meterType: MeterType,
     label: String,
     selectedPhoto: Uri?,
-    onAction: (MeterReadingAction) -> Unit
+    onPhotoSelected: (Uri) -> Unit,
+    onProcessImage: (Uri, Context) -> Unit
 ) {
     val context = LocalContext.current
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -326,27 +250,25 @@ private fun MeterPhotoCapture(
             CameraOnlyPhotoCapture(
                 selectedPhoto = selectedPhoto,
                 onPhotoConfirmed = { uri ->
-                    onAction(MeterReadingAction.SelectPhoto(meterType, uri))
-                    onAction(MeterReadingAction.ProcessImage(meterType, uri, context))
+                    onPhotoSelected(uri)
+                    onProcessImage(uri, context)
                 },
-                onPhotoDeleted = {
-                    // TODO: Handle photo deletion if needed
-                }
+                onPhotoDeleted = { /* Handle photo deletion if needed */ }
             )
         }
     }
 }
 
+
 @Composable
 private fun MeterReadingsSection(
-    readings: Map<MeterType, String>,
+    electricityReading: String,
+    waterReading: String,
     onAction: (MeterReadingAction) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(
@@ -360,24 +282,20 @@ private fun MeterReadingsSection(
             )
 
             OutlinedTextField(
-                value = readings[MeterType.ELECTRICITY] ?: "",
-                onValueChange = { onAction(MeterReadingAction.UpdateReading(MeterType.ELECTRICITY, it)) },
+                value = electricityReading,
+                onValueChange = { onAction(MeterReadingAction.UpdateElectricityReading(it)) },
                 label = { Text("Electricity (kWh)") },
-                leadingIcon = {
-                    Icon(Icons.Default.ElectricBolt, contentDescription = null)
-                },
+                leadingIcon = { Icon(Icons.Default.ElectricBolt, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
 
             OutlinedTextField(
-                value = readings[MeterType.WATER] ?: "",
-                onValueChange = { onAction(MeterReadingAction.UpdateReading(MeterType.WATER, it)) },
+                value = waterReading,
+                onValueChange = { onAction(MeterReadingAction.UpdateWaterReading(it)) },
                 label = { Text("Water (m³)") },
-                leadingIcon = {
-                    Icon(Icons.Default.Water, contentDescription = null)
-                },
+                leadingIcon = { Icon(Icons.Default.Water, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)

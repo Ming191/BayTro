@@ -3,6 +3,7 @@ package com.example.baytro.viewModel.meter_reading
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+// IMPORTANT: Make sure this import points to your updated MeterReading data class
 import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.data.meter_reading.MeterReadingRepository
 import com.example.baytro.utils.SingleEvent
@@ -12,17 +13,12 @@ import kotlinx.coroutines.launch
 private const val PAGE_SIZE = 10L
 
 data class MeterReadingHistoryUiState(
-    val groupedReadings: List<MeterReadingGroup> = emptyList(),
+    val readings: List<MeterReading> = emptyList(),
     val isLoading: Boolean = true,
     val isLoadingNextPage: Boolean = false,
     val allReadingsLoaded: Boolean = false
 )
 
-data class MeterReadingGroup(
-    val timestamp: Long,
-    val electricityReading: MeterReading?,
-    val waterReading: MeterReading?
-)
 
 sealed interface MeterReadingHistoryAction {
     data class LoadReadings(val contractId: String) : MeterReadingHistoryAction
@@ -50,13 +46,13 @@ class MeterReadingHistoryVM(
     }
 
     private fun loadInitialReadings(contractId: String) {
-        if (this.contractId == contractId) return
+        if (this.contractId == contractId && uiState.value.readings.isNotEmpty()) return
         this.contractId = contractId
-        _uiState.update { MeterReadingHistoryUiState() } // Reset state for new contract
+        _uiState.update { MeterReadingHistoryUiState() }
         lastReadingTimestamp = null
         loadReadingsPage(isInitialLoad = true)
     }
-    
+
     private fun loadNextPage() {
         if (uiState.value.isLoadingNextPage || uiState.value.allReadingsLoaded) return
         loadReadingsPage(isInitialLoad = false)
@@ -70,22 +66,16 @@ class MeterReadingHistoryVM(
                 }
 
                 try {
-                    // Assume repository supports pagination
                     val newReadings = meterReadingRepository.getReadingsByContractPaginated(
                         contractId = id,
                         pageSize = PAGE_SIZE,
                         startAfterTimestamp = lastReadingTimestamp
                     )
-
-                    lastReadingTimestamp = newReadings.minOfOrNull { it.createdAt }
-                    
+                    lastReadingTimestamp = newReadings.lastOrNull()?.createdAt
                     val allLoaded = newReadings.size < PAGE_SIZE
-
-                    val newGroups = groupReadingsBySubmission(newReadings)
-
-                    _uiState.update {
-                        it.copy(
-                            groupedReadings = if (isInitialLoad) newGroups else it.groupedReadings + newGroups,
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            readings = if (isInitialLoad) newReadings else currentState.readings + newReadings,
                             isLoading = false,
                             isLoadingNextPage = false,
                             allReadingsLoaded = allLoaded
@@ -98,31 +88,5 @@ class MeterReadingHistoryVM(
                 }
             }
         }
-    }
-
-    private fun groupReadingsBySubmission(readings: List<MeterReading>): List<MeterReadingGroup> {
-        val timeWindowMs = 5 * 60 * 1000L // 5 minutes
-        val groups = mutableListOf<MeterReadingGroup>()
-        val processedIds = mutableSetOf<String>()
-
-        readings.sortedByDescending { it.createdAt }.forEach { reading ->
-            if (reading.id in processedIds) return@forEach
-            processedIds.add(reading.id)
-
-            val matchingReading = readings.find { other ->
-                other.id !in processedIds &&
-                        other.type != reading.type &&
-                        kotlin.math.abs(other.createdAt - reading.createdAt) < timeWindowMs
-            }
-            matchingReading?.let { processedIds.add(it.id) }
-
-            val group = if (reading.type.name == "ELECTRICITY") {
-                MeterReadingGroup(reading.createdAt, reading, matchingReading)
-            } else {
-                MeterReadingGroup(reading.createdAt, matchingReading, reading)
-            }
-            groups.add(group)
-        }
-        return groups.sortedByDescending { it.timestamp }
     }
 }

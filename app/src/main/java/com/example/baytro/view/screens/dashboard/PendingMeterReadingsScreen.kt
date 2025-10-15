@@ -20,7 +20,6 @@ import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsAction
 import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsVM
-import com.example.baytro.viewModel.meter_reading.PendingReadingGroup
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -34,12 +33,8 @@ fun PendingMeterReadingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showDeclineDialog by remember { mutableStateOf<MeterReading?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
-    var isVisible by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        isVisible = true
-    }
-
+    // --- LaunchedEffects remain the same ---
     LaunchedEffect(Unit) {
         viewModel.errorEvent.collect { event ->
             event.getContentIfNotHandled()?.let {
@@ -52,40 +47,28 @@ fun PendingMeterReadingsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         ) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-                uiState.pendingGroups.isEmpty() -> {
-                    AnimatedVisibility(
-                        visible = isVisible,
-                        enter = fadeIn(tween(600)) + scaleIn(
-                            initialScale = 0.8f,
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        ),
-                        modifier = Modifier.align(Alignment.Center)
+                uiState.pendingReadings.isEmpty() -> {
+                    Column(
+                        modifier = Modifier.padding(16.dp).align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "No pending readings",
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                        }
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No pending readings",
+                            style = MaterialTheme.typography.titleLarge
+                        )
                     }
                 }
                 else -> {
@@ -95,44 +78,28 @@ fun PendingMeterReadingsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         itemsIndexed(
-                            items = uiState.pendingGroups,
-                            key = { _, group -> group.timestamp }
-                        ) { index, group ->
-                            val isBeingDismissed = uiState.dismissingGroupTimestamps.contains(group.timestamp)
-                            val isStillInList = uiState.pendingGroups.any { it.timestamp == group.timestamp }
+                            items = uiState.pendingReadings,
+                            key = { _, reading -> reading.id }
+                        ) { index, reading ->
+                            val isBeingDismissed = uiState.dismissingReadingIds.contains(reading.id)
 
                             AnimatedVisibility(
-                                visible = isVisible && !isBeingDismissed,
+                                visible = !isBeingDismissed,
                                 enter = fadeIn(tween(600, delayMillis = index * 100)) +
                                         slideInVertically(
                                             initialOffsetY = { 40 },
                                             animationSpec = tween(600, delayMillis = index * 100, easing = FastOutSlowInEasing)
                                         ),
-                                exit = fadeOut(tween(400)) +
-                                        slideOutVertically(
-                                            targetOffsetY = { -40 },
-                                            animationSpec = tween(400, easing = FastOutSlowInEasing)
-                                        ) +
-                                        shrinkVertically(tween(400))
+                                exit = fadeOut(tween(400)) + slideOutVertically(targetOffsetY = { -40 }) + shrinkVertically(tween(400))
                             ) {
-                                PendingReadingGroupCard(
-                                    group = group,
-                                    isProcessing = { readingId ->
-                                        uiState.processingReadingIds.contains(readingId)
+                                PendingReadingCard(
+                                    reading = reading,
+                                    isProcessing = uiState.processingReadingIds.contains(reading.id),
+                                    onApprove = {
+                                        viewModel.onAction(PendingMeterReadingsAction.ApproveReading(reading.id))
                                     },
-                                    onApprove = { readingId ->
-                                        viewModel.onAction(PendingMeterReadingsAction.ApproveReading(readingId))
-                                    },
-                                    onDecline = { reading ->
+                                    onDecline = {
                                         showDeclineDialog = reading
-                                    },
-                                    onApproveGroup = {
-                                        viewModel.onAction(
-                                            PendingMeterReadingsAction.ApproveGroup(
-                                                electricityReadingId = group.electricityReading?.id,
-                                                waterReadingId = group.waterReading?.id
-                                            )
-                                        )
                                     }
                                 )
                             }
@@ -141,8 +108,6 @@ fun PendingMeterReadingsScreen(
                 }
             }
         }
-
-        // Decline Dialog
         showDeclineDialog?.let { reading ->
             DeclineReasonDialog(
                 onDismiss = { showDeclineDialog = null },
@@ -156,19 +121,13 @@ fun PendingMeterReadingsScreen(
 }
 
 @Composable
-fun PendingReadingGroupCard(
-    group: PendingReadingGroup,
-    isProcessing: (String) -> Boolean,
-    onApprove: (String) -> Unit,
-    onDecline: (MeterReading) -> Unit,
-    onApproveGroup: () -> Unit
+fun PendingReadingCard(
+    reading: MeterReading,
+    isProcessing: Boolean,
+    onApprove: () -> Unit,
+    onDecline: () -> Unit
 ) {
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
-    val hasMultipleReadings = group.electricityReading != null && group.waterReading != null
-    val anyProcessing = listOfNotNull(
-        group.electricityReading?.id,
-        group.waterReading?.id
-    ).any { isProcessing(it) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -195,31 +154,26 @@ fun PendingReadingGroupCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Meter Reading",
+                        text = "Meter Reading Submission",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Pending",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
+                    Text(
+                        text = "Pending",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
                 }
             }
 
             Text(
-                text = dateFormat.format(Date(group.timestamp)),
+                text = dateFormat.format(Date(reading.createdAt)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -227,51 +181,24 @@ fun PendingReadingGroupCard(
             HorizontalDivider()
 
             // Reading Sections
-            group.electricityReading?.let { reading ->
-                PendingReadingSection(
-                    icon = Icons.Default.ElectricBolt,
-                    label = "Electricity",
-                    reading = reading
-                )
-            }
+            PendingReadingSection(
+                icon = Icons.Default.ElectricBolt,
+                label = "Electricity",
+                value = reading.electricityValue
+            )
 
-            if (group.electricityReading != null && group.waterReading != null) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-            group.waterReading?.let { reading ->
-                PendingReadingSection(
-                    icon = Icons.Default.Water,
-                    label = "Water",
-                    reading = reading
-                )
-            }
-
-            // Approve All Button
-            HorizontalDivider()
-            Button(
-                onClick = onApproveGroup,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !anyProcessing
-            ) {
-                if (anyProcessing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                } else {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Approve All")
-            }
+            PendingReadingSection(
+                icon = Icons.Default.Water,
+                label = "Water",
+                value = reading.waterValue
+            )
 
             // Photo Carousel
             val images = listOfNotNull(
-                group.electricityReading?.imageUrl,
-                group.waterReading?.imageUrl
+                reading.electricityImageUrl,
+                reading.waterImageUrl
             )
             if (images.isNotEmpty()) {
                 HorizontalDivider()
@@ -288,6 +215,41 @@ fun PendingReadingGroupCard(
                     showDeleteButton = false
                 )
             }
+
+            HorizontalDivider()
+
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDecline,
+                    modifier = Modifier.weight(1f),
+                    enabled = !isProcessing
+                ) {
+                    Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Decline")
+                }
+                Button(
+                    onClick = onApprove,
+                    modifier = Modifier.weight(1f),
+                    enabled = !isProcessing
+                ) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Approve")
+                }
+            }
         }
     }
 }
@@ -296,49 +258,35 @@ fun PendingReadingGroupCard(
 fun PendingReadingSection(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    reading: MeterReading
+    value: Int
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Header
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-
-        // Reading value
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
             Text(
-                text = "Reading Value:",
-                style = MaterialTheme.typography.bodyMedium,
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = "${reading.value}",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
         }
+        Text(
+            text = "$value",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 

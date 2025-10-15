@@ -17,12 +17,6 @@ data class MeterReading(
     val landlordId: String = "",
     @SerialName("tenantId")
     val tenantId: String = "",
-    @SerialName("type")
-    val type: MeterType = MeterType.ELECTRICITY,
-    @SerialName("value")
-    val value: Int = 0,
-    @SerialName("imageUrl")
-    val imageUrl: String? = null,
     @SerialName("status")
     val status: MeterStatus = MeterStatus.PENDING,
     @SerialName("createdAt")
@@ -31,20 +25,30 @@ data class MeterReading(
     val approvedAt: String? = null,
     @SerialName("declinedAt")
     val declinedAt: String? = null,
-    @SerialName("consumption")
-    val consumption: Int? = null,
-    @SerialName("cost")
-    val cost: Double? = null,
     @SerialName("declineReason")
-    val declineReason: String? = null
+    val declineReason: String? = null,
+
+
+    @SerialName("electricityValue")
+    val electricityValue: Int = 0,
+    @SerialName("waterValue")
+    val waterValue: Int = 0,
+
+    @SerialName("electricityImageUrl")
+    val electricityImageUrl: String? = null,
+    @SerialName("waterImageUrl")
+    val waterImageUrl: String? = null,
+
+    @SerialName("electricityConsumption")
+    val electricityConsumption: Int? = null,
+    @SerialName("waterConsumption")
+    val waterConsumption: Int? = null,
+
+    @SerialName("electricityCost")
+    val electricityCost: Double? = null,
+    @SerialName("waterCost")
+    val waterCost: Double? = null,
+
+    @SerialName("totalCost")
+    val totalCost: Double? = null
 )
-
-@Serializable
-enum class MeterType {
-    @SerialName("electricity")
-    ELECTRICITY,
-    @SerialName("water")
-    WATER
-}
-
-

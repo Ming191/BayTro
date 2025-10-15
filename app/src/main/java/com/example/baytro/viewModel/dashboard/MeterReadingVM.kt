@@ -9,33 +9,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.MeterStatus
+// IMPORTANT: Make sure this import points to your updated MeterReading data class
 import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.data.meter_reading.MeterReadingRepository
-import com.example.baytro.data.meter_reading.MeterType
 import com.example.baytro.service.MeterReadingApiService
 import com.example.baytro.service.MeterReadingCloudFunctions
 import com.example.baytro.utils.SingleEvent
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+// === 1. Redefined UI State: No more Maps or MeterType ===
 data class MeterReadingUiState(
     val isProcessing: Boolean = false,
     val isSubmitting: Boolean = false,
-    val readings: Map<MeterType, String> = emptyMap(),
-    val selectedPhotos: Map<MeterType, Uri> = emptyMap(),
+    val electricityReading: String = "",
+    val waterReading: String = "",
+    val electricityPhotoUri: Uri? = null,
+    val waterPhotoUri: Uri? = null,
     val recognizedText: String = "",
     val capturedImage: Bitmap? = null,
-    val meterType: MeterType = MeterType.ELECTRICITY,
     val detectionConfidence: Float = 0f,
     val contractId: String = "",
     val roomId: String = "",
@@ -46,10 +42,13 @@ sealed interface MeterReadingEvent {
     object SubmissionSuccess : MeterReadingEvent
 }
 
+// === 2. Redefined Actions: Specific actions for each field ===
 sealed interface MeterReadingAction {
-    data class UpdateReading(val meterType: MeterType, val reading: String) : MeterReadingAction
-    data class SelectPhoto(val meterType: MeterType, val uri: Uri) : MeterReadingAction
-    data class ProcessImage(val meterType: MeterType, val uri: Uri, val context: Context) : MeterReadingAction
+    data class UpdateElectricityReading(val reading: String) : MeterReadingAction
+    data class UpdateWaterReading(val reading: String) : MeterReadingAction
+    data class SelectElectricityPhoto(val uri: Uri) : MeterReadingAction
+    data class SelectWaterPhoto(val uri: Uri) : MeterReadingAction
+    data class ProcessImage(val uri: Uri, val isForElectricity: Boolean, val context: Context) : MeterReadingAction
     object SubmitReadings : MeterReadingAction
 }
 
@@ -74,105 +73,69 @@ class MeterReadingVM(
 
     fun onAction(action: MeterReadingAction) {
         when (action) {
-            is MeterReadingAction.UpdateReading -> updateReading(action.meterType, action.reading)
-            is MeterReadingAction.SelectPhoto -> setSelectedPhoto(action.meterType, action.uri)
-            is MeterReadingAction.ProcessImage -> processImageFromUri(action.uri, action.meterType, action.context)
+            is MeterReadingAction.UpdateElectricityReading -> updateReading(action.reading, isForElectricity = true)
+            is MeterReadingAction.UpdateWaterReading -> updateReading(action.reading, isForElectricity = false)
+            is MeterReadingAction.SelectElectricityPhoto -> setSelectedPhoto(action.uri, isForElectricity = true)
+            is MeterReadingAction.SelectWaterPhoto -> setSelectedPhoto(action.uri, isForElectricity = false)
+            is MeterReadingAction.ProcessImage -> processImageFromUri(action.uri, action.isForElectricity, action.context)
             is MeterReadingAction.SubmitReadings -> submitReadings()
         }
     }
-    
+
     fun initialize(contractId: String, roomId: String, landlordId: String) {
         _uiState.update {
-            it.copy(
-                contractId = contractId,
-                roomId = roomId,
-                landlordId = landlordId
-            )
+            it.copy(contractId = contractId, roomId = roomId, landlordId = landlordId)
         }
     }
 
-    private fun setSelectedPhoto(meterType: MeterType, uri: Uri) {
-        _uiState.update { currentState ->
-            val newPhotos = currentState.selectedPhotos.toMutableMap()
-            newPhotos[meterType] = uri
-            currentState.copy(selectedPhotos = newPhotos)
-        }
-    }
-
-    private fun extractMeterReading(
-        detections: List<com.example.baytro.data.MeterDetection>
-    ): String {
-        return detections.sortedBy { it.x }.joinToString("") { it.label }
-    }
-
-    private fun updateReading(meterType: MeterType, reading: String) {
+    private fun updateReading(reading: String, isForElectricity: Boolean) {
         val filtered = reading.filter { it.isDigit() }
-        _uiState.update { currentState ->
-            val newReadings = currentState.readings.toMutableMap()
-            newReadings[meterType] = filtered
-            currentState.copy(readings = newReadings)
+        _uiState.update {
+            if (isForElectricity) it.copy(electricityReading = filtered)
+            else it.copy(waterReading = filtered)
         }
     }
 
-    private fun processImageFromUri(uri: Uri, meterType: MeterType, context: Context) {
+    private fun setSelectedPhoto(uri: Uri, isForElectricity: Boolean) {
+        _uiState.update {
+            if (isForElectricity) it.copy(electricityPhotoUri = uri)
+            else it.copy(waterPhotoUri = uri)
+        }
+    }
+
+    private fun processImageFromUri(uri: Uri, isForElectricity: Boolean, context: Context) {
         viewModelScope.launch {
-            try {
-                _uiState.update { it.copy(isProcessing = true, meterType = meterType) }
+            _uiState.update { it.copy(isProcessing = true) }
+            // The internal logic for image processing remains largely the same.
+            // The key change is how the result is applied.
+            val bitmap = withContext(Dispatchers.IO) {
+                context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+            }
 
-                // Perform heavy bitmap decoding in a background thread
-                val bitmap = withContext(Dispatchers.IO) {
-                    context.contentResolver.openInputStream(uri)?.use { stream ->
-                        BitmapFactory.decodeStream(stream)
-                    }
-                }
-
-                if (bitmap == null) {
-                    _uiState.update { it.copy(isProcessing = false) }
-                    _errorEvent.emit(SingleEvent("Failed to load image"))
-                    return@launch
-                }
-
-                val result = meterReadingApiService.predictMeterReading(bitmap)
-
-                result.onSuccess { response ->
-                    Log.d("MeterReadingVM", "API Response - Text: ${response.text}, Detections: ${response.detections.size}")
-                    val meterReading = extractMeterReading(response.detections)
-                    val avgConfidence = if (response.detections.isNotEmpty()) {
-                        response.detections.map { it.conf }.average().toFloat()
-                    } else {
-                        0f
-                    }
-                    if (meterReading.isEmpty()) {
-                        _uiState.update {
-                            it.copy(
-                                recognizedText = response.text,
-                                isProcessing = false,
-                            )
-                        }
-                        _errorEvent.emit(SingleEvent("No meter reading found. Please try again or enter manually."))
-                        return@launch
-                    }
-                    _uiState.update { currentState ->
-                        val newReadings = currentState.readings.toMutableMap()
-                        newReadings[meterType] = meterReading
-                        currentState.copy(
-                            readings = newReadings,
-                            recognizedText = response.text,
-                            detectionConfidence = avgConfidence,
-                            isProcessing = false
-                        )
-                    }
-                }.onFailure { e ->
-                    _uiState.update { it.copy(isProcessing = false) }
-                    _errorEvent.emit(SingleEvent("Failed to read meter: ${e.message}"))
-                }
-            } catch (e: Exception) {
+            if (bitmap == null) {
                 _uiState.update { it.copy(isProcessing = false) }
-                _errorEvent.emit(SingleEvent("Failed to process image: ${e.message}"))
+                _errorEvent.emit(SingleEvent("Failed to load image"))
+                return@launch
+            }
+
+            val result = meterReadingApiService.predictMeterReading(bitmap)
+            result.onSuccess { response ->
+                val meterReading = extractMeterReading(response.detections)
+                // Use the simplified updateReading function
+                updateReading(meterReading, isForElectricity)
+                _uiState.update { it.copy(isProcessing = false) }
+            }.onFailure { e ->
+                _uiState.update { it.copy(isProcessing = false) }
+                _errorEvent.emit(SingleEvent("Failed to read meter: ${e.message}"))
             }
         }
     }
 
+    private fun extractMeterReading(detections: List<com.example.baytro.data.MeterDetection>): String {
+        return detections.sortedBy { it.x }.joinToString("") { it.label }
+    }
+
+    // === 3. Rewritten submission logic ===
     private fun submitReadings() {
         viewModelScope.launch {
             val state = _uiState.value
@@ -182,14 +145,13 @@ class MeterReadingVM(
                 return@launch
             }
 
-            if (state.contractId.isEmpty() || state.roomId.isEmpty() || state.landlordId.isEmpty()) {
-                _errorEvent.emit(SingleEvent("Missing contract information"))
+            // --- Step 1: Validate input ---
+            if (state.electricityReading.isBlank() || state.waterReading.isBlank()) {
+                _errorEvent.emit(SingleEvent("Please provide both electricity and water readings."))
                 return@launch
             }
-
-            val readingsToSubmit = state.readings.filter { it.value.isNotEmpty() }
-            if (readingsToSubmit.isEmpty()) {
-                _errorEvent.emit(SingleEvent("Please provide at least one meter reading"))
+            if (state.contractId.isEmpty() || state.roomId.isEmpty() || state.landlordId.isEmpty()) {
+                _errorEvent.emit(SingleEvent("Missing contract information"))
                 return@launch
             }
 
@@ -197,121 +159,80 @@ class MeterReadingVM(
             _uploadProgress.value = 0.1f
 
             withContext(NonCancellable) {
-                val uploadedImageUrls = mutableMapOf<MeterType, String>()
-                val createdReadingIds = mutableListOf<String>()
+                var elecImageUrl: String? = null
+                var waterImageUrl: String? = null
+                var createdReadingId: String? = null
 
                 try {
-                    // Refactored submission logic with clearer progress updates
-                    val totalSteps = readingsToSubmit.count { state.selectedPhotos.containsKey(it.key) } + readingsToSubmit.size
-                    var currentStep = 0
-
-                    // Step 1: Upload images
-                    for ((meterType, _) in readingsToSubmit) {
-                        val photoUri = state.selectedPhotos[meterType]
-                        if (photoUri != null) {
-                            val imageUrl = uploadReadingImage(photoUri, state.contractId, meterType)
-                            uploadedImageUrls[meterType] = imageUrl
-                            currentStep++
-                            _uploadProgress.value = 0.1f + (currentStep.toFloat() / totalSteps * 0.75f)
-                        }
+                    // --- Step 2: Upload images (if selected) ---
+                    if (state.electricityPhotoUri != null) {
+                        val path = "meter_readings/${state.contractId}/${System.currentTimeMillis()}_electricity.jpg"
+                        elecImageUrl = mediaRepository.uploadImageFromUri(uri = state.electricityPhotoUri, path = path)
                     }
+                    _uploadProgress.value = 0.4f
 
-                    // Step 2: Create readings
-                    for ((meterType, readingValue) in readingsToSubmit) {
-                        val readingId = createMeterReading(
-                            state,
-                            currentUserId,
-                            meterType,
-                            readingValue,
-                            uploadedImageUrls[meterType]
-                        )
-                        createdReadingIds.add(readingId)
-                        currentStep++
-                        _uploadProgress.value = 0.1f + (currentStep.toFloat() / totalSteps * 0.75f)
+                    if (state.waterPhotoUri != null) {
+                        val path = "meter_readings/${state.contractId}/${System.currentTimeMillis()}_water.jpg"
+                        waterImageUrl = mediaRepository.uploadImageFromUri(uri = state.waterPhotoUri, path = path)
                     }
+                    _uploadProgress.value = 0.7f
 
-                    // Step 3: Notify landlord
-                    notifyLandlord(createdReadingIds)
+                    // --- Step 3: Create a single document ---
+                    val newReadingDoc = MeterReading(
+                        contractId = state.contractId,
+                        roomId = state.roomId,
+                        landlordId = state.landlordId,
+                        tenantId = currentUserId,
+                        status = MeterStatus.PENDING,
+                        createdAt = System.currentTimeMillis(),
+                        electricityValue = state.electricityReading.toInt(),
+                        waterValue = state.waterReading.toInt(),
+                        electricityImageUrl = elecImageUrl,
+                        waterImageUrl = waterImageUrl
+                    )
+                    createdReadingId = meterReadingRepository.add(newReadingDoc)
+                    Log.d("MeterReadingVM", "Created new combined reading: $createdReadingId")
+                    _uploadProgress.value = 0.9f
+
+                    // --- Step 4: Send a single notification ---
+                    meterReadingCloudFunctions.notifyNewMeterReading(createdReadingId)
                     _uploadProgress.value = 0.95f
 
-                    // Finalize
+                    // --- Step 5: Finalize ---
                     _uiState.update { it.copy(isSubmitting = false) }
                     _uploadProgress.value = 1.0f
-                    Log.d("MeterReadingVM", "Successfully submitted all readings.")
                     _event.emit(MeterReadingEvent.SubmissionSuccess)
 
                 } catch (e: Exception) {
                     Log.e("MeterReadingVM", "Error during submission, rolling back...", e)
-                    rollbackSubmission(createdReadingIds, uploadedImageUrls.values.toList())
+                    // --- Step 6: Rollback on failure ---
+                    val imageUrlsToRollback = listOfNotNull(elecImageUrl, waterImageUrl)
+                    rollbackSubmission(createdReadingId, imageUrlsToRollback)
                     _uploadProgress.value = 0f
                     _uiState.update { it.copy(isSubmitting = false) }
-                    _errorEvent.emit(SingleEvent("Submission failed: ${e.message}. All changes were rolled back."))
+                    _errorEvent.emit(SingleEvent("Submission failed: ${e.message}"))
                 }
             }
         }
     }
 
-    private suspend fun uploadReadingImage(uri: Uri, contractId: String, meterType: MeterType): String {
-        val path = "meter_readings/$contractId/${System.currentTimeMillis()}_${meterType.name.lowercase()}.jpg"
-        val imageUrl = mediaRepository.uploadImageFromUri(uri = uri, path = path)
-        Log.d("MeterReadingVM", "${meterType.name} image uploaded: $imageUrl")
-        return imageUrl
-    }
-
-    private suspend fun createMeterReading(
-        state: MeterReadingUiState,
-        currentUserId: String,
-        meterType: MeterType,
-        readingValue: String,
-        imageUrl: String?
-    ): String {
-        val readingDoc = MeterReading(
-            contractId = state.contractId,
-            roomId = state.roomId,
-            landlordId = state.landlordId,
-            tenantId = currentUserId,
-            type = meterType,
-            value = readingValue.toInt(),
-            imageUrl = imageUrl,
-            status = MeterStatus.PENDING,
-            createdAt = System.currentTimeMillis()
-        )
-        val readingId = meterReadingRepository.add(readingDoc)
-        Log.d("MeterReadingVM", "Created ${meterType.name} reading: $readingId")
-        return readingId
-    }
-
-    private suspend fun notifyLandlord(createdReadingIds: List<String>) {
-        for (readingId in createdReadingIds) {
-            try {
-                val notifyResult = meterReadingCloudFunctions.notifyNewMeterReading(readingId)
-                notifyResult.onFailure { e ->
-                    Log.e("MeterReadingVM", "Failed to send notification for reading $readingId", e)
-                    // Non-critical error, so we don't rethrow or rollback
-                }
-            } catch (e: Exception) {
-                Log.e("MeterReadingVM", "Exception sending notification for reading $readingId", e)
-            }
-        }
-    }
-
-    private suspend fun rollbackSubmission(readingIds: List<String>, imageUrls: List<String>) {
+    // --- 4. Simplified rollback logic ---
+    private suspend fun rollbackSubmission(readingId: String?, imageUrls: List<String>) {
         Log.d("MeterReadingVM", "Rolling back submission...")
-        for (readingId in readingIds) {
+        readingId?.let {
             try {
-                meterReadingRepository.delete(readingId)
-                Log.d("MeterReadingVM", "Rolled back reading: $readingId")
-            } catch (rollbackError: Exception) {
-                Log.e("MeterReadingVM", "Failed to rollback reading $readingId", rollbackError)
+                meterReadingRepository.delete(it)
+                Log.d("MeterReadingVM", "Rolled back reading: $it")
+            } catch (e: Exception) {
+                Log.e("MeterReadingVM", "Failed to rollback reading $it", e)
             }
         }
-
-        for (imageUrl in imageUrls) {
+        imageUrls.forEach { url ->
             try {
-                mediaRepository.deleteImage(imageUrl)
-                Log.d("MeterReadingVM", "Rolled back image: $imageUrl")
-            } catch (rollbackError: Exception) {
-                Log.e("MeterReadingVM", "Failed to rollback image $imageUrl", rollbackError)
+                mediaRepository.deleteImage(url)
+                Log.d("MeterReadingVM", "Rolled back image: $url")
+            } catch (e: Exception) {
+                Log.e("MeterReadingVM", "Failed to rollback image $url", e)
             }
         }
     }
