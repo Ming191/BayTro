@@ -444,7 +444,7 @@ fun PendingReadingsBanner(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            containerColor = MaterialTheme.colorScheme.errorContainer
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -462,14 +462,14 @@ fun PendingReadingsBanner(
             ) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.tertiary,
+                    color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onTertiary,
+                            tint = MaterialTheme.colorScheme.onError,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -480,12 +480,12 @@ fun PendingReadingsBanner(
                         text = "Action Required",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Text(
                         text = "$pendingCount pending reading${if (pendingCount > 1) "s" else ""} to review",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -493,10 +493,13 @@ fun PendingReadingsBanner(
             FilledTonalButton(
                 onClick = onReviewClick,
                 colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiary
+                    containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Review")
+                Text(
+                    text = "Review",
+                    color = MaterialTheme.colorScheme.onError
+                )
             }
         }
     }
