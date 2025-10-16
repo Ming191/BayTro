@@ -6,13 +6,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.TenantListScreen
-import com.example.baytro.view.screens.BillListScreen
+import com.example.baytro.view.screens.billing.LandlordBillsScreen
 import com.example.baytro.view.screens.dashboard.TenantDashboard
 import com.example.baytro.view.screens.contract.TenantEmptyContractView
 import com.example.baytro.view.screens.request.RequestListScreen
 import com.example.baytro.view.screens.dashboard.MeterReadingScreen
 import com.example.baytro.view.screens.dashboard.PendingMeterReadingsScreen
 import com.example.baytro.view.screens.dashboard.MeterReadingHistoryScreen
+import com.google.firebase.auth.FirebaseAuth
 
 fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     composable(Screens.Dashboard.route) {
@@ -39,8 +40,8 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
                     launchSingleTop = true
                 }
             },
-            onNavigateToMeterReading = { contractId, roomId, landlordId ->
-                navController.navigate(Screens.MeterReading.createRoute(contractId, roomId, landlordId)) {
+            onNavigateToMeterReading = { contractId, roomId, buildingId, landlordId, roomName, buildingName ->
+                navController.navigate(Screens.MeterReading.createRoute(contractId, roomId, buildingId, landlordId, roomName, buildingName)) {
                     launchSingleTop = true
                 }
             },
@@ -70,7 +71,9 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     }
 
     composable(Screens.BillList.route) {
-        BillListScreen()
+        LandlordBillsScreen(
+            navController = navController,
+        )
     }
 
     composable(Screens.MaintenanceRequestList.route) {
@@ -93,12 +96,18 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     ) { backStackEntry ->
         val contractId = backStackEntry.arguments?.getString(Screens.ARG_CONTRACT_ID) ?: ""
         val roomId = backStackEntry.arguments?.getString(Screens.ARG_ROOM_ID) ?: ""
+        val buildingId = backStackEntry.arguments?.getString(Screens.ARG_BUILDING_ID) ?: ""
         val landlordId = backStackEntry.arguments?.getString(Screens.ARG_LANDLORD_ID) ?: ""
+        val roomName = backStackEntry.arguments?.getString(Screens.ARG_ROOM_NAME) ?: ""
+        val buildingName = backStackEntry.arguments?.getString(Screens.ARG_BUILDING_NAME) ?: ""
 
         MeterReadingScreen(
             contractId = contractId,
             roomId = roomId,
+            buildingId = buildingId,
             landlordId = landlordId,
+            roomName = roomName,
+            buildingName = buildingName,
             onNavigateBack = {
                 navController.popBackStack()
             }
@@ -106,8 +115,7 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     }
 
     composable(Screens.PendingMeterReadings.route) {
-        PendingMeterReadingsScreen(
-        )
+        PendingMeterReadingsScreen()
     }
 
     composable(
