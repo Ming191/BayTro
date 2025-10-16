@@ -49,22 +49,19 @@ class MeterReadingRepository(
         collection.document(id).update(fields)
     }
 
-    // Get readings by contract ID
-    suspend fun getByContractId(contractId: String): List<MeterReading> {
-        val snapshot = collection
-            .where { "contractId" equalTo contractId }
-            .orderBy("createdAt", Direction.DESCENDING)
-            .get()
-        return snapshot.documents.map {
-            it.data<MeterReading>().copy(id = it.id)
-        }
-    }
-
-    // Listen for pending readings for landlord
-    fun listenForPendingReadings(landlordId: String): Flow<List<MeterReading>> {
+    // Listen for pending readings by building (for landlord dashboard with building filter)
+    fun listenForPendingReadingsByBuilding(
+        landlordId: String,
+        buildingId: String
+    ): Flow<List<MeterReading>> {
         return collection
-            .where { "landlordId" equalTo landlordId }
-            .where { "status" equalTo MeterStatus.PENDING }
+            .where {
+                all(
+                    "landlordId" equalTo landlordId,
+                    "buildingId" equalTo buildingId,
+                    "status" equalTo MeterStatus.PENDING
+                )
+            }
             .orderBy("createdAt", Direction.DESCENDING)
             .snapshots
             .map { snapshot ->
@@ -74,10 +71,18 @@ class MeterReadingRepository(
             }
     }
 
-    // Listen for readings by contract
-    fun listenForReadingsByContract(contractId: String): Flow<List<MeterReading>> {
+    // Listen for readings by status (for all buildings)
+    fun listenForReadingsByStatus(
+        landlordId: String,
+        status: MeterStatus
+    ): Flow<List<MeterReading>> {
         return collection
-            .where { "contractId" equalTo contractId }
+            .where {
+                all(
+                    "landlordId" equalTo landlordId,
+                    "status" equalTo status
+                )
+            }
             .orderBy("createdAt", Direction.DESCENDING)
             .snapshots
             .map { snapshot ->
@@ -87,15 +92,27 @@ class MeterReadingRepository(
             }
     }
 
-    // Get readings by tenant
-    suspend fun getByTenantId(tenantId: String): List<MeterReading> {
-        val snapshot = collection
-            .where { "tenantId" equalTo tenantId }
+    // Listen for readings by building and status
+    fun listenForReadingsByBuildingAndStatus(
+        landlordId: String,
+        buildingId: String,
+        status: MeterStatus
+    ): Flow<List<MeterReading>> {
+        return collection
+            .where {
+                all(
+                    "landlordId" equalTo landlordId,
+                    "buildingId" equalTo buildingId,
+                    "status" equalTo status
+                )
+            }
             .orderBy("createdAt", Direction.DESCENDING)
-            .get()
-        return snapshot.documents.map {
-            it.data<MeterReading>().copy(id = it.id)
-        }
+            .snapshots
+            .map { snapshot ->
+                snapshot.documents.map { doc ->
+                    doc.data<MeterReading>().copy(id = doc.id)
+                }
+            }
     }
 
     // Get readings by contract with pagination

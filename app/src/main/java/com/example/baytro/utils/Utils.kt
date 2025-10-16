@@ -1,7 +1,8 @@
 package com.example.baytro.utils
 
-import androidx.compose.runtime.Composable
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 object Utils {
@@ -24,7 +25,7 @@ object Utils {
             val numericAmount = amount.toDoubleOrNull() ?: 0.0
             val formatter = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("vi-VN"))
             formatter.format(numericAmount)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             amount
         }
     }
@@ -35,7 +36,7 @@ object Utils {
             if (numericAmount == 0L) return ""
             val formatter = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"))
             "${formatter.format(numericAmount)} VND"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             amount
         }
     }
@@ -43,4 +44,17 @@ object Utils {
     fun parseVND(formattedAmount: String): String {
         return formattedAmount.replace("[^\\d]".toRegex(), "")
     }
+
+    fun getMonthName(month: Int, short: Boolean = false): String {
+        // Calendar.MONTH is 0-based, so we subtract 1
+        if (month < 1 || month > 12) return "Invalid Month"
+
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.MONTH, month - 1)
+
+        val format = if (short) "MMM" else "MMMM"
+        val sdf = SimpleDateFormat(format, Locale.getDefault())
+        return sdf.format(calendar.time)
+    }
+
 }

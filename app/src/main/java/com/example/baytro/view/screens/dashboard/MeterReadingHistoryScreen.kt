@@ -69,7 +69,7 @@ fun MeterReadingHistoryScreen(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 uiState.readings.isEmpty() -> {
-                    EmptyState()
+                    EmptyHistoryState()
                 }
                 else -> {
                     LazyColumn(
@@ -102,7 +102,7 @@ fun MeterReadingHistoryScreen(
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyHistoryState() {
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

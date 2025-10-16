@@ -80,7 +80,7 @@ fun TenantDashboard(
     onNavigateToEmptyContract: () -> Unit = {},
     onNavigateToContractDetails: (String) -> Unit = {},
     onNavigateToRequestList: () -> Unit = {},
-    onNavigateToMeterReading: (String, String, String) -> Unit = { _, _, _ -> },
+    onNavigateToMeterReading: (String, String, String, String, String, String) -> Unit = { _, _, _, _, _, _ -> },
     onNavigateToMeterHistory: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -127,7 +127,10 @@ fun TenantDashboard(
                     onNavigateToMeterReading(
                         uiState.contract!!.id,
                         uiState.contract!!.roomId,
-                        uiState.contract!!.landlordId
+                        uiState.contract!!.buildingId,
+                        uiState.contract!!.landlordId,
+                        uiState.roomName,
+                        uiState.buildingName
                     )
                 },
                 onMeterHistoryClick = {

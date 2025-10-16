@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
@@ -38,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.DividerWithSubhead
@@ -58,7 +58,7 @@ fun AddBuildingScreen(
     var name by remember { mutableStateOf("") }
     var floor by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf("Active") }
+    var status by remember { mutableStateOf(BuildingStatus.ACTIVE) }
     var billingDate by remember { mutableStateOf("") }
     var paymentStart by remember { mutableStateOf("") }
     var paymentDue by remember { mutableStateOf("") }
@@ -194,10 +194,11 @@ fun AddBuildingScreen(
             item {
                 DropdownSelectField(
                     label = "Status",
-                    options = listOf("Active", "Inactive"),
-                    selectedOption = status,
-                    onOptionSelected = { status = it },
-                    modifier = Modifier.fillMaxWidth()
+                    options = BuildingStatus.entries.map { it.name },
+                    selectedOption = status.name,
+                    onOptionSelected = { status = BuildingStatus.valueOf(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    optionToString = { it.lowercase().replaceFirstChar { c -> c.uppercase() } }
                 )
             }
 

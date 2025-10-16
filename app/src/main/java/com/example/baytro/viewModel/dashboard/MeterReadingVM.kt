@@ -35,7 +35,10 @@ data class MeterReadingUiState(
     val detectionConfidence: Float = 0f,
     val contractId: String = "",
     val roomId: String = "",
-    val landlordId: String = ""
+    val buildingId: String = "",
+    val landlordId: String = "",
+    val roomName: String = "",
+    val buildingName: String = ""
 )
 
 sealed interface MeterReadingEvent {
@@ -82,9 +85,23 @@ class MeterReadingVM(
         }
     }
 
-    fun initialize(contractId: String, roomId: String, landlordId: String) {
+    fun initialize(
+        contractId: String,
+        roomId: String,
+        buildingId: String,
+        landlordId: String,
+        roomName: String,
+        buildingName: String
+    ) {
         _uiState.update {
-            it.copy(contractId = contractId, roomId = roomId, landlordId = landlordId)
+            it.copy(
+                contractId = contractId,
+                roomId = roomId,
+                buildingId = buildingId,
+                landlordId = landlordId,
+                roomName = roomName,
+                buildingName = buildingName
+            )
         }
     }
 
@@ -181,8 +198,15 @@ class MeterReadingVM(
                     val newReadingDoc = MeterReading(
                         contractId = state.contractId,
                         roomId = state.roomId,
+                        buildingId = state.buildingId,
                         landlordId = state.landlordId,
                         tenantId = currentUserId,
+
+                        // -- Thêm dữ liệu denormalized --
+                        roomName = state.roomName,
+                        buildingName = state.buildingName,
+
+                        // -- Các trường còn lại --
                         status = MeterStatus.PENDING,
                         createdAt = System.currentTimeMillis(),
                         electricityValue = state.electricityReading.toInt(),

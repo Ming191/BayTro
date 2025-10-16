@@ -6,13 +6,15 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class MeterReading(
-    @Transient
+    @kotlinx.serialization.Transient
     @SerialName("id")
     val id: String = "",
     @SerialName("contractId")
     val contractId: String = "",
     @SerialName("roomId")
     val roomId: String = "",
+    @SerialName("buildingId")
+    val buildingId: String = "",
     @SerialName("landlordId")
     val landlordId: String = "",
     @SerialName("tenantId")
@@ -50,5 +52,8 @@ data class MeterReading(
     val waterCost: Double? = null,
 
     @SerialName("totalCost")
-    val totalCost: Double? = null
+    val totalCost: Double? = null,
+
+    val roomName: String = "Unknown Room",
+    val buildingName: String = "Unknown Building",
 )

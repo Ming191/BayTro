@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
@@ -84,12 +85,13 @@ class ImportBuildingRoomVM(
                     }
 
                     val existing = byKey[keyOf(row.name, row.address)]
+                    val buildingStatus = parseBuildingStatus(row.status.ifBlank { "ACTIVE" })
                     val building = Building(
                         id = existing?.id ?: "",
                         name = row.name,
                         floor = row.floors.toInt(),
                         address = row.address,
-                        status = row.status.ifBlank { "Active" },
+                        status = buildingStatus,
                         billingDate = row.billingDate.toInt(),
                         paymentStart = row.paymentStart.toInt(),
                         paymentDue = row.paymentDue.toInt(),
@@ -204,5 +206,11 @@ class ImportBuildingRoomVM(
         "FURNISHED" -> Furniture.FURNISHED
         "UNFURNISHED" -> Furniture.UNFURNISHED
         else -> null
+    }
+
+    private fun parseBuildingStatus(value: String): BuildingStatus = when (value.trim().uppercase()) {
+        "ACTIVE" -> BuildingStatus.ACTIVE
+        "INACTIVE" -> BuildingStatus.INACTIVE
+        else -> BuildingStatus.ACTIVE // Default to ACTIVE if unknown
     }
 }

@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
@@ -337,10 +338,11 @@ fun EditBuildingContent(
                     ) {
                         DropdownSelectField(
                             label = "Status",
-                            options = listOf("Active", "Inactive"),
+                            options = BuildingStatus.entries,
                             selectedOption = formState.status,
-                            onOptionSelected = { viewModel.updateField("status", it) },
+                            onOptionSelected = { viewModel.updateField("status", it.name) },
                             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                            optionToString = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
                         )
                     }
                 }

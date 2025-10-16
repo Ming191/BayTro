@@ -4,11 +4,9 @@ import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,8 +26,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-// DELETE THIS IMPORT: MeterType is no longer used
-// import com.example.baytro.data.meter_reading.MeterType
 import com.example.baytro.view.components.CameraOnlyPhotoCapture
 import com.example.baytro.view.components.LoadingOverlay
 import com.example.baytro.viewModel.dashboard.MeterReadingAction
@@ -43,7 +39,10 @@ import org.koin.compose.viewmodel.koinViewModel
 fun MeterReadingScreen(
     contractId: String,
     roomId: String,
+    buildingId: String,
     landlordId: String,
+    roomName: String,
+    buildingName: String,
     viewModel: MeterReadingVM = koinViewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
@@ -52,8 +51,8 @@ fun MeterReadingScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(contractId, roomId, landlordId) {
-        viewModel.initialize(contractId, roomId, landlordId)
+    LaunchedEffect(contractId, roomId, buildingId, landlordId) {
+        viewModel.initialize(contractId, roomId, buildingId, landlordId, roomName, buildingName)
     }
 
     LaunchedEffect(Unit) {
