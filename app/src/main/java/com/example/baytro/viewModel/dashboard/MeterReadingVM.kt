@@ -120,6 +120,14 @@ class MeterReadingVM(
         }
     }
 
+    fun deleteElectricityPhoto() {
+        _uiState.update { it.copy(electricityPhotoUri = null) }
+    }
+
+    fun deleteWaterPhoto() {
+        _uiState.update { it.copy(waterPhotoUri = null) }
+    }
+
     private fun processImageFromUri(uri: Uri, isForElectricity: Boolean, context: Context) {
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessing = true) }
