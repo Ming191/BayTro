@@ -48,6 +48,7 @@ fun TenantScaffold(
                         Screens.UpdateRequest.route -> "Update Request"
                         Screens.MaintenanceRequestList.route -> "Maintenance"
                         Screens.BillList.route -> "Bills"
+                        Screens.TenantBillScreen.route -> "My Bill"
                         Screens.MeterReadingHistory.route -> "Reading History"
                         else -> "BayTro"
                     }
@@ -90,4 +91,3 @@ fun TenantScaffold(
         }
     }
 }
-

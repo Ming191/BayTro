@@ -52,6 +52,11 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
                 navController.navigate(route) {
                     launchSingleTop = true
                 }
+            },
+            onNavigateToPayment = {
+                navController.navigate(Screens.TenantBillScreen.route) {
+                    launchSingleTop = true
+                }
             }
         )
     }

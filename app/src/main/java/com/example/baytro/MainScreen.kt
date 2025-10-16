@@ -83,7 +83,7 @@ fun TenantMainScreen() {
                         }
                     },
                     onBillClicked = {
-                        navController.navigate("bills_screen")
+                        navController.navigate(Screens.TenantBillScreen.route)
                         scope.launch {
                             drawerState.close()
                         }

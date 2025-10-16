@@ -1,6 +1,7 @@
 package com.example.baytro.data.billing
 
 import com.google.firebase.firestore.DocumentId
+import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.serialization.Serializable
 
 // Represents the full, detailed bill document.
@@ -11,11 +12,12 @@ data class Bill(
     val id: String = "",
     val contractId: String = "",
     val roomName: String = "", // Denormalized for easy display
+    val buildingName: String = "",
     val tenantName: String = "", // Denormalized for easy display
     val totalAmount: Double = 0.0,
     val status: BillStatus = BillStatus.NOT_ISSUED_YET,
-    val issuedDate: Long = 0L, // Timestamp
-    val paymentDueDate: Long = 0L, // Timestamp
+    val issuedDate: Timestamp = Timestamp.now(), // Timestamp
+    val paymentDueDate: Timestamp = Timestamp.now(), // Timestamp
     val lineItems: List<BillLineItem> = emptyList(),
     val paymentInfo: String = "", // Landlord's bank info, QR code URL, etc.
     val landlordId: String = "",
@@ -36,13 +38,14 @@ data class BillSummary(
     val status: BillStatus = BillStatus.NOT_ISSUED_YET,
     val month: Int = 0,
     val year: Int = 0,
-    val paymentDueDate: Long = 0L // Thêm trường này rất hữu ích
+    val paymentDueDate: Timestamp = Timestamp.now() // Thêm trường này rất hữu ích
 )
 
-fun Bill.toSummary(): BillSummary {
+fun Bill.toSummary(buildingNameOverride: String? = null): BillSummary {
     return BillSummary(
         id = this.id,
         roomName = this.roomName,
+        buildingName = buildingNameOverride ?: this.buildingName,
         totalAmount = this.totalAmount,
         status = this.status,
         month = this.month,

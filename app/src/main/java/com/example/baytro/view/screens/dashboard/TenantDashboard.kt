@@ -82,7 +82,8 @@ fun TenantDashboard(
     onNavigateToContractDetails: (String) -> Unit = {},
     onNavigateToRequestList: () -> Unit = {},
     onNavigateToMeterReading: (String, String, String, String, String, String) -> Unit = { _, _, _, _, _, _ -> },
-    onNavigateToMeterHistory: (String) -> Unit = {}
+    onNavigateToMeterHistory: (String) -> Unit = {},
+    onNavigateToPayment: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -137,6 +138,10 @@ fun TenantDashboard(
                 onMeterHistoryClick = {
                     Log.d("TenantDashboard", "Navigating to meter reading history")
                     onNavigateToMeterHistory(uiState.contract!!.id)
+                },
+                onNavigateToPayment = {
+                    Log.d("TenantDashboard", "Navigating to payment screen")
+                    onNavigateToPayment()
                 }
             )
         }
@@ -151,7 +156,8 @@ fun TenantDashboardContent(
     onViewDetailsClick: (String) -> Unit = {},
     onRequestMaintenanceClick: () -> Unit = {},
     onMeterReadingClick: () -> Unit = {},
-    onMeterHistoryClick: () -> Unit = {}
+    onMeterHistoryClick: () -> Unit = {},
+    onNavigateToPayment: () -> Unit = {}
 ) {
     var isVisible by remember { mutableStateOf(false) }
 
@@ -238,7 +244,8 @@ fun TenantDashboardContent(
             ) {
                 ActionButtonsSection(
                     onMeterReadingClick = onMeterReadingClick,
-                    onMeterHistoryClick = onMeterHistoryClick
+                    onMeterHistoryClick = onMeterHistoryClick,
+                    onNavigateToPayment = onNavigateToPayment
                 )
             }
         }
@@ -716,7 +723,8 @@ fun UtilityCard(
 @Composable
 fun ActionButtonsSection(
     onMeterReadingClick: () -> Unit = {},
-    onMeterHistoryClick: () -> Unit = {}
+    onMeterHistoryClick: () -> Unit = {},
+    onNavigateToPayment: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -724,7 +732,7 @@ fun ActionButtonsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             FilledTonalButton(
-                onClick = { },
+                onClick = onNavigateToPayment,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(16.dp),
                 contentPadding = PaddingValues(vertical = 18.dp),

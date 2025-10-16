@@ -8,6 +8,11 @@ import com.example.baytro.view.screens.billing.TenantBillScreen
 
 fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
 
+    // Tenant Bill Screen (no parameters - viewModel fetches current user)
+    composable(Screens.TenantBillScreen.route) {
+        TenantBillScreen()
+    }
+
     // Landlord Bills Dashboard
     composable(
         route = Screens.LandlordBills.route,
@@ -28,8 +33,7 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
         val tenantId = backStackEntry.arguments?.getString(Screens.ARG_TENANT_ID) ?: ""
 
         TenantBillScreen(
-            navController = navController,
-            tenantId = tenantId
+//            tenantId = tenantId
         )
     }
 
@@ -43,8 +47,7 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
         // This will show the bill details - you can create a dedicated screen later
         // For now it navigates to a placeholder
         TenantBillScreen(
-            navController = navController,
-            tenantId = "" // Bill details can be loaded by billId
+//            tenantId = "" // Bill details can be loaded by billId
         )
     }
 
@@ -58,8 +61,7 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
         // Placeholder - you can create a BillingHistoryScreen later
         // For now it shows the current bill
         TenantBillScreen(
-            navController = navController,
-            tenantId = tenantId
+//            tenantId = tenantId
         )
     }
 }

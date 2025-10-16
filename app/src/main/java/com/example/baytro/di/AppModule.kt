@@ -1,4 +1,5 @@
 package com.example.baytro.di
+
 import androidx.lifecycle.SavedStateHandle
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
@@ -233,7 +234,7 @@ val authModule = module {
         )
     }
     viewModel { LandlordBillsViewModel(get(), get(), get(), get()) }
-    viewModel { TenantBillViewModel(get()) }
+    viewModel { TenantBillViewModel(get(), get(), get()) }
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }

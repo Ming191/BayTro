@@ -53,6 +53,7 @@ class LandlordBillsViewModel(
     private val _selectedDate: MutableStateFlow<Pair<Int, Int>>
     private val _selectedStatus = MutableStateFlow<BillStatus?>(null)
     private val _pendingCountsByBuilding = MutableStateFlow<Map<String, Int>>(emptyMap())
+    private val _isInitialized = MutableStateFlow(false) // Add this flag
 
     private val _errorEvent = MutableSharedFlow<SingleEvent<String>>()
     val errorEvent: SharedFlow<SingleEvent<String>> = _errorEvent.asSharedFlow()
@@ -68,21 +69,21 @@ class LandlordBillsViewModel(
         val landlordId = auth.currentUser?.uid
 
         // Luồng 1: Dữ liệu động từ Firestore (hóa đơn và pending)
-        // Luồng này bây giờ phụ thuộc vào CẢ `_buildings`
+        // Only trigger loading when buildingId or date changes, not when buildings list changes
         val dynamicDataFlow = combine(
             _selectedBuildingId,
-            _selectedDate,
-            _buildings // THÊM LUỒNG NÀY
-        ) { buildingId, date, buildings ->
-            Triple(buildingId, date, buildings)
-        }.distinctUntilChanged().flatMapLatest { (buildingId, date, buildings) ->
+            _selectedDate
+        ) { buildingId, date ->
+            Pair(buildingId, date)
+        }.distinctUntilChanged().flatMapLatest { (buildingId, date) ->
             _isLoading.value = true
             if (landlordId == null || buildingId == null) {
+                _isLoading.value = false
                 flowOf(Pair(emptyList<BillSummary>(), 0))
             } else {
                 combine(
-                    // TRUYỀN `buildings` VÀO REPOSITORY
-                    billRepository.listenForBillsByBuildingAndMonth(landlordId, buildingId, date.first, date.second, buildings)
+                    // Use the current buildings value from the StateFlow
+                    billRepository.listenForBillsByBuildingAndMonth(landlordId, buildingId, date.first, date.second, _buildings.value)
                         .catch { e -> _errorEvent.emit(SingleEvent("Failed to load bills: ${e.message}")); emit(emptyList()) },
                     meterReadingRepository.listenForPendingReadingsByBuilding(landlordId, buildingId)
                         .map { it.size }
@@ -137,6 +138,9 @@ class LandlordBillsViewModel(
             return
         }
 
+        // Prevent re-initialization if buildings are already loaded
+        if (_isInitialized.value) return
+
         _isLoading.value = true
         viewModelScope.launch {
             try {
@@ -149,6 +153,8 @@ class LandlordBillsViewModel(
 
                 // Bắt đầu lắng nghe số lượng pending cho tất cả tòa nhà
                 listenForAllPendingCounts(landlordId, buildings.map { it.id })
+
+                _isInitialized.value = true // Set initialized flag
 
             } catch (e: Exception) {
                 _errorEvent.emit(SingleEvent("Failed to load buildings: ${e.message}"))

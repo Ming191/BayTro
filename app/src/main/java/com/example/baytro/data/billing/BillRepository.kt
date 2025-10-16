@@ -72,7 +72,6 @@ class BillRepository(
                 snapshot.documents.map { doc ->
                     val bill = doc.data<Bill>().copy(id = doc.id)
 
-                    // --- LOGIC MỚI ĐỂ TÌM TÊN TÒA NHÀ ---
                     val buildingName = buildings.find { it.id == bill.buildingId }?.name ?: "Unknown Building"
 
                     BillSummary(
@@ -90,20 +89,60 @@ class BillRepository(
     }
 
     // Listen for current bill for a tenant (most recent UNPAID or OVERDUE)
-    fun listenForCurrentBill(tenantId: String): Flow<Bill?> {
+    fun listenForBillsByContractAndMonth(contractId: String, month: Int, year: Int): Flow<List<BillSummary>> {
         return collection
             .where {
                 all(
-                    "tenantId" equalTo tenantId,
-                    "status" inArray listOf(BillStatus.UNPAID, BillStatus.OVERDUE)
+                    "contractId" equalTo contractId,
+                    "month" equalTo month,
+                    "year" equalTo year
                 )
             }
+            .orderBy("issuedDate", Direction.DESCENDING)
+            .snapshots
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { doc ->
+                    try {
+                        doc.data<Bill>().copy(id = doc.id).toSummary()
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            }
+    }
+
+    fun listenForCurrentBillByContract(contractId: String): Flow<Bill?> {
+        return collection
+            .where { "contractId" equalTo contractId }
+            .where { "status" inArray listOf(BillStatus.UNPAID, BillStatus.OVERDUE) }
             .orderBy("issuedDate", Direction.DESCENDING)
             .limit(1)
             .snapshots
             .map { snapshot ->
                 snapshot.documents.firstOrNull()?.let { doc ->
                     doc.data<Bill>().copy(id = doc.id)
+                }
+            }
+    }
+
+    fun listenForBillsByTenantAndMonth(tenantId: String, month: Int, year: Int): Flow<List<BillSummary>> {
+        return collection
+            .where {
+                all(
+                    "tenantId" equalTo tenantId,
+                    "month" equalTo month,
+                    "year" equalTo year
+                )
+            }
+            .orderBy("issuedDate", Direction.DESCENDING)
+            .snapshots
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { doc ->
+                    try {
+                        doc.data<Bill>().copy(id = doc.id).toSummary()
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
             }
     }
