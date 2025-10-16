@@ -55,6 +55,21 @@ android {
         compose = true
         buildConfig = true
     }
+    packaging {
+        resources {
+            // Exclude duplicate and unnecessary metadata from POI and transitive deps
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*.kotlin_module",
+                "META-INF/versions/**"
+            )
+        }
+    }
     kotlin {
         jvmToolchain(17)
     }
@@ -73,7 +88,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.ai)
     implementation(libs.firebase.auth)
-
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation("com.google.firebase:firebase-storage")
     implementation("com.google.android.gms:play-services-base:18.2.0")
@@ -83,6 +98,7 @@ dependencies {
     implementation(libs.firebase.functions)
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.firebase.messaging)
+    implementation(libs.androidx.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -113,12 +129,15 @@ dependencies {
     implementation("io.insert-koin:koin-androidx-compose:4.1.1")
 
     // Ktor core
-    implementation("io.ktor:ktor-client-core:3.3.0")
-    implementation("io.ktor:ktor-client-android:3.3.0")
-    implementation("io.ktor:ktor-client-content-negotiation:3.3.0")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.0")
-    implementation("io.ktor:ktor-client-logging:3.3.0")
+    implementation("io.ktor:ktor-client-core:3.3.1")
+    implementation("io.ktor:ktor-client-android:3.3.1")
+    implementation("io.ktor:ktor-client-content-negotiation:3.3.1")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.1")
+    implementation("io.ktor:ktor-client-logging:3.3.1")
 
     //zxing barcode scanner
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // Excel (XLSX) parsing - lightweight Apache POI for Android
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
 }

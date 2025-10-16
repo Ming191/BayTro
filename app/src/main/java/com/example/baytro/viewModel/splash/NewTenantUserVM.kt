@@ -24,7 +24,8 @@ class NewTenantUserVM(
     private val context: Context,
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val mediaRepository: MediaRepository
+    private val mediaRepository: MediaRepository,
+    private val roleCache: com.example.baytro.data.user.UserRoleCache
 ) : ViewModel() {
 
     companion object {
@@ -203,6 +204,14 @@ class NewTenantUserVM(
 
                 userRepository.addWithId(user.id, user)
                 Log.d(TAG, "User saved successfully")
+
+                // Cache the user role for faster app startup
+                Log.d(TAG, "=== CACHING ROLE TYPE ===")
+                Log.d(TAG, "User ID: ${authUser.uid}")
+                Log.d(TAG, "Role: Tenant")
+                roleCache.setRoleType(authUser.uid, tenantRole)
+                Log.d(TAG, "✅ User role cached successfully - future app launches will be faster!")
+                Log.d(TAG, "=========================")
 
                 _newTenantUserUIState.value = UiState.Success(user)
             } catch (e: Exception) {

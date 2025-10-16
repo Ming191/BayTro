@@ -166,12 +166,28 @@ class ContractDetailsVM(
             _qrState.value = QrGenerationState.Loading
             try {
                 val request = mapOf("contractId" to id)
-                val result = functions.getHttpsCallable("generate_qr_session").call(request).await()
-                val data = result.data as? Map<*, *>
+                val result = functions.getHttpsCallable("generateQrSession").call(request).await()
+
+                Log.d("ContractDetailsVM", "generateQrSession result: ${result.data}")
+
+                val responseData = result.data as? Map<*, *>
+                if (responseData == null) {
+                    Log.e("ContractDetailsVM", "Response data is null or not a Map")
+                    throw Exception("Invalid response format from server")
+                }
+
+                // The response has a nested structure: { data: { sessionId: "..." }, status: "success" }
+                val data = responseData["data"] as? Map<*, *>
                 val sessionId = data?.get("sessionId") as? String
-                    ?: throw Exception("Session ID missing in response")
+
+                if (sessionId.isNullOrBlank()) {
+                    Log.e("ContractDetailsVM", "Session ID is null or blank. Response data: $responseData")
+                    throw Exception("Server did not return a valid session ID. Please check your internet connection and try again.")
+                }
+
                 _qrState.value = QrGenerationState.Success(sessionId)
             } catch (e: Exception) {
+                Log.e("ContractDetailsVM", "Error generating QR code", e)
                 _qrState.value = QrGenerationState.Error(parseFirebaseError(e))
             }
         }
@@ -182,9 +198,7 @@ class ContractDetailsVM(
             _confirmingSessionIds.update { it + sessionId }
             try {
                 val request = mapOf("sessionId" to sessionId)
-                functions.getHttpsCallable("confirm_tenant_link").call(request).await()
-                // Không cần làm gì thêm. Listener của Firestore sẽ tự động cập nhật
-                // cả contract (thêm tenant mới) và danh sách pending sessions (xóa session đã xác nhận).
+                functions.getHttpsCallable("confirmTenantLink").call(request).await()
             } catch (e: Exception) {
                 _actionError.value = parseFirebaseError(e)
             } finally {
@@ -198,8 +212,7 @@ class ContractDetailsVM(
             _decliningSessionIds.update { it + sessionId }
             try {
                 val request = mapOf("sessionId" to sessionId)
-                functions.getHttpsCallable("decline_tenant_link").call(request).await()
-                // Listener sẽ tự động xóa session này khỏi danh sách pending.
+                functions.getHttpsCallable("declineTenantLink").call(request).await()
             } catch (e: Exception) {
                 _actionError.value = parseFirebaseError(e)
             } finally {

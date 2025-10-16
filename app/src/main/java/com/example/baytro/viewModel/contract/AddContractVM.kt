@@ -3,8 +3,10 @@ package com.example.baytro.viewModel.contract
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavHostController
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
@@ -29,11 +31,14 @@ class AddContractVM (
     private val contractRepo : ContractRepository,
     private val roomRepo : RoomRepository,
     private val buildingRepo : BuildingRepository,
+    private val savedStateHandle: SavedStateHandle,
     private val auth : AuthRepository
 ) : ViewModel() {
     companion object {
         private const val TAG = "AddContractVM"
     }
+
+    private val roomId : String = checkNotNull(savedStateHandle["roomId"])
 
     private val _addContractUiState = MutableStateFlow<UiState<Contract>>(UiState.Idle)
     val addContractUiState : StateFlow<UiState<Contract>> = _addContractUiState

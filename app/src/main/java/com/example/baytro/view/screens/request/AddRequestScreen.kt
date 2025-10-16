@@ -16,9 +16,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.BottomAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -88,41 +93,54 @@ fun AddRequestScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            bottomBar = {
-                BottomAppBar {
-                    AnimatedVisibility(
-                        visible = buttonsVisible,
-                        enter = fadeIn(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        ) + slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
-                            initialOffsetY = { -it / 4 }
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        ) {
-                            SubmitButton(
-                                text = "Submit Request",
-                                isLoading = uiState is UiState.Loading,
-                                onClick = {
-                                    viewModel.addRequest(
-                                        context = context,
-                                    )
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp)
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(text = "Add Request")
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
                             )
                         }
+                    }
+                )
+            },
+            bottomBar = {
+                AnimatedVisibility(
+                    visible = buttonsVisible,
+                    enter = fadeIn(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    ) + slideInVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        initialOffsetY = { -it / 4 }
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        SubmitButton(
+                            text = "Submit Request",
+                            isLoading = uiState is UiState.Loading,
+                            onClick = {
+                                viewModel.addRequest(
+                                    context = context,
+                                )
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        )
                     }
                 }
             }

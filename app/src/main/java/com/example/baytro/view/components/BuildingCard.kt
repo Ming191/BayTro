@@ -13,6 +13,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.MonitorHeart
@@ -54,7 +62,8 @@ fun BuildingCardPreview() {
             roomStats = "8/12",
             revenue = "4500",
             onViewClick = {},
-            onEditClick = {}
+            onEditClick = {},
+            onDeleteClick = {}
         )
     }
 }
@@ -68,6 +77,7 @@ fun BuildingCard(
     revenue: String,
     onViewClick: () -> Unit,
     onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -166,24 +176,74 @@ fun BuildingCard(
                     }
                 }
 
-                // Edit button overlay
-                Surface(
+                // Three-dot menu overlay
+                var showMenu by remember { mutableStateOf(false) }
+                Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(12.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    tonalElevation = 2.dp
+                        .padding(8.dp)
                 ) {
-                    IconButton(
-                        onClick = onEditClick,
-                        modifier = Modifier.size(40.dp)
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                        tonalElevation = 4.dp
                     ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Edit building",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Edit",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                onEditClick()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Delete",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                onDeleteClick()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         )
                     }
                 }
@@ -245,7 +305,7 @@ fun BuildingCard(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        "View Building Details",
+                        "View building details",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )

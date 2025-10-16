@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.contract
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
@@ -65,7 +66,7 @@ import com.example.baytro.viewModel.contract.ContractDetailsVM
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun ContractDetailsScreen(
     viewModel: ContractDetailsVM = koinViewModel(),
@@ -88,16 +89,14 @@ fun ContractDetailsScreen(
 
     var hasLoadedOnce by remember { mutableStateOf(false) }
 
-    // Thay đổi 1: Thêm SnackbarHostState và CoroutineScope để xử lý lỗi
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Thay đổi 2: Xử lý lỗi một cách chính xác
     LaunchedEffect(error) {
         error?.let { errorMessage ->
             scope.launch {
                 snackbarHostState.showSnackbar(message = errorMessage)
-                viewModel.clearActionError() // Xóa lỗi sau khi snackbar đã hiển thị
+                viewModel.clearActionError()
             }
         }
     }
@@ -117,14 +116,13 @@ fun ContractDetailsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { paddingValues ->
+    ) {
         if (!hasLoadedOnce && loading) {
             Surface(modifier = Modifier.fillMaxSize()) {
                 ContractDetailsSkeleton()
             }
         } else {
             ContractDetailsContent(
-                paddingValues = paddingValues,
                 formState = formState,
                 pendingSessions = pendingSessions,
                 confirmingIds = confirmingIds,
@@ -144,7 +142,6 @@ fun ContractDetailsScreen(
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun ContractDetailsContent(
-    paddingValues: PaddingValues,
     formState: ContractDetailsFormState,
     pendingSessions: List<PendingQrSession>,
     confirmingIds: Set<String>,
@@ -166,10 +163,9 @@ fun ContractDetailsContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(paddingValues)
-            .padding(horizontal = 16.dp), // Thêm padding nội dung
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(vertical = 16.dp) // Padding cho top và bottom của list
+        contentPadding = PaddingValues(vertical = 16.dp)
     ) {
         item {
             AnimatedVisibility(
@@ -224,7 +220,6 @@ fun ContractDetailsContent(
                     )
 
                     AnimatedVisibility(
-                        // Thay đổi 5: Sử dụng hàm logic từ FormState
                         visible = formState.shouldShowAddFirstTenantPrompt(
                             pendingSessions, confirmingIds, decliningIds, isLandlord
                         ),
@@ -271,7 +266,6 @@ fun ContractDetailsContent(
     }
 }
 
-// Thay đổi 4 (tiếp): Hàm mở rộng cho LazyListScope
 private fun LazyListScope.pendingRequestsSection(
     sessions: List<PendingQrSession>,
     confirmingIds: Set<String>,
@@ -350,7 +344,6 @@ private fun PendingRequestItem(
     }
 }
 
-// --- Các Composable không thay đổi ---
 
 @Composable
 fun ActionButtonsRow(

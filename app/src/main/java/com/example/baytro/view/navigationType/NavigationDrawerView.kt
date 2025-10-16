@@ -28,14 +28,16 @@ import com.example.baytro.navigation.Screens
 @Composable
 fun NavigationDrawerView(
     currentRoute: String? = null,
-    onDrawerClicked: () -> Unit,
-    onDashboardClicked: () -> Unit,
-    onPropertyClicked: () -> Unit,
-    onTenantClicked: () -> Unit,
-    onMaintenanceClicked: () -> Unit,
-    onBillClicked: () -> Unit,
-    onContractClicked: () -> Unit,
-    onServiceClicked: () -> Unit
+    onDrawerClicked: () -> Unit = {},
+    onDashboardClicked: () -> Unit = {},
+    onPropertyClicked: () -> Unit = {},
+    onTenantClicked: () -> Unit = {},
+    onMaintenanceClicked: () -> Unit = {},
+    onBillClicked: () -> Unit = {},
+    onContractClicked: () -> Unit = {},
+    onServiceClicked: () -> Unit = {},
+    onMeterReadingsClicked: () -> Unit = {},
+    isTenant: Boolean = false
 ) {
     val selectedItem = remember(currentRoute) {
         mutableStateOf(
@@ -46,7 +48,7 @@ fun NavigationDrawerView(
                 currentRoute == Screens.MaintenanceRequestList.route -> Screens.MaintenanceRequestList
                 currentRoute == Screens.BillList.route -> Screens.BillList
                 currentRoute == Screens.ContractList.route -> Screens.ContractList
-                currentRoute == Screens.PersonalInformation.route -> Screens.PersonalInformation
+                currentRoute == Screens.PendingMeterReadings.route -> Screens.PendingMeterReadings
                 else -> Screens.Dashboard
             }
         )
@@ -87,32 +89,68 @@ fun NavigationDrawerView(
             }
             NavigationDrawerItem(
                 label = { Text(text = "Dashboard") },
-                selected = selectedItem.value == Screens.Dashboard,
+                selected = if (isTenant) {
+                    selectedItem.value == Screens.TenantDashboard
+                } else {
+                    selectedItem.value == Screens.Dashboard
+                },
                 onClick = {
                     onDashboardClicked()
-                    selectedItem.value = Screens.Dashboard
+                    if (isTenant) {
+                        selectedItem.value = Screens.TenantDashboard
+                    } else {
+                        selectedItem.value = Screens.Dashboard
+                    }
                 },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
             )
-            // ... các NavigationDrawerItem khác
-            NavigationDrawerItem(
-                label = { Text(text = "Buildings") },
-                selected = selectedItem.value == Screens.BuildingList,
-                onClick = {
-                    onPropertyClicked()
-                    selectedItem.value = Screens.BuildingList
-                },
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-            )
-            NavigationDrawerItem(
-                label = { Text(text = "Tenants") },
-                selected = selectedItem.value == Screens.TenantList,
-                onClick = {
-                    onTenantClicked()
-                    selectedItem.value = Screens.TenantList
-                },
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-            )
+            if(!isTenant) {
+                NavigationDrawerItem(
+                    label = { Text(text = "Buildings") },
+                    selected = selectedItem.value == Screens.BuildingList,
+                    onClick = {
+                        onPropertyClicked()
+                        selectedItem.value = Screens.BuildingList
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
+                    label = { Text(text = "Contracts") },
+                    selected = selectedItem.value == Screens.ContractList,
+                    onClick = {
+                        onContractClicked()
+                        selectedItem.value = Screens.ContractList
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
+                    label = { Text(text = "Meter Readings") },
+                    selected = selectedItem.value == Screens.PendingMeterReadings,
+                    onClick = {
+                        onMeterReadingsClicked()
+                        selectedItem.value = Screens.PendingMeterReadings
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
+                    label = { Text(text = "Services") },
+                    selected = selectedItem.value == Screens.ServiceList,
+                    onClick = {
+                        onServiceClicked()
+                        selectedItem.value = Screens.ServiceList
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
+                    label = { Text(text = "Tenants") },
+                    selected = selectedItem.value == Screens.TenantList,
+                    onClick = {
+                        onTenantClicked()
+                        selectedItem.value = Screens.TenantList
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+            }
             NavigationDrawerItem(
                 label = { Text(text = "Maintenance") },
                 selected = selectedItem.value == Screens.MaintenanceRequestList,
@@ -128,24 +166,6 @@ fun NavigationDrawerView(
                 onClick = {
                     onBillClicked()
                     selectedItem.value = Screens.BillList
-                },
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-            )
-            NavigationDrawerItem(
-                label = { Text(text = "Contracts") },
-                selected = selectedItem.value == Screens.ContractList,
-                onClick = {
-                    onContractClicked()
-                    selectedItem.value = Screens.ContractList
-                },
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-            )
-            NavigationDrawerItem(
-                label = { Text(text = "Services") },
-                selected = selectedItem.value == Screens.ServiceList,
-                onClick = {
-                    onServiceClicked()
-                    selectedItem.value = Screens.ServiceList
                 },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
             )

@@ -12,14 +12,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -29,6 +28,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.rememberAsyncImagePainter
 import com.example.baytro.auth.AuthRepository
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,102 +41,76 @@ fun AppScaffold (
         modifier = Modifier
             .fillMaxSize(),
     ) {
-        if (authState.currentUser != null) {
-            Scaffold(
-                topBar = {
-                    val currentRoute =
-                        navHostController.currentBackStackEntryAsState().value?.destination?.route
-                    val titleText = when (currentRoute) {
-                        Screens.BuildingList.route -> "Buildings"
-                        Screens.BuildingAdd.route -> "Add building"
-                        Screens.BuildingEdit.route -> "Edit building"
-                        Screens.TenantList.route -> "Tenants"
-                        Screens.BillList.route -> "Bills"
-                        Screens.ContractList.route -> "Contracts"
-                        Screens.MaintenanceRequestList.route -> "Maintenance"
-                        Screens.Dashboard.route -> "BayTro"
-                        else -> "BayTro"
-                    }
-                    CenterAlignedTopAppBar(
-                        title = { Text(titleText) },
-                        navigationIcon = {
-                            val canBack = navHostController.previousBackStackEntry != null
-                            if (canBack) {
-                                IconButton(onClick = { navHostController.popBackStack() }) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Back"
-                                    )
-                                }
+        Scaffold(
+            topBar = {
+                val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
+                val topLevelRoutes = setOf(
+                    Screens.Dashboard.route,
+                    Screens.BuildingList.route,
+                    Screens.TenantList.route,
+                    Screens.BillList.route,
+                    Screens.ContractList.route,
+                    Screens.MaintenanceRequestList.route,
+                    Screens.ServiceList.route,
+                    Screens.PendingMeterReadings.route,
+                )
+                val isTopLevel = currentRoute in topLevelRoutes
+                val titleText = when (currentRoute) {
+                    Screens.BuildingList.route -> "Buildings"
+                    Screens.BuildingAdd.route -> "Add building"
+                    Screens.BuildingEdit.route -> "Edit building"
+                    Screens.TenantList.route -> "Tenants"
+                    Screens.BillList.route -> "Bills"
+                    Screens.ContractList.route -> "Contracts"
+                    Screens.MaintenanceRequestList.route -> "Maintenance"
+                    Screens.Dashboard.route -> "BayTro"
+                    Screens.ServiceList.route -> "Services"
+                    Screens.PendingMeterReadings.route -> "Meter Readings"
+                    else -> "BayTro"
+                }
+                CenterAlignedTopAppBar(
+                    title = { Text(titleText) },
+                    navigationIcon = {
+                        if (isTopLevel) {
+                            IconButton(onClick = onDrawerClicked) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
+                        } else {
+                            IconButton(onClick = { navHostController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { navHostController.navigate(Screens.PersonalInformation.route) }) {
+                            val photoUrl = FirebaseAuth.getInstance().currentUser?.photoUrl
+                            if (photoUrl != null) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(model = photoUrl),
+                                    contentDescription = "Profile",
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                )
                             } else {
-                                IconButton(onClick = onDrawerClicked) {
-                                    Icon(Icons.Default.Menu, contentDescription = "Menu")
-                                }
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
                             }
-                        },
-                        actions = {
-                            if (currentRoute == Screens.Dashboard.route) {
-                                IconButton(
-                                    onClick = {
-                                        navHostController.navigate(Screens.PersonalInformation.route)
-                                    }
-                                ) {
-                                    Image(
-                                        painter = rememberAsyncImagePainter(
-                                            authState.currentUser?.photoUrl
-                                                ?: "https://i.pravatar.cc/150?img=3"
-                                        ),
-                                        contentDescription = "Profile picture",
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .border(
-                                                width = 2.dp,
-                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
-                                                shape = CircleShape
-                                            )
-                                    )
-                                }
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    )
-                },
-                content = { paddingValues ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                    ) {
-                        AppNavigationController(
-                            navHostController = navHostController,
-                            startDestination = Screens.Dashboard.route
-                        )
+                        }
                     }
-                },
-                bottomBar = {
-//                    AnimatedVisibility(
-//                        visible = navigationType == NavigationType.NavigationBottom
-//                    ) {
-//                        TODO("Bottom Navigation")
-//                    }
+                )
+            },
+            content = { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    AppNavigationController(
+                        navHostController = navHostController,
+                        startDestination = Screens.Dashboard.route
+                    )
                 }
-            )
-        } else {
-            LaunchedEffect(Unit) {
-                navHostController.navigate(Screens.SignIn.route) {
-                    popUpTo(0) { inclusive = true }
-                }
-            }
-        }
+            },
+        )
     }
 }
-
-
-
-
-

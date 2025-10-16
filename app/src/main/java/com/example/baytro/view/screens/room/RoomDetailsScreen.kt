@@ -51,7 +51,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun RoomDetailsScreen(
     viewModel: RoomDetailsVM = koinViewModel(),
     onAddContractClick: (String) -> Unit,
-    onEditRoomOnClick: (String) -> Unit,
+    onEditRoomOnClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
     fun editTextUI(text : String) : String {
@@ -63,7 +63,7 @@ fun RoomDetailsScreen(
                 word.replaceFirstChar {
                     if (it.isLowerCase()) it.titlecase() else it.toString()
                 }
-            }
+        }
     }
 
     val room by viewModel.room.collectAsState()
@@ -245,7 +245,7 @@ fun RoomDetailsScreen(
                 ) {
                     ButtonComponent(
                         text = "Edit",
-                        onButtonClick = { onEditRoomOnClick(room?.id?: "") }
+                        onButtonClick = onEditRoomOnClick
                     )
                     ButtonComponent(
                         text = "Delete",
@@ -283,4 +283,5 @@ fun RoomDetailsScreen(
         }
     }
 }
+
 

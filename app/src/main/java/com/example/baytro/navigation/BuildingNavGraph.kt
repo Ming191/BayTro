@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import com.example.baytro.view.screens.building.BuildingListScreen
 import com.example.baytro.view.screens.building.AddBuildingScreen
 import com.example.baytro.view.screens.building.EditBuildingScreen
+import com.example.baytro.view.screens.building.ImportBuildingsRoomsScreen
 
 fun NavGraphBuilder.buildingNavGraph(navController: NavHostController) {
     composable(Screens.BuildingList.route) {
@@ -16,6 +17,10 @@ fun NavGraphBuilder.buildingNavGraph(navController: NavHostController) {
         AddBuildingScreen(navController = navController)
     }
 
+    composable(Screens.ImportBuildingsRooms.route) {
+        ImportBuildingsRoomsScreen(navController = navController)
+    }
+
     composable(
         route = Screens.BuildingEdit.route,
         arguments = Screens.BuildingEdit.arguments
@@ -24,4 +29,3 @@ fun NavGraphBuilder.buildingNavGraph(navController: NavHostController) {
         EditBuildingScreen(navController = navController, buildingId = buildingId)
     }
 }
-

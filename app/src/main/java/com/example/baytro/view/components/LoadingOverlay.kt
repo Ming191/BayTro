@@ -1,5 +1,6 @@
 package com.example.baytro.view.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -44,6 +45,10 @@ fun LoadingOverlayPreview() {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun LoadingOverlay(progress: Float) {
+    BackHandler (enabled = true) {
+
+    }
+
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
         animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,

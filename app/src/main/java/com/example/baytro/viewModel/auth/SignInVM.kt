@@ -8,6 +8,7 @@ import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRepository
+import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
 import com.example.baytro.view.AuthUIState
@@ -21,7 +22,8 @@ class SignInVM(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val contractRepository: ContractRepository,
-    private val qrSessionRepository: QrSessionRepository
+    private val qrSessionRepository: QrSessionRepository,
+    private val roleCache: UserRoleCache
 ) : ViewModel() {
     private val _signInUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
     val signInUIState: StateFlow<AuthUIState> = _signInUIState
@@ -66,9 +68,15 @@ class SignInVM(
 
                 if (authRepository.checkVerification()) {
                     val repoUser = userRepository.getById(user.uid)
-                    if (repoUser == null) {
+                    if (repoUser == null || repoUser.role == null) {
+                        // No user doc or no role -> treat as first-time user/onboarding instead of MainScreen
                         _signInUIState.value = AuthUIState.FirstTimeUser(user)
                     } else {
+                        repoUser.role?.let { role ->
+                            com.example.baytro.data.user.UserRoleState.setRole(role)
+                            roleCache.setRoleType(user.uid, role)
+                        }
+
                         if (repoUser.role is Role.Tenant) {
                             val hasPendingSession = qrSessionRepository.hasScannedSession(user.uid)
                             if (hasPendingSession) {

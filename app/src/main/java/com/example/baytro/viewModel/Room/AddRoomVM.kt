@@ -77,8 +77,11 @@ class AddRoomVM(
     }
 
     fun onRentalFeeChange(rentalFee: String) {
+        val cleanInput = rentalFee.replace("[^\\d]".toRegex(), "")
+        val formattedRentalFee = if (cleanInput.isNotEmpty()) formatCurrency(cleanInput) else ""
         _addRoomFormState.value = _addRoomFormState.value.copy(
-            rentalFee = rentalFee,
+            rentalFee = cleanInput,           // để lưu DB
+            rentalFeeUI = formattedRentalFee    // để hiển thị
         )
     }
 
@@ -99,7 +102,7 @@ class AddRoomVM(
             rentalFeeError = AddRoomValidator.validateRentalFee(form.rentalFee),
             interiorError = AddRoomValidator.validateInterior(form.interior),
 
-            )
+        )
         _addRoomFormState.value = updated
         if (listOf(
                 updated.roomNumberError,

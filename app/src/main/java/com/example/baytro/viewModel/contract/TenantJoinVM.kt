@@ -92,16 +92,18 @@ class TenantJoinVM(
                 Log.d("TenantJoinVM", "Calling Firebase function with data: $data")
 
                 val result = functions
-                    .getHttpsCallable("process_qr_scan")
+                    .getHttpsCallable("processQrScan")
                     .call(data)
                     .await()
 
                 Log.d("TenantJoinVM", "Function raw result: ${result.data}")
 
-                val success = result.data as? Map<*, *>?
-                if (success?.get("status") == "ok") {
+                val response = result.data as? Map<*, *>
+                if (response?.get("status") == "success") {
+                    Log.d("TenantJoinVM", "QR scan successful, setting state to Waiting")
                     _uiState.value = UiState.Waiting
                 } else {
+                    Log.w("TenantJoinVM", "Invalid response - status is not 'success'. Full response: $response")
                     _uiState.value = UiState.Error("Invalid response from server")
                 }
             } catch (e : Exception) {

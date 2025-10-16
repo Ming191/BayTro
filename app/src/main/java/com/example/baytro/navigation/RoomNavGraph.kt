@@ -47,8 +47,8 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
             onAddContractClick = { roomId ->
                 navController.navigate(Screens.AddContract.createRoute(roomId))
             },
-            onEditRoomOnClick = { roomId ->
-                navController.navigate(Screens.EditRoom.createRoute(roomId))
+            onEditRoomOnClick = {
+                navController.navigate(Screens.EditRoom.route)
             },
             onBackClick = {
                 navController.popBackStack()

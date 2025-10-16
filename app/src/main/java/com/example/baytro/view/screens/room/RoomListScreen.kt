@@ -7,8 +7,12 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.background
+import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,11 +32,13 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -49,8 +56,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -65,6 +73,9 @@ import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.Room.RoomListVM
 import org.koin.compose.viewmodel.koinViewModel
+import coil3.compose.SubcomposeAsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 
 @Composable
 fun ViewBuildingTabRow(
@@ -72,6 +83,8 @@ fun ViewBuildingTabRow(
     floors : List<Floor>,
     navController : NavHostController,
     building : Building?,
+    onEditBuilding: (String) -> Unit,
+    onDeleteBuilding: (String) -> Unit,
     buildingTenants : List<String>,
     rooms : List<Room>
 ) {
@@ -99,7 +112,15 @@ fun ViewBuildingTabRow(
         ) { index ->
             when (index) {
                 0 -> ViewRoomList(floors, navController, building?.id)
-                1 -> ViewBuildingDetails(navController, building,buildingTenants, rooms)
+                1 -> ViewBuildingDetails(
+                    navController = navController,
+                    building = building,
+                    floors = floors,
+                    onEdit = { building?.id?.let(onEditBuilding) },
+                    onDelete = { building?.id?.let(onDeleteBuilding) },
+                    buildingTenants = buildingTenants,
+                    rooms = rooms
+                )
             }
         }
     }
@@ -195,7 +216,10 @@ fun ViewRoomList(
 fun ViewBuildingDetails(
     navController : NavHostController,
     building: Building?,
-    buildingTenant: List<String>,
+    floors: List<Floor>,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    buildingTenants: List<String>,
     rooms : List<Room>
 ) {
     Log.d("BuildingDetails", "BuildingName: ${building?.name}")
@@ -208,33 +232,137 @@ fun ViewBuildingDetails(
             .padding(16.dp)
     ) {
         DividerWithSubhead(subhead = "Information")
+        val totalRooms = floors.sumOf { it.rooms.size }
         CardComponent(
             infoMap = mapOf(
-                "Num.Rooms" to rooms.size.toString(),
-                "Num.Tenants" to buildingTenant.size.toString(),
-                "Num.Floors" to building?.floor.toString(),
-                "Address" to building?.address.toString(),
-                "Billing date" to building?.billingDate.toString(),
-                "Payment start" to building?.paymentStart.toString(),
-                "Payment due" to building?.paymentDue.toString()
+                "Num.Rooms" to totalRooms.toString(),
+                "Num.Tenants" to buildingTenants.size.toString(),
+                "Num.Floors" to (building?.floor?.toString() ?: "-"),
+                "Address" to (building?.address ?: "-"),
+                "Billing date" to (building?.billingDate?.toString() ?: "-"),
+                "Payment start" to (building?.paymentStart?.toString() ?: "-"),
+                "Payment due" to (building?.paymentDue?.toString() ?: "-")
             )
         )
         DividerWithSubhead(subhead = "Building photo")
-        Image(
-            painter = painterResource(id = R.drawable.building_img),
-            contentDescription = "image description",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .width(380.dp)
-                .height(188.dp)
-        )
+        val context = LocalContext.current
+        if (building?.imageUrls?.isNotEmpty() == true) {
+            val photoPagerState = rememberPagerState(initialPage = 0) { building.imageUrls.size }
+            Box(modifier = Modifier.fillMaxWidth()) {
+                HorizontalPager(
+                    state = photoPagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp)
+                ) { page ->
+                    SubcomposeAsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(building.imageUrls[page])
+                            .crossfade(300)
+                            .build(),
+                        contentDescription = "Building image ${page + 1}",
+                        contentScale = ContentScale.Crop,
+                        loading = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(250.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        },
+                        error = {
+                            Image(
+                                painter = painterResource(id = R.drawable.building_img),
+                                contentDescription = "fallback image",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(250.dp)
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp)
+                    )
+                }
+                // Page indicator
+                if (building.imageUrls.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        repeat(building.imageUrls.size) { index ->
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(
+                                        color = if (photoPagerState.currentPage == index)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                        shape = androidx.compose.foundation.shape.CircleShape
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                    )
+                    Text(
+                        text = "No Image",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
             verticalAlignment = Alignment.Top,
         ) {
-            ButtonComponent(text = "Edit", onButtonClick = {})
+            ButtonComponent(text = "Edit", onButtonClick = { onEdit() })
             Spacer(Modifier.width(8.dp))
-            ButtonComponent (text = "Delete", onButtonClick = {})
+            var showDeleteConfirm by remember { mutableStateOf(false) }
+            if (showDeleteConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteConfirm = false },
+                    title = { Text("Delete building") },
+                    text = { Text("Are you sure you want to delete this building?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showDeleteConfirm = false
+                            onDelete()
+                            navController.popBackStack()
+                        }) { Text("Delete") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteConfirm = false }) {Text("Cancel") }
+                    }
+                )
+            }
+            ButtonComponent (text = "Delete", onButtonClick = { showDeleteConfirm = true })
         }
     }
 }
@@ -261,13 +389,9 @@ fun RoomListScreen(
         floors = floors,
         navController = navController,
         building = building,
+        onEditBuilding = { id -> navController.navigate(Screens.BuildingEdit.createRoute(id)) },
+        onDeleteBuilding = { id -> viewModel.deleteBuilding(id) },
         buildingTenants = buildingTenants,
         rooms = rooms
     )
-}
-
-@Preview
-@Composable
-fun Preview() {
-    //ViewRoomList()
 }
