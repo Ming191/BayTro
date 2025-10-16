@@ -3,9 +3,37 @@ package com.example.baytro.view.screens.dashboard
 import android.content.Context
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -13,16 +41,43 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Water
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.baytro.view.components.CameraOnlyPhotoCapture
 import com.example.baytro.view.components.LoadingOverlay
@@ -154,6 +209,7 @@ fun MeterReadingContent(
             MeterPhotosSection(
                 electricityPhotoUri = uiState.electricityPhotoUri,
                 waterPhotoUri = uiState.waterPhotoUri,
+                isProcessing = uiState.isProcessing,
                 onAction = onAction,
                 viewModel = viewModel
             )
@@ -165,6 +221,8 @@ fun MeterReadingContent(
                 waterReading = uiState.waterReading,
                 electricityPhotoUri = uiState.electricityPhotoUri,
                 waterPhotoUri = uiState.waterPhotoUri,
+                electricityConfidence = uiState.electricityConfidence,
+                waterConfidence = uiState.waterConfidence,
                 onAction = onAction
             )
         }
@@ -173,7 +231,9 @@ fun MeterReadingContent(
             SubmitButton(
                 enabled = !uiState.isSubmitting &&
                         uiState.electricityReading.isNotBlank() &&
-                        uiState.waterReading.isNotBlank(),
+                        uiState.waterReading.isNotBlank() &&
+                        uiState.electricityPhotoUri != null &&
+                        uiState.waterPhotoUri != null,
                 onClick = { onAction(MeterReadingAction.SubmitReadings) }
             )
         }
@@ -461,6 +521,7 @@ private fun ProgressCheckItem(
 private fun MeterPhotosSection(
     electricityPhotoUri: Uri?,
     waterPhotoUri: Uri?,
+    isProcessing: Boolean,
     onAction: (MeterReadingAction) -> Unit,
     viewModel: MeterReadingVM
 ) {
@@ -509,6 +570,32 @@ private fun MeterPhotosSection(
             onProcessImage = { uri, context -> onAction(MeterReadingAction.ProcessImage(uri, false, context)) },
             onPhotoDeleted = { viewModel.deleteWaterPhoto() }
         )
+
+        // Processing indicator for image processing
+        AnimatedVisibility(
+            visible = isProcessing,
+            enter = fadeIn() + scaleIn(initialScale = 0.8f),
+            exit = fadeOut() + scaleOut()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = "Processing images...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
     }
 }
 
@@ -595,6 +682,8 @@ private fun MeterReadingsSection(
     waterReading: String,
     electricityPhotoUri: Uri?,
     waterPhotoUri: Uri?,
+    electricityConfidence: Float,
+    waterConfidence: Float,
     onAction: (MeterReadingAction) -> Unit
 ) {
     Column(
@@ -631,6 +720,7 @@ private fun MeterReadingsSection(
             value = electricityReading,
             unit = "kWh",
             hasPhoto = electricityPhotoUri != null,
+            confidence = electricityConfidence,
             onValueChange = { onAction(MeterReadingAction.UpdateElectricityReading(it)) }
         )
 
@@ -640,6 +730,7 @@ private fun MeterReadingsSection(
             value = waterReading,
             unit = "m³",
             hasPhoto = waterPhotoUri != null,
+            confidence = waterConfidence,
             onValueChange = { onAction(MeterReadingAction.UpdateWaterReading(it)) }
         )
     }
@@ -652,6 +743,7 @@ private fun MeterReadingInput(
     value: String,
     unit: String,
     hasPhoto: Boolean,
+    confidence: Float,
     onValueChange: (String) -> Unit
 ) {
     Card(
@@ -687,26 +779,51 @@ private fun MeterReadingInput(
                     )
                 }
 
+                // Show confidence or warning
                 AnimatedVisibility(
-                    visible = !hasPhoto,
+                    visible = confidence > 0f || !hasPhoto,
                     enter = fadeIn() + scaleIn(initialScale = 0.8f),
                     exit = fadeOut() + scaleOut()
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "No photo",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                    if (confidence > 0f) {
+                        // Show confidence badge
+                        val confidencePercent = (confidence * 100).toInt()
+                        val confidenceColor = when {
+                            confidence >= 0.8f -> MaterialTheme.colorScheme.primary
+                            confidence >= 0.5f -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.error
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = confidenceColor.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = "$confidencePercent% confident",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = confidenceColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    } else if (!hasPhoto) {
+                        // Show warning
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "No photo",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
             }
