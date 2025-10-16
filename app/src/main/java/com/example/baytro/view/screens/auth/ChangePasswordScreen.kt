@@ -102,7 +102,7 @@ fun ChangePasswordContent(
             PasswordTextField(
                 value = formState.password,
                 onValueChange = onPasswordChange,
-                label = "Password *",
+                label = "Password",
                 isError = formState.passwordError is ValidationResult.Error,
                 errorMessage = formState.passwordError.let {
                     if (it is ValidationResult.Error) it.message else null
@@ -125,7 +125,7 @@ fun ChangePasswordContent(
             PasswordTextField(
                 value = formState.newPassword,
                 onValueChange = onNewPasswordChange,
-                label = "New password *",
+                label = "New password",
                 isError = formState.newPasswordError is ValidationResult.Error|| formState.newPasswordStrengthError is ValidationResult.Error,
                 errorMessage = formState.newPasswordError.let {
                     if (it is ValidationResult.Error) it.message else null
@@ -148,7 +148,7 @@ fun ChangePasswordContent(
             PasswordTextField(
                 value = formState.confirmNewPassword,
                 onValueChange = onConfirmNewPasswordChange,
-                label = "Confirm password *",
+                label = "Confirm password",
                 isError = formState.confirmNewPasswordError is ValidationResult.Error,
                 errorMessage = formState.confirmNewPasswordError.let {
                     if (it is ValidationResult.Error) it.message else null

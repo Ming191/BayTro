@@ -28,4 +28,19 @@ object Utils {
             amount
         }
     }
+
+    fun formatVND(amount: String): String {
+        return try {
+            val numericAmount = amount.replace("[^\\d]".toRegex(), "").toLongOrNull() ?: 0L
+            if (numericAmount == 0L) return ""
+            val formatter = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"))
+            "${formatter.format(numericAmount)} VND"
+        } catch (e: Exception) {
+            amount
+        }
+    }
+
+    fun parseVND(formattedAmount: String): String {
+        return formattedAmount.replace("[^\\d]".toRegex(), "")
+    }
 }

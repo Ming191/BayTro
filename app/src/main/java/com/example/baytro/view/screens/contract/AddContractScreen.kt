@@ -1,10 +1,7 @@
 package com.example.baytro.view.screens.contract
 
 import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,7 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -20,9 +17,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.Building
 import com.example.baytro.data.contract.Contract
@@ -34,13 +31,42 @@ import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.view.components.SecondaryButton
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.contract.AddContractFormState
 import com.example.baytro.viewModel.contract.AddContractVM
 import org.koin.compose.viewmodel.koinViewModel
 
+@Composable
+@Preview(showBackground = true)
+fun AddContractScreenPreview() {
+    val sampleBuildings = emptyList<Building>()
+    val sampleRooms = emptyList<Room>()
+    val formState = AddContractFormState(
+        availableBuildings = sampleBuildings,
+        availableRooms = sampleRooms,
+        selectedBuilding = null,
+        selectedRoom = null,
+        startDate = "2024-07-01",
+        endDate = "2025-06-30",
+        rentalFee = "1000",
+        deposit = "2000",
+        status = Status.PENDING
+    )
+
+    AddContractContent(
+        formState = formState,
+        onBuildingSelected = {},
+        onRoomSelected = {},
+        onStartDateSelected = {},
+        onEndDateSelected = {},
+        onDepositChange = {},
+        onRentalFeeChange = {},
+        onPhotosSelected = {},
+        onSubmit = {},
+        onStatusChange = {}
+    )
+}
 @Composable
 fun AddContractScreen(
     viewModel: AddContractVM = koinViewModel(),
@@ -63,13 +89,7 @@ fun AddContractScreen(
                 }
             )
         }
-        is UiState.Loading -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
         is UiState.Success -> {
-            // Navigate to details screen
             val contractId = (uiState as UiState.Success<Contract>).data.id
             navigateToDetails(contractId)
             viewModel.clearError()
@@ -108,6 +128,22 @@ fun AddContractContent(
     uiState: UiState<Contract> = UiState.Idle,
 ) {
     Scaffold(
+        bottomBar = {
+            BottomAppBar {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    SubmitButton(
+                        text = "Save",
+                        isLoading = uiState is UiState.Loading,
+                        onClick = onSubmit,
+                        modifier = Modifier.weight(1f).fillMaxWidth().height(50.dp)
+                    )
+                }
+            }
+        },
         content = { innerPadding ->
             LazyColumn (
                 modifier = Modifier
@@ -236,26 +272,6 @@ fun AddContractContent(
                         onPhotosSelected = onPhotosSelected,
                         maxSelectionCount = 5,
                     )
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        SecondaryButton(
-                            text = "Back",
-                            onClick = { /* TODO: Handle cancel action */ },
-                            modifier = Modifier.weight(1f).fillMaxWidth()
-                        )
-                        SubmitButton(
-                            text = "Save",
-                            isLoading = uiState is UiState.Loading,
-                            onClick = onSubmit,
-                            modifier = Modifier.weight(1f).fillMaxWidth()
-                        )
-                    }
                 }
             }
         }

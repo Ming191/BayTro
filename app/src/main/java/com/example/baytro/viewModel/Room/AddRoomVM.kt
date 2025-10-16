@@ -8,7 +8,9 @@ import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.room.Status
+import com.example.baytro.data.service.Service
 import com.example.baytro.utils.AddRoomValidator
+import com.example.baytro.utils.Utils.formatCurrency
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,14 +26,23 @@ class AddRoomVM(
 
     private val _addRoomFormState = MutableStateFlow(AddRoomFormState())
     val addRoomFormState: StateFlow<AddRoomFormState> = _addRoomFormState
-    
-    private val _buildingName = MutableStateFlow<String>("")
+
+    private val _buildingName = MutableStateFlow("")
     val buildingName: StateFlow<String> = _buildingName
-    
+
+    private val _services = MutableStateFlow<List<Service>>(emptyList())
+    val services: StateFlow<List<Service>> = _services
+
+    var existingRooms = emptyList<Room>()
+
     init {
         loadBuildingName()
+        loadService()
+        viewModelScope.launch {
+            existingRooms = roomRepository.getRoomsByBuildingId(buildingId)
+        }
     }
-    
+
     private fun loadBuildingName() {
         viewModelScope.launch {
             try {
@@ -42,60 +53,55 @@ class AddRoomVM(
             }
         }
     }
-//    fun onBuildingNameChange(buildingName: String) {
-//        _addRoomFormState.value = _addRoomFormState.value.copy(
-//            buildingName = buildingName,
-//            buildingNameError = AddRoomValidator.validateBuildingName(buildingName)
-//        )
-//    }
 
+    private fun loadService() {
+        viewModelScope.launch {
+            try {
+                val services = buildingRepository.getServicesByBuildingId(buildingId)
+                _services.value = services
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
     fun onRoomNumberChange(roomNumber: String) {
-        _addRoomFormState.value = _addRoomFormState.value.copy(
-            roomNumber = roomNumber,
-            roomNumberError = AddRoomValidator.validateRoomNumber(roomNumber)
-        )
+        _addRoomFormState.value = _addRoomFormState.value.copy(roomNumber = roomNumber)
     }
 
     fun onFloorChange(floor: String) {
-        _addRoomFormState.value = _addRoomFormState.value.copy(
-            floor = floor,
-            floorError = AddRoomValidator.validateFloor(floor)
-        )
+        _addRoomFormState.value = _addRoomFormState.value.copy(floor = floor)
     }
 
     fun onSizeChange(size: String) {
-        _addRoomFormState.value = _addRoomFormState.value.copy(
-            size = size,
-            sizeError = AddRoomValidator.validateSize(size)
-        )
+        _addRoomFormState.value = _addRoomFormState.value.copy(size = size)
     }
 
     fun onRentalFeeChange(rentalFee: String) {
         _addRoomFormState.value = _addRoomFormState.value.copy(
             rentalFee = rentalFee,
-            rentalFeeError = AddRoomValidator.validateRentalFee(rentalFee)
         )
     }
 
     fun onInteriorChange(interior: Furniture) {
-        _addRoomFormState.value = _addRoomFormState.value.copy(
-            interior = interior,
-            interiorError = AddRoomValidator.validateInterior(interior)
-        )
+        _addRoomFormState.value = _addRoomFormState.value.copy(interior = interior)
     }
     fun addRoom() {
         val form = _addRoomFormState.value
         val updated = form.copy(
-            //buildingNameError = AddRoomValidator.validateBuildingName(form.buildingName),
-            roomNumberError = AddRoomValidator.validateRoomNumber(form.roomNumber),
+            roomNumberError = AddRoomValidator
+                .validateRoomNumber(
+                    roomNumber = form.roomNumber,
+                    floorNumber = _addRoomFormState.value.floor,
+                    existingRooms = existingRooms
+                ),
             floorError = AddRoomValidator.validateFloor(form.floor),
             sizeError = AddRoomValidator.validateSize(form.size),
             rentalFeeError = AddRoomValidator.validateRentalFee(form.rentalFee),
-            interiorError = AddRoomValidator.validateInterior(form.interior)
-        )
+            interiorError = AddRoomValidator.validateInterior(form.interior),
+
+            )
         _addRoomFormState.value = updated
         if (listOf(
-                //updated.buildingNameError,
                 updated.roomNumberError,
                 updated.floorError,
                 updated.sizeError,
@@ -118,6 +124,7 @@ class AddRoomVM(
                 rentalFee = formState.rentalFee.toIntOrNull()?:0,
                 status = Status.AVAILABLE,
                 interior = formState.interior,
+                extraService = services.value
             )
             viewModelScope.launch {
                 roomRepository.add(newRoom)

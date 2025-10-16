@@ -54,6 +54,8 @@ fun AppNavigationController(
         //Profile manager
         profileNavGraph(navHostController)
 
+        requestNavGraph(navHostController)
+
         // Main screen
         composable(Screens.MainScreen.route) { MainScreen() }
     }

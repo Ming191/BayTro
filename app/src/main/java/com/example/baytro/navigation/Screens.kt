@@ -5,10 +5,11 @@ import androidx.navigation.navArgument
 
 sealed class Screens(val route: String, val title: String) {
     companion object {
-        const val ARG_ID = "id"
+        const val ARG_ID = "userId"
         const val ARG_CONTRACT_ID = "contractId"
         const val ARG_BUILDING_ID = "buildingId"
         const val ARG_ROOM_ID = "roomId"
+        const val ARG_REQUEST_ID = "requestId"
     }
 
     object SplashScreen : Screens("splash_screen", "")
@@ -32,11 +33,14 @@ sealed class Screens(val route: String, val title: String) {
     object AddService : Screens("add_service_screen", "Add Service")
     object NewLandlordUser : Screens("new_landlord_user_screen", "New Landlord")
     object NewTenantUser : Screens("new_tenant_user_screen", "New Tenant")
-    object AddContract : Screens("add_contract_screen", "Add Contract")
+    object AddContract : Screens("add_contract_screen/{$ARG_ROOM_ID}", "Add Contract") {
+        val arguments = listOf(
+            navArgument(ARG_ROOM_ID) { type = NavType.StringType }
+        )
+        fun createRoute(roomId: String) = "add_contract_screen/$roomId"
+    }
     object UploadIdCard : Screens("upload_id_card_screen", "Upload ID Card")
     object TenantEmptyContract : Screens("tenant_empty_contract_screen", "Contract")
-
-
     // =================================================================
     // SCREEN WITH ARGUMENTS
     // =================================================================
@@ -80,5 +84,26 @@ sealed class Screens(val route: String, val title: String) {
             navArgument(ARG_BUILDING_ID) { type = NavType.StringType; nullable = true }
         )
         fun createRoute(buildingId: String?) = "addRoom_screen/$buildingId"
+    }
+
+    object EditContract : Screens("contract_edit/{$ARG_CONTRACT_ID}", "Edit Contract") {
+        val arguments = listOf(
+            navArgument(ARG_CONTRACT_ID) { type = NavType.StringType; nullable = true }
+        )
+        fun createRoute(contractId: String?) = "contract_edit/$contractId"
+    }
+
+    object AddRequest : Screens("add_request_screen", "Add Request")
+    object UpdateRequest : Screens("update_request_screen/{$ARG_REQUEST_ID}", "Update Request") {
+        val arguments = listOf(
+            navArgument(ARG_REQUEST_ID) { type = NavType.StringType }
+        )
+        fun createRoute(requestId: String) = "update_request_screen/$requestId"
+    }
+    object AssignRequest : Screens("assign_request_screen/{$ARG_REQUEST_ID}", "Assign Request") {
+        val arguments = listOf(
+            navArgument(ARG_REQUEST_ID) { type = NavType.StringType }
+        )
+        fun createRoute(requestId: String) = "assign_request_screen/$requestId"
     }
 }

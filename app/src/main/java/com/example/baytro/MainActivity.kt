@@ -20,13 +20,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-    //        val currentUser = FirebaseAuth.getInstance().currentUser
-    //        val startDestination = if (currentUser != null) {
-    //            Screens.MainScreen.route
-    //        } else {
-    //            Screens.SignIn.route
-    //        }
-
         val authStateHolder = AuthStateHolder()
 
         setContent {

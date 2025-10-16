@@ -81,6 +81,7 @@ fun <T> DropdownSelectField(
             },
             onValueChange = { },
             readOnly = true,
+            singleLine = true,
         )
 
         Surface(

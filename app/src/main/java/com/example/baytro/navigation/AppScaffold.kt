@@ -33,7 +33,6 @@ import com.example.baytro.auth.AuthRepository
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold (
-    navigationType: NavigationType,
     navHostController: NavHostController,
     onDrawerClicked: () -> Unit
 ) {
@@ -42,11 +41,6 @@ fun AppScaffold (
         modifier = Modifier
             .fillMaxSize(),
     ) {
-        AnimatedVisibility(
-            visible = navigationType == NavigationType.NavigationRail
-        ) {
-            TODO("Navigation Rail")
-        }
         if (authState.currentUser != null) {
             Scaffold(
                 topBar = {
@@ -125,11 +119,11 @@ fun AppScaffold (
                     }
                 },
                 bottomBar = {
-                    AnimatedVisibility(
-                        visible = navigationType == NavigationType.NavigationBottom
-                    ) {
-                        TODO("Bottom Navigation")
-                    }
+//                    AnimatedVisibility(
+//                        visible = navigationType == NavigationType.NavigationBottom
+//                    ) {
+//                        TODO("Bottom Navigation")
+//                    }
                 }
             )
         } else {

@@ -37,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,7 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import com.yalantis.ucrop.UCrop
 import java.io.File
 
@@ -65,12 +66,13 @@ private fun ExistingImageItem(
     imageHeight: Dp,
     imageShape: androidx.compose.ui.graphics.Shape,
     onImageClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    showDeleteButton: Boolean
 ) {
     Box(
         modifier = Modifier.size(imageWidth, imageHeight)
     ) {
-        AsyncImage(
+        SubcomposeAsyncImage(
             model = imageUrl,
             contentDescription = null,
             modifier = Modifier
@@ -78,29 +80,37 @@ private fun ExistingImageItem(
                 .padding(4.dp)
                 .clickable { onImageClick() }
                 .clip(imageShape),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            loading = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .shimmerEffect()
+                )
+            }
         )
 
-        // Delete button
-        Surface(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(24.dp)
-                .offset(x = (-2).dp, y = 2.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.error,
-            tonalElevation = 4.dp
-        ) {
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(24.dp)
+        if (showDeleteButton) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(24.dp)
+                    .offset(x = (-2).dp, y = 2.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.error,
+                tonalElevation = 4.dp
             ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Delete photo",
-                    tint = MaterialTheme.colorScheme.onError,
-                    modifier = Modifier.size(12.dp)
-                )
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Delete photo",
+                        tint = MaterialTheme.colorScheme.onError,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
             }
         }
     }
@@ -114,12 +124,13 @@ private fun NewImageItem(
     imageHeight: Dp,
     imageShape: androidx.compose.ui.graphics.Shape,
     onImageClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    showDeleteButton: Boolean // THAM SỐ MỚI
 ) {
     Box(
         modifier = Modifier.size(imageWidth, imageHeight)
     ) {
-        AsyncImage(
+        SubcomposeAsyncImage(
             model = uri,
             contentDescription = null,
             modifier = Modifier
@@ -127,29 +138,38 @@ private fun NewImageItem(
                 .padding(4.dp)
                 .clickable { onImageClick() }
                 .clip(imageShape),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            loading = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .shimmerEffect()
+                )
+            }
         )
 
-        // Delete button
-        Surface(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(24.dp)
-                .offset(x = (-2).dp, y = 2.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.error,
-            tonalElevation = 4.dp
-        ) {
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(24.dp)
+        // Delete button (hiển thị có điều kiện)
+        if (showDeleteButton) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(24.dp)
+                    .offset(x = (-2).dp, y = 2.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.error,
+                tonalElevation = 4.dp
             ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Delete photo",
-                    tint = MaterialTheme.colorScheme.onError,
-                    modifier = Modifier.size(12.dp)
-                )
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Delete photo",
+                        tint = MaterialTheme.colorScheme.onError,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
             }
         }
     }
@@ -291,7 +311,8 @@ fun PhotoCarousel(
     aspectRatioY: Float = 4f,
     maxResultWidth: Int = 1080,
     maxResultHeight: Int = 1440,
-    useCircularFrame: Boolean = false
+    useCircularFrame: Boolean = false,
+    showDeleteButton: Boolean = true
 ) {
     val context = LocalContext.current
     var showPicker by remember { mutableStateOf(false) }
@@ -400,7 +421,7 @@ fun PhotoCarousel(
     // Image detail dialog - shows all images (existing + new)
     if (showImageDetailDialog && selectedImageIndex != -1 && allImageModels.isNotEmpty()) {
         // Use a key to force recreation when the images list changes
-        androidx.compose.runtime.key(allImageModels.joinToString(",")) {
+        key(allImageModels.joinToString(",")) {
             ImageDetailDialog(
                 images = allImageModels,
                 initialIndex = selectedImageIndex.coerceIn(0, allImageModels.size - 1),
@@ -430,7 +451,8 @@ fun PhotoCarousel(
                     } else if (selectedImageIndex >= totalImages) {
                         selectedImageIndex = totalImages - 1
                     }
-                }
+                },
+                showDelete = showDeleteButton
             )
         }
     }
@@ -471,7 +493,8 @@ fun PhotoCarousel(
                     },
                     onDelete = {
                         onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
-                    }
+                    },
+                    showDeleteButton = showDeleteButton
                 )
             }
 
@@ -492,7 +515,8 @@ fun PhotoCarousel(
                     },
                     onDelete = {
                         onPhotosSelected(selectedPhotos.filter { it != uri })
-                    }
+                    },
+                    showDeleteButton = showDeleteButton
                 )
             }
 
@@ -527,7 +551,8 @@ fun PhotoCarousel(
                     },
                     onDelete = {
                         onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
-                    }
+                    },
+                    showDeleteButton = showDeleteButton
                 )
             }
 
@@ -548,7 +573,8 @@ fun PhotoCarousel(
                     },
                     onDelete = {
                         onPhotosSelected(selectedPhotos.filter { it != uri })
-                    }
+                    },
+                    showDeleteButton = showDeleteButton
                 )
             }
 

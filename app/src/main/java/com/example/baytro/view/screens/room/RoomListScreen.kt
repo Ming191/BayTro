@@ -32,13 +32,11 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.Divider
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,10 +57,12 @@ import androidx.navigation.NavHostController
 import com.example.baytro.R
 import com.example.baytro.data.Building
 import com.example.baytro.data.room.Floor
+import com.example.baytro.data.room.Room
 import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.ButtonComponent
 import com.example.baytro.view.components.CardComponent
 import com.example.baytro.view.components.DividerWithSubhead
+import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.Room.RoomListVM
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -71,8 +71,11 @@ fun ViewBuildingTabRow(
     tabItemList: List<Pair<String, ImageVector>>,
     floors : List<Floor>,
     navController : NavHostController,
-    building : Building?
+    building : Building?,
+    buildingTenants : List<String>,
+    rooms : List<Room>
 ) {
+    Log.d("BuildingTabRow", "BuildingName: ${building?.id}")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val pagerState = rememberPagerState (initialPage = 0){tabItemList.size}
     LaunchedEffect(selectedTabIndex) {
@@ -84,16 +87,11 @@ fun ViewBuildingTabRow(
         }
     }
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTabIndex) {
-            tabItemList.forEachIndexed { index, tabItem ->
-                Tab(
-                    text = { Text(tabItem.first) },
-                    icon = { Icon(tabItem.second, contentDescription = tabItem.first) },
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index }
-                )
-            }
-        }
+        Tabs(
+            selectedTabIndex = selectedTabIndex,
+            onTabSelected = { index -> selectedTabIndex = index },
+            tabData = tabItemList
+        )
         HorizontalPager(
             state = pagerState,
             Modifier.fillMaxWidth(),
@@ -101,7 +99,7 @@ fun ViewBuildingTabRow(
         ) { index ->
             when (index) {
                 0 -> ViewRoomList(floors, navController, building?.id)
-                1 -> ViewBuildingDetails(navController, building)
+                1 -> ViewBuildingDetails(navController, building,buildingTenants, rooms)
             }
         }
     }
@@ -120,7 +118,7 @@ fun ViewRoomList(
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
             horizontalAlignment = Alignment.Start,
             modifier = Modifier.fillMaxSize()
-            ) {
+        ) {
             items(floors) { floor ->
                 Column(
                     modifier = Modifier
@@ -151,7 +149,7 @@ fun ViewRoomList(
                         exit = shrinkVertically() + fadeOut()
                     ) {
                         Column {
-                            floor.rooms.forEach { room ->
+                            floor.rooms.sortedBy { it.roomNumber }.forEach { room ->
                                 ListItem(
                                     headlineContent = { Text("Room ${room.roomNumber}") },
                                     leadingContent = {
@@ -174,7 +172,7 @@ fun ViewRoomList(
                         }
                     }
                 }
-                Divider(
+                HorizontalDivider(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                     thickness = 1.dp,
                     modifier = Modifier.padding(horizontal = 8.dp)
@@ -196,7 +194,9 @@ fun ViewRoomList(
 @Composable
 fun ViewBuildingDetails(
     navController : NavHostController,
-    building: Building?
+    building: Building?,
+    buildingTenant: List<String>,
+    rooms : List<Room>
 ) {
     Log.d("BuildingDetails", "BuildingName: ${building?.name}")
     Column(
@@ -210,8 +210,8 @@ fun ViewBuildingDetails(
         DividerWithSubhead(subhead = "Information")
         CardComponent(
             infoMap = mapOf(
-                "Num.Rooms" to "12",
-                "Num.Tenants" to "12",
+                "Num.Rooms" to rooms.size.toString(),
+                "Num.Tenants" to buildingTenant.size.toString(),
                 "Num.Floors" to building?.floor.toString(),
                 "Address" to building?.address.toString(),
                 "Billing date" to building?.billingDate.toString(),
@@ -246,18 +246,23 @@ fun RoomListScreen(
 ) {
     val floors by viewModel.floors.collectAsState()
     val building by viewModel.building.collectAsState()
+    val rooms by viewModel.rooms.collectAsState()
+    val buildingTenants by viewModel.buildingTenants.collectAsState()
     LaunchedEffect(Unit) {
         viewModel.fetchBuilding()
         viewModel.fetchRooms()
+        viewModel.fetchBuildingTenants()
     }
     ViewBuildingTabRow(
         tabItemList = listOf(
             "Room list" to Icons.Outlined.List,
-            "Details" to Icons.Outlined.Info
+            "Building details" to Icons.Outlined.Info
         ),
         floors = floors,
         navController = navController,
-        building = building
+        building = building,
+        buildingTenants = buildingTenants,
+        rooms = rooms
     )
 }
 

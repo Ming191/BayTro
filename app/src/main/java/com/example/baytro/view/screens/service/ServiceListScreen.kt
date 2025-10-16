@@ -58,50 +58,16 @@ fun ServiceListScreen(
     val uiState by viewModel.serviceListUiState.collectAsState()
     val formState by viewModel.serviceListFormState.collectAsState()
 
-    var showLoading by remember { mutableStateOf(true) }
-    var showContent by remember { mutableStateOf(false) }
+    // Logic được đơn giản hóa:
+    // 1. Chỉ hiển thị skeleton khi đang tải lần đầu (khi chưa có dữ liệu dịch vụ nào).
+    //    Điều này đảm bảo khi đổi building, skeleton không hiện lại vì `formState` vẫn giữ dữ liệu cũ.
+    val showSkeleton = uiState is UiState.Loading && formState.availableServices.isEmpty()
+
+    // 2. Hiển thị nội dung chính trong tất cả các trường hợp còn lại (kể cả khi đang tải lại).
+    val showContent = !showSkeleton
 
     Log.d("ServiceListScreen", "Recomposing - uiState: ${uiState::class.simpleName}, " +
-            "showLoading: $showLoading, showContent: $showContent, " +
-            "servicesCount: ${formState.availableServices.size}, " +
-            "selectedBuilding: ${formState.selectedBuilding?.name}")
-
-    // Only show skeleton on initial load, not when changing buildings
-    LaunchedEffect(uiState) {
-        Log.d("ServiceListScreen", "LaunchedEffect triggered - uiState changed to: ${uiState::class.simpleName}")
-
-        when (uiState) {
-            is UiState.Loading -> {
-                Log.d("ServiceListScreen", "State: Loading - showContent=$showContent, showLoading=$showLoading")
-                // Only show skeleton if we haven't loaded yet (initial load)
-                if (!showContent && !showLoading) {
-                    Log.d("ServiceListScreen", "First time loading - showing skeleton")
-                    showLoading = true
-                } else {
-                    Log.d("ServiceListScreen", "Already loaded before - skipping skeleton (content visible)")
-                }
-            }
-            is UiState.Success -> {
-                Log.d("ServiceListScreen", "State: Success - services count: ${(uiState as UiState.Success).data.size}")
-                showLoading = false
-                delay(300)
-                showContent = true
-                Log.d("ServiceListScreen", "Content visible after delay")
-            }
-            is UiState.Error -> {
-                Log.e("ServiceListScreen", "State: Error - ${(uiState as UiState.Error).message}")
-                showLoading = false
-                delay(300)
-                showContent = true
-            }
-            is UiState.Idle -> {
-                Log.d("ServiceListScreen", "State: Idle - keeping current state")
-            }
-            is UiState.Waiting -> {
-                Log.d("ServiceListScreen", "State: Waiting - keeping current state")
-            }
-        }
-    }
+            "showSkeleton: $showSkeleton, showContent: $showContent")
 
     Scaffold { paddingValues ->
         Box(
@@ -109,9 +75,9 @@ fun ServiceListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Only show skeleton for initial load
+            // Skeleton chỉ hiển thị cho lần tải đầu tiên.
             AnimatedVisibility(
-                visible = showLoading && !showContent,
+                visible = showSkeleton,
                 exit = fadeOut(animationSpec = tween(300))
             ) {
                 Log.d("ServiceListScreen", "Rendering skeleton loading")
@@ -120,27 +86,19 @@ fun ServiceListScreen(
                 }
             }
 
-            // Show content after initial load (remains visible when changing buildings)
+            // Nội dung hiển thị sau lần tải đầu và luôn hiển thị (kể cả khi đổi building).
             AnimatedVisibility(
                 visible = showContent,
-                enter = fadeIn(animationSpec = tween(300))
+                enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 100))
             ) {
-                Log.d("ServiceListScreen", "Rendering content with ${formState.availableServices.size} services")
+                Log.d("ServiceListScreen", "Rendering content")
                 ServiceListContent(
                     formState = formState,
-                    onBuildingSelected = { building ->
-                        Log.d("ServiceListScreen", "Building selected: ${building.name} (id: ${building.id})")
-                        viewModel.onBuildingChange(building)
-                    },
-                    onEdit = { service ->
-                        Log.d("ServiceListScreen", "Edit service: ${service.name}")
-                        viewModel.onEditService(service)
-                    },
-                    onDelete = { service ->
-                        Log.d("ServiceListScreen", "Delete service: ${service.name}")
-                        viewModel.onDeleteService(service)
-                    },
+                    onBuildingSelected = viewModel::onBuildingChange, // Sử dụng method reference cho gọn
+                    onEdit = viewModel::onEditService,
+                    onDelete = viewModel::onDeleteService,
                     navController = navController,
+                    // Vô hiệu hóa dropdown khi đang tải dữ liệu cho building mới
                     isLoading = uiState is UiState.Loading
                 )
             }
@@ -149,17 +107,11 @@ fun ServiceListScreen(
                 val message = (uiState as UiState.Error).message
                 Log.e("ServiceListScreen", "Showing error dialog: $message")
                 AlertDialog(
-                    onDismissRequest = {
-                        Log.d("ServiceListScreen", "Error dialog dismissed")
-                        viewModel.clearError()
-                    },
+                    onDismissRequest = viewModel::clearError,
                     title = { Text("Notice") },
                     text = { Text(message) },
                     confirmButton = {
-                        TextButton(onClick = {
-                            Log.d("ServiceListScreen", "Error dialog confirmed")
-                            viewModel.clearError()
-                        }) {
+                        TextButton(onClick = viewModel::clearError) {
                             Text("OK")
                         }
                     }
@@ -168,7 +120,6 @@ fun ServiceListScreen(
         }
     }
 }
-
 
 @Composable
 fun ServiceListContent (
@@ -204,6 +155,7 @@ fun ServiceListContent (
                             onBuildingSelected(building)
                         },
                         optionToString = { it.name },
+                        // Dropdown sẽ bị vô hiệu hóa khi đang tải dữ liệu mới
                         enabled = formState.availableBuildings.isNotEmpty() && !isLoading
                     )
                 }

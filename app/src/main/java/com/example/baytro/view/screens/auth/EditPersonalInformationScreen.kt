@@ -28,6 +28,7 @@ import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.ChoiceSelection
 import com.example.baytro.view.components.DividerWithSubhead
+import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.IDCardImages
 import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.RequiredTextField
@@ -291,13 +292,11 @@ fun EditPersonalInformationContent(
                         subhead = "Bank information"
                     )
 
-                    RequiredTextField(
-                        value = roleFormState.bankCode,
-                        onValueChange = onBankCodeChange,
+                    DropdownSelectField(
                         label = "Bank",
-                        isError = false,
-                        errorMessage = null,
-                        readOnly = true,
+                        options = listOf("MB", "VCB", "BIDV"),
+                        selectedOption = roleFormState.bankCode,
+                        onOptionSelected = onBankCodeChange,
                         modifier = Modifier
                             .fillMaxWidth()
                     )

@@ -74,17 +74,6 @@ fun Tabs(
     }
 }
 
-@Composable
-fun HomeScreen() { Text("Home Content") }
-
-@Composable
-fun SearchScreen() { Text("Search Content") }
-
-@Composable
-fun FavoritesScreen() { Text("Favorites Content") }
-
-@Composable
-fun SettingsScreen() { Text("Settings Content") }
 
 @Preview
 @Composable

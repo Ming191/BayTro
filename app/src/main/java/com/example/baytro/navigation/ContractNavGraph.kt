@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import com.example.baytro.view.screens.contract.AddContractScreen
 import com.example.baytro.view.screens.contract.ContractDetailsScreen
 import com.example.baytro.view.screens.contract.ContractListScreen
+import com.example.baytro.view.screens.contract.EditContractScreen
 import com.example.baytro.view.screens.contract.TenantEmptyContractView
 
 fun NavGraphBuilder.contractNavGraph(navController: NavHostController) {
@@ -21,7 +22,13 @@ fun NavGraphBuilder.contractNavGraph(navController: NavHostController) {
         arguments = Screens.ContractDetails.arguments
     ) { backStackEntry ->
         val contractId = backStackEntry.arguments?.getString(Screens.ARG_CONTRACT_ID) ?: ""
-        ContractDetailsScreen(contractId = contractId)
+        ContractDetailsScreen(
+            contractId = contractId,
+            onEditContract = { contractId ->
+                navController.navigate(Screens.EditContract.createRoute(contractId))
+            },
+            navigateBack = { navController.popBackStack() }
+        )
     }
     composable(Screens.AddContract.route) {
         AddContractScreen(
@@ -33,7 +40,22 @@ fun NavGraphBuilder.contractNavGraph(navController: NavHostController) {
         )
     }
     composable(Screens.TenantEmptyContract.route) {
-        TenantEmptyContractView()
+        TenantEmptyContractView(
+            onContractConfirmed = {
+                navController.navigate(Screens.TenantDashboard.route) {
+                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                }
+            }
+        )
+    }
+    composable(
+        Screens.EditContract.route,
+        arguments = Screens.EditContract.arguments
+    ) { backStackEntry ->
+        val contractId = backStackEntry.arguments?.getString(Screens.ARG_CONTRACT_ID) ?: ""
+        EditContractScreen(
+            navigateBack = { navController.popBackStack() },
+            contractId = contractId
+        )
     }
 }
-
