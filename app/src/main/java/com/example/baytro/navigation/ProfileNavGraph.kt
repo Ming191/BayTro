@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import com.example.baytro.view.screens.auth.ChangePasswordScreen
 import com.example.baytro.view.screens.auth.EditPersonalInformationScreen
 import com.example.baytro.view.screens.profile.ProfileScreen
+import com.example.baytro.view.screens.profile.PoliciesAndTermsScreen
 import com.example.baytro.view.screens.profile.ViewPersonalInformationScreen
 import com.google.firebase.auth.FirebaseAuth
 
@@ -25,6 +26,9 @@ fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
             },
             onNavigateToEditPersonalInformation = {
                 navController.navigate(Screens.ViewPersonalInformation.route)
+            },
+            onNavigateToPoliciesAndTerms = {
+                navController.navigate(Screens.PoliciesAndTerms.route)
             }
         )
     }
@@ -45,6 +49,12 @@ fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
             onNavigateBack = {
                 navController.popBackStack()
             }
+        )
+    }
+
+    composable(Screens.PoliciesAndTerms.route) {
+        PoliciesAndTermsScreen(
+            onNavigateBack = { navController.popBackStack() }
         )
     }
 

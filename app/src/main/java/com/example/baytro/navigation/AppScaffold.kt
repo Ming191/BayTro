@@ -61,6 +61,7 @@ fun AppScaffold (
                     Screens.ViewPersonalInformation.route -> "View Personal Information"
                     Screens.EditPersonalInformation.route -> "Edit Personal Information"
                     Screens.ChangePassword.route -> "Change Password"
+                    Screens.PoliciesAndTerms.route -> "Policies & Terms"
                     Screens.BuildingList.route -> "Buildings"
                     Screens.BuildingAdd.route -> "Add Building"
                     Screens.BuildingEdit.route -> "Edit Building"

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: #f5f5f5;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px 20px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 5px;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 14px;
+      }
+
+      .content {
+        padding: 30px 20px;
+      }
+
+      .section {
+        margin-bottom: 35px;
+      }
+
+      .section h2 {
+        color: #667eea;
+        font-size: 22px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      .section h3 {
+        color: #555;
+        font-size: 18px;
+        margin: 20px 0 10px 0;
+      }
+
+      .section p {
+        margin-bottom: 12px;
+        text-align: justify;
+      }
+
+      .section ul {
+        margin: 10px 0 10px 20px;
+      }
+
+      .section li {
+        margin-bottom: 8px;
+      }
+
+      .highlight {
+        background: #fff3cd;
+        padding: 15px;
+        border-left: 4px solid #ffc107;
+        margin: 15px 0;
+        border-radius: 4px;
+      }
+
+      .contact-info {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+      }
+
+      .contact-info strong {
+        color: #667eea;
+      }
+
+      .footer {
+        background: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        font-size: 14px;
+        color: #666;
+        border-top: 1px solid #e0e0e0;
+      }
+
+      .last-updated {
+        font-style: italic;
+        color: #888;
+        font-size: 13px;
+        margin-top: 10px;
+      }
+
+      .toc {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        border: 1px solid #e0e0e0;
+      }
+
+      .toc h2 {
+        color: #667eea;
+        font-size: 20px;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 10px;
+      }
+
+      .toc ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .toc li {
+        margin-bottom: 10px;
+      }
+
+      .toc a {
+        color: #333;
+        text-decoration: none;
+        display: block;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+      }
+
+      .toc .sub-item {
+        margin-left: 20px;
+        font-size: 14px;
+      }
+
+      .toc .sub-item a {
+        padding: 6px 12px;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>BayTro</h1>
+        <p>Điều khoản sử dụng & Chính sách bảo mật</p>
+      </div>
+
+      <div class="content">
+        <div class="toc">
+          <h2>Mục lục</h2>
+          <ul>
+            <li><a href="#section1">1. Điều khoản sử dụng</a></li>
+            <li class="sub-item">
+              <a href="#section1-1">1.1. Chấp nhận điều khoản</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section1-2">1.2. Mô tả dịch vụ</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section1-3">1.3. Tài khoản người dùng</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section1-4">1.4. Quyền và nghĩa vụ của người dùng</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section1-5">1.5. Miễn trừ trách nhiệm</a>
+            </li>
+
+            <li><a href="#section2">2. Chính sách bảo mật</a></li>
+            <li class="sub-item">
+              <a href="#section2-1">2.1. Cam kết bảo mật</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section2-2">2.2. Thông tin chúng tôi thu thập</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section2-3">2.3. Mục đích sử dụng thông tin</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section2-4">2.4. Bảo vệ thông tin</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section2-5">2.5. Chia sẻ thông tin</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section2-6">2.6. Quyền của người dùng</a>
+            </li>
+            <li class="sub-item">
+              <a href="#section2-7">2.7. Bảo mật hình ảnh và CMND/CCCD</a>
+            </li>
+
+            <li><a href="#section3">3. Quyền sở hữu trí tuệ</a></li>
+            <li><a href="#section4">4. Cập nhật và thay đổi</a></li>
+            <li><a href="#section5">5. Liên hệ</a></li>
+          </ul>
+        </div>
+
+        <div class="section" id="section1">
+          <h2>1. ĐIỀU KHOẢN SỬ DỤNG</h2>
+
+          <h3 id="section1-1">1.1. Chấp nhận điều khoản</h3>
+          <p>
+            Bằng việc tải xuống, cài đặt và sử dụng ứng dụng BayTro, bạn đồng ý
+            tuân thủ các điều khoản và điều kiện được nêu trong tài liệu này.
+            Nếu bạn không đồng ý với bất kỳ phần nào của các điều khoản này, vui
+            lòng không sử dụng ứng dụng.
+          </p>
+
+          <h3 id="section1-2">1.2. Mô tả dịch vụ</h3>
+          <p>BayTro là ứng dụng di động hỗ trợ quản lý nhà trọ, bao gồm:</p>
+          <ul>
+            <li>Quản lý thông tin phòng trọ và khách thuê</li>
+            <li>Theo dõi thanh toán và hóa đơn</li>
+            <li>Quản lý hợp đồng thuê trọ</li>
+            <li>Lưu trữ thông tin cá nhân và hình ảnh liên quan</li>
+            <li>Các tính năng hỗ trợ khác cho việc quản lý nhà trọ</li>
+          </ul>
+
+          <h3 id="section1-3">1.3. Tài khoản người dùng</h3>
+          <p>Để sử dụng BayTro, bạn cần:</p>
+          <ul>
+            <li>Tạo tài khoản với thông tin chính xác và đầy đủ</li>
+            <li>Bảo mật thông tin đăng nhập của bạn</li>
+            <li>
+              Chịu trách nhiệm về mọi hoạt động diễn ra dưới tài khoản của bạn
+            </li>
+            <li>
+              Thông báo ngay cho chúng tôi nếu phát hiện việc sử dụng trái phép
+            </li>
+          </ul>
+
+          <h3 id="section1-4">1.4. Quyền và nghĩa vụ của người dùng</h3>
+          <p><strong>Bạn có quyền:</strong></p>
+          <ul>
+            <li>Sử dụng ứng dụng cho mục đích quản lý nhà trọ hợp pháp</li>
+            <li>Truy cập, chỉnh sửa và xóa dữ liệu của bạn</li>
+            <li>Yêu cầu hỗ trợ kỹ thuật khi cần thiết</li>
+          </ul>
+
+          <p><strong>Bạn cam kết:</strong></p>
+          <ul>
+            <li>Không sử dụng ứng dụng cho mục đích bất hợp pháp</li>
+            <li>Không vi phạm quyền riêng tư của người khác</li>
+            <li>
+              Không tải lên nội dung vi phạm pháp luật, khiêu dâm, bạo lực
+            </li>
+            <li>Tuân thủ các quy định pháp luật về bảo vệ dữ liệu cá nhân</li>
+            <li>
+              Chỉ thu thập và lưu trữ thông tin với sự đồng ý của người thuê trọ
+            </li>
+          </ul>
+
+          <h3 id="section1-5">1.5. Miễn trừ trách nhiệm</h3>
+          <p>
+            BayTro được cung cấp "nguyên trạng". Chúng tôi không đảm bảo ứng
+            dụng sẽ hoạt động liên tục, không bị gián đoạn hoặc không có lỗi.
+            Chúng tôi không chịu trách nhiệm về:
+          </p>
+          <ul>
+            <li>Mất mát dữ liệu do lỗi kỹ thuật hoặc do người dùng</li>
+            <li>Tranh chấp phát sinh giữa chủ nhà và người thuê</li>
+            <li>
+              Sai sót trong việc quản lý do người dùng nhập liệu không chính xác
+            </li>
+          </ul>
+
+          <div class="highlight">
+            <strong>Lưu ý quan trọng:</strong> Người dùng có trách nhiệm sao lưu
+            dữ liệu định kỳ và tuân thủ pháp luật về bảo vệ dữ liệu cá nhân khi
+            thu thập thông tin của người thuê trọ.
+          </div>
+        </div>
+
+        <div class="section" id="section2">
+          <h2>2. CHÍNH SÁCH BẢO MẬT</h2>
+
+          <h3 id="section2-1">2.1. Cam kết bảo mật</h3>
+          <p>
+            BayTro cam kết bảo vệ quyền riêng tư và thông tin cá nhân của người
+            dùng. Chúng tôi thu thập, sử dụng và bảo vệ thông tin theo đúng quy
+            định của pháp luật Việt Nam về bảo vệ dữ liệu cá nhân.
+          </p>
+
+          <h3 id="section2-2">2.2. Thông tin chúng tôi thu thập</h3>
+          <p><strong>Thông tin tài khoản:</strong></p>
+          <ul>
+            <li>Email, số điện thoại</li>
+            <li>Họ tên, địa chỉ</li>
+            <li>Thông tin xác thực tài khoản</li>
+            <li>Các thông tin liên quan khác</li>
+          </ul>
+
+          <p><strong>Thông tin quản lý nhà trọ:</strong></p>
+          <ul>
+            <li>Thông tin phòng trọ, địa chỉ nhà trọ</li>
+            <li>Thông tin khách thuê (họ tên, CMND/CCCD, số điện thoại)</li>
+            <li>Hình ảnh CMND/CCCD, hình ảnh phòng trọ</li>
+            <li>Thông tin hợp đồng và thanh toán</li>
+            <li>Các hình ảnh và tài liệu liên quan khác</li>
+          </ul>
+
+          <h3 id="section2-3">2.3. Mục đích sử dụng thông tin</h3>
+          <p>Chúng tôi sử dụng thông tin của bạn để:</p>
+          <ul>
+            <li>Cung cấp và duy trì dịch vụ ứng dụng</li>
+            <li>Xác thực và bảo mật tài khoản</li>
+            <li>Lưu trữ và quản lý dữ liệu theo yêu cầu của bạn</li>
+            <li>Cải thiện trải nghiệm người dùng</li>
+            <li>Hỗ trợ khách hàng và giải quyết vấn đề kỹ thuật</li>
+            <li>Thông báo về cập nhật và tính năng mới</li>
+            <li>Tuân thủ yêu cầu pháp lý khi cần thiết</li>
+          </ul>
+
+          <h3 id="section2-4">2.4. Bảo vệ thông tin</h3>
+          <p>
+            Chúng tôi áp dụng các biện pháp bảo mật kỹ thuật và tổ chức phù hợp
+            để bảo vệ thông tin của bạn:
+          </p>
+          <ul>
+            <li>Mã hóa dữ liệu trong quá trình truyền tải</li>
+            <li>Mã hóa dữ liệu nhạy cảm khi lưu trữ</li>
+            <li>Kiểm soát truy cập chặt chẽ</li>
+          </ul>
+
+          <h3 id="section2-5">2.5. Chia sẻ thông tin</h3>
+          <p>
+            Chúng tôi KHÔNG bán, trao đổi hoặc cho thuê thông tin cá nhân của
+            bạn cho bên thứ ba. Thông tin chỉ được chia sẻ trong các trường hợp:
+          </p>
+          <ul>
+            <li>Có sự đồng ý rõ ràng của bạn</li>
+            <li>Yêu cầu của cơ quan có thẩm quyền theo quy định pháp luật</li>
+            <li>Bảo vệ quyền lợi của BayTro và người dùng</li>
+            <li>
+              Với các nhà cung cấp dịch vụ hỗ trợ (lưu trữ đám mây, phân tích)
+              đã ký cam kết bảo mật
+            </li>
+          </ul>
+
+          <h3 id="section2-6">2.6. Quyền của người dùng</h3>
+          <p>Bạn có các quyền sau đối với dữ liệu cá nhân của mình:</p>
+          <ul>
+            <li>
+              <strong>Quyền chỉnh sửa:</strong> Cập nhật hoặc sửa đổi thông tin
+              không chính xác
+            </li>
+            <li>
+              <strong>Quyền khiếu nại:</strong> Khiếu nại với cơ quan có thẩm
+              quyền nếu cho rằng quyền của bạn bị vi phạm
+            </li>
+          </ul>
+
+          <h3 id="section2-7">2.7. Bảo mật hình ảnh và CMND/CCCD</h3>
+          <div class="highlight">
+            <strong>Đặc biệt lưu ý:</strong> Hình ảnh CMND/CCCD và các giấy tờ
+            tùy thân được mã hóa và bảo vệ ở mức độ cao nhất. Chúng tôi khuyến
+            nghị người dùng chỉ lưu trữ thông tin này khi thực sự cần thiết và
+            có sự đồng ý rõ ràng của người thuê trọ.
+          </div>
+        </div>
+
+        <div class="section" id="section3">
+          <h2>3. QUYỀN SỞ HỮU TRÍ TUỆ</h2>
+          <p>
+            Tất cả quyền sở hữu trí tuệ liên quan đến ứng dụng BayTro (bao gồm
+            mã nguồn, giao diện, logo, thương hiệu) thuộc về chúng tôi (chưa đi
+            đăng ký thôi nhá!). Người dùng không được:
+          </p>
+          <ul>
+            <li>Sao chép, sửa đổi, phân phối ứng dụng</li>
+            <li>Dịch ngược, tháo rời hoặc phân tích mã nguồn</li>
+            <li>Tạo sản phẩm phái sinh từ ứng dụng</li>
+          </ul>
+        </div>
+
+        <div class="section" id="section4">
+          <h2>4. CẬP NHẬT VÀ THAY ĐỔI</h2>
+          <p>
+            Chúng tôi có quyền cập nhật Điều khoản và Chính sách này bất kỳ lúc
+            nào. Các thay đổi quan trọng sẽ được thông báo qua:
+          </p>
+          <ul>
+            <li>Email đăng ký</li>
+          </ul>
+          <p>
+            Việc bạn tiếp tục sử dụng ứng dụng sau khi có thay đổi đồng nghĩa
+            với việc bạn chấp nhận các điều khoản mới.
+          </p>
+        </div>
+
+        <div class="section" id="section5">
+          <h2>5. LIÊN HỆ</h2>
+          <p>
+            Nếu bạn có bất kỳ câu hỏi, thắc mắc hoặc yêu cầu nào về Điều khoản
+            sử dụng và Chính sách bảo mật, vui lòng liên hệ với chúng tôi:
+          </p>
+
+          <div class="contact-info">
+            <p><strong>Tên ứng dụng:</strong> BayTro</p>
+            <p>
+              <strong>Email hỗ trợ:</strong>
+              <a href="mailto:baytro.dev@gmail.com">baytro.dev@gmail.com</a>
+            </p>
+            <p style="margin-top: 10px">
+              Chúng tôi sẽ phản hồi yêu cầu của bạn trong vòng 30-50 ngày làm
+              việc hoặc lâu hơn.
+            </p>
+          </div>
+        </div>
+
+        <div class="last-updated">Cập nhật lần cuối: Ngày 6, tháng 9, 2025</div>
+      </div>
+
+      <div class="footer">
+        <p>2025 BayTro. Mọi quyền được bảo lưu.</p>
+        <p style="margin-top: 5px">Ứng dụng quản lý nhà trọ số 1 Việt Nam</p>
+      </div>
+    </div>
+  </body>
+</html>

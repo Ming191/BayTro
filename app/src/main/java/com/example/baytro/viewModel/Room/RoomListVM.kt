@@ -35,6 +35,9 @@ class RoomListVM(
     private val _buildingTenants = MutableStateFlow<List<String>>(emptyList())
     val buildingTenants: StateFlow<List<String>> = _buildingTenants
 
+    private val _isLoadingRooms = MutableStateFlow(false)
+    val isLoadingRooms: StateFlow<Boolean> = _isLoadingRooms
+
     fun fetchBuilding() {
         viewModelScope.launch {
             try {
@@ -49,8 +52,7 @@ class RoomListVM(
     fun fetchRooms() {
         viewModelScope.launch {
             try {
-                // Add delay to prevent showing "no rooms" during loading
-                delay(500)
+                _isLoadingRooms.value = true
                 
                 val building = _building.value?: buildingRepository.getById(buildingId)
                 _building.value = building
@@ -66,6 +68,8 @@ class RoomListVM(
             } catch (e: Exception) {
                 e.printStackTrace()
                 _floors.value = emptyList()
+            } finally {
+                _isLoadingRooms.value = false
             }
         }
     }

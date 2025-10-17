@@ -86,6 +86,7 @@ import com.example.baytro.view.components.PhotoSelectorView
 import com.example.baytro.view.components.ImageDetailDialog
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Surface
+import com.example.baytro.utils.LocalAvatarCache
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,16 +95,25 @@ fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
     onNavigateToSignOut: () -> Unit,
-    onNavigateToEditPersonalInformation: () -> Unit
+    onNavigateToEditPersonalInformation: () -> Unit,
+    onNavigateToPoliciesAndTerms: () -> Unit
 ) {
     val user by viewModel.user.collectAsState()
     val header by viewModel.headerState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val avatarCache = LocalAvatarCache.current
 
     LaunchedEffect(Unit) {
         Log.d("PersonalInformationScreen", "Screen launched - Checking if need to load")
         viewModel.loadPersonalInformation()
         Log.d("EditPersonalInformationScreen", "Screen is loaded")
+    }
+
+    // Update avatar cache when user profile changes
+    LaunchedEffect(user?.profileImgUrl) {
+        user?.profileImgUrl?.let { newUrl ->
+            avatarCache.updateAvatar(newUrl)
+        }
     }
 
     if (isLoading) {
@@ -175,6 +185,7 @@ fun ProfileScreen(
                     onNavigateToChangePassword = onNavigateToChangePassword,
                     onNavigateToSignOut = onNavigateToSignOut,
                     onNavigateToEditPersonalInformation = onNavigateToEditPersonalInformation,
+                    onNavigateToPoliciesAndTerms = onNavigateToPoliciesAndTerms,
                     onAvatarClick = { showImagePreview = true },
                     onAvatarLongClick = { showPhotoSourceDialog = true },
                     headerViewModel = viewModel,
@@ -437,6 +448,7 @@ fun PersonalInformationContent(
     onNavigateToChangePassword: () -> Unit,
     onNavigateToSignOut: () -> Unit,
     onNavigateToEditPersonalInformation: () -> Unit,
+    onNavigateToPoliciesAndTerms: () -> Unit,
     onAvatarClick: () -> Unit = {},
     onAvatarLongClick: () -> Unit = {},
     headerViewModel: PersonalInformationVM,
@@ -629,7 +641,7 @@ fun PersonalInformationContent(
                     Text("Change password")
                 }
                 Spacer(modifier = Modifier.height(10.dp))
-                OutlinedButton(onClick = { /* TODO: show policies & terms */ }, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onNavigateToPoliciesAndTerms, modifier = Modifier.fillMaxWidth()) {
                     Text("Policies & Terms")
                 }
                 Spacer(modifier = Modifier.height(20.dp))

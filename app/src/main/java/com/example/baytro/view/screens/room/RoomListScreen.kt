@@ -86,7 +86,8 @@ fun ViewBuildingTabRow(
     onEditBuilding: (String) -> Unit,
     onDeleteBuilding: (String) -> Unit,
     buildingTenants : List<String>,
-    rooms : List<Room>
+    rooms : List<Room>,
+    isLoadingRooms: Boolean = false
 ) {
     Log.d("BuildingTabRow", "BuildingName: ${building?.id}")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -111,7 +112,7 @@ fun ViewBuildingTabRow(
             verticalAlignment = Alignment.Top
         ) { index ->
             when (index) {
-                0 -> ViewRoomList(floors, navController, building?.id)
+                0 -> ViewRoomList(floors, navController, building?.id, isLoading = isLoadingRooms)
                 1 -> ViewBuildingDetails(
                     navController = navController,
                     building = building,
@@ -130,13 +131,34 @@ fun ViewBuildingTabRow(
 fun ViewRoomList(
     floors : List<Floor>,
     navController : NavController,
-    buildingId: String?
+    buildingId: String?,
+    isLoading: Boolean = false
 ) {
     var expandedFloorNumber by remember { mutableIntStateOf(-1) }
     Log.d("RoomList", "BuildingIdInRoomList: $buildingId")
     val totalRooms = floors.sumOf { it.rooms.size }
     Box(modifier = Modifier.fillMaxSize()) {
-        if (floors.isEmpty() || totalRooms == 0) {
+        if (isLoading) {
+            // Loading state
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(48.dp),
+                    strokeWidth = 4.dp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Loading rooms...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else if (floors.isEmpty() || totalRooms == 0) {
             // Empty state
             Column(
                 modifier = Modifier
@@ -413,6 +435,7 @@ fun RoomListScreen(
     val building by viewModel.building.collectAsState()
     val rooms by viewModel.rooms.collectAsState()
     val buildingTenants by viewModel.buildingTenants.collectAsState()
+    val isLoadingRooms by viewModel.isLoadingRooms.collectAsState()
     LaunchedEffect(Unit) {
         viewModel.fetchBuilding()
         viewModel.fetchRooms()
@@ -429,6 +452,7 @@ fun RoomListScreen(
         onEditBuilding = { id -> navController.navigate(Screens.BuildingEdit.createRoute(id)) },
         onDeleteBuilding = { id -> viewModel.deleteBuilding(id) },
         buildingTenants = buildingTenants,
-        rooms = rooms
+        rooms = rooms,
+        isLoadingRooms = isLoadingRooms
     )
 }

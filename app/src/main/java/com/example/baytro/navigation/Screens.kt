@@ -21,6 +21,7 @@ sealed class Screens(val route: String, val title: String) {
     object ViewPersonalInformation : Screens("view_personal_information_screen", "View Personal Information")
     object EditPersonalInformation : Screens("edit_personal_information_screen", "Edit Personal Information")
     object ChangePassword : Screens("change_password_screen", "Change Password")
+    object PoliciesAndTerms : Screens("policies_and_terms_screen", "Policies and Terms")
     object ForgotPassword : Screens("forgot_password_screen", "Forgot Password")
     object MainScreen : Screens("main_screen", "BayTro")
     object Dashboard : Screens("dashboard_screen", "Dashboard")
