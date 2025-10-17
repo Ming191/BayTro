@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,8 +20,6 @@ import com.example.baytro.data.billing.BillLineItem
 import com.example.baytro.utils.Utils
 import com.example.baytro.viewModel.billing.TenantBillViewModel
 import org.koin.androidx.compose.koinViewModel
-import java.text.SimpleDateFormat
-import java.util.*
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,8 +105,6 @@ fun TenantBillScreen(
 
 @Composable
 fun BillDetailsCard(bill: Bill) {
-    val dateFormat = remember { SimpleDateFormat("dd MMMM, yyyy", Locale.getDefault()) }
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -145,7 +140,7 @@ fun BillDetailsCard(bill: Bill) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 InfoColumn(label = "Billed for", value = "${bill.roomName}, ${bill.buildingName}")
-                InfoColumn(label = "Due Date", value = bill.paymentDueDate.toString(), alignEnd = true)
+                InfoColumn(label = "Due Date", value = Utils.formatTimestamp(bill.paymentDueDate), alignEnd = true)
             }
 
             Spacer(modifier = Modifier.height(20.dp))

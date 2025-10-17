@@ -1,8 +1,10 @@
 package com.example.baytro.utils
 
+import dev.gitlive.firebase.firestore.Timestamp
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 object Utils {
@@ -55,6 +57,16 @@ object Utils {
         val format = if (short) "MMM" else "MMMM"
         val sdf = SimpleDateFormat(format, Locale.getDefault())
         return sdf.format(calendar.time)
+    }
+
+    fun formatTimestamp(timestamp: Timestamp, pattern: String = "dd MMMM, yyyy"): String {
+        return try {
+            val date = Date(timestamp.seconds * 1000)
+            val formatter = SimpleDateFormat(pattern, Locale.getDefault())
+            formatter.format(date)
+        } catch (_: Exception) {
+            ""
+        }
     }
 
 }
