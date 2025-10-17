@@ -11,6 +11,7 @@ import com.example.baytro.data.request.RequestRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.data.user.UserRoleCache
+import com.example.baytro.utils.AvatarCache
 import com.example.baytro.service.FptAiService
 import com.example.baytro.service.MeterReadingApiService
 import com.example.baytro.service.MeterReadingCloudFunctions
@@ -83,6 +84,9 @@ val appModule = module {
         }
     }
     single<FirebaseFunctions> { Firebase.functions }
+    
+    // Avatar cache
+    single { AvatarCache(get()) }
 
 }
 
@@ -142,8 +146,12 @@ val authModule = module {
     }
     viewModel {
         PersonalInformationVM(
-            get(),
-            get()
+            get(), // UserRepository
+            get(), // AuthRepository
+            get(), // MediaRepository
+            get(), // BuildingRepository
+            get(), // RoomRepository
+            get()  // ContractRepository
         )
     }
     viewModel {

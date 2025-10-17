@@ -15,6 +15,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -55,7 +56,9 @@ fun ImageDetailDialog(
     initialIndex: Int = 0,
     onDismiss: () -> Unit,
     onDelete: (Int) -> Unit,
-    showDelete: Boolean
+    showDelete: Boolean,
+    showCounter: Boolean = true,
+    onEdit: (() -> Unit)? = null
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var controlsVisible by remember { mutableStateOf(true) }
@@ -103,7 +106,7 @@ fun ImageDetailDialog(
                 }
             }
 
-            // Top controls (close button and counter)
+            // Top controls (close button, optional counter, optional edit/delete)
             if (controlsVisible) {
                 Row(
                     modifier = Modifier
@@ -129,20 +132,40 @@ fun ImageDetailDialog(
 
                     Spacer(modifier = Modifier.width(16.dp))
 
-                    // Photo counter
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.5f)
-                    ) {
-                        Text(
-                            text = "${pagerState.currentPage + 1} / ${images.size}",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                    // Photo counter (optional)
+                    if (showCounter) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.5f)
+                        ) {
+                            Text(
+                                text = "${pagerState.currentPage + 1} / ${images.size}",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
+
+                    // Edit button (optional)
+                    if (onEdit != null) {
+                        Surface(
+                            onClick = onEdit,
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.5f)
+                        ) {
+                            IconButton(onClick = onEdit) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
 
                     // Delete button
                     if (showDelete) {

@@ -1,8 +1,6 @@
 package com.example.baytro.navigation
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,7 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.rememberAsyncImagePainter
-import com.example.baytro.auth.AuthRepository
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import androidx.compose.ui.platform.LocalContext
+import com.example.baytro.utils.LocalAvatarCache
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,9 +57,13 @@ fun AppScaffold (
                 )
                 val isTopLevel = currentRoute in topLevelRoutes
                 val titleText = when (currentRoute) {
+                    Screens.PersonalInformation.route -> "User Profile"
+                    Screens.ViewPersonalInformation.route -> "View Personal Information"
+                    Screens.EditPersonalInformation.route -> "Edit Personal Information"
+                    Screens.ChangePassword.route -> "Change Password"
                     Screens.BuildingList.route -> "Buildings"
-                    Screens.BuildingAdd.route -> "Add building"
-                    Screens.BuildingEdit.route -> "Edit building"
+                    Screens.BuildingAdd.route -> "Add Building"
+                    Screens.BuildingEdit.route -> "Edit Building"
                     Screens.TenantList.route -> "Tenants"
                     Screens.BillList.route -> "Bills"
                     Screens.ContractList.route -> "Contracts"
@@ -82,18 +87,37 @@ fun AppScaffold (
                         }
                     },
                     actions = {
-                        IconButton(onClick = { navHostController.navigate(Screens.PersonalInformation.route) }) {
-                            val photoUrl = FirebaseAuth.getInstance().currentUser?.photoUrl
-                            if (photoUrl != null) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(model = photoUrl),
-                                    contentDescription = "Profile",
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                )
-                            } else {
-                                Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                        if (isTopLevel && currentRoute != Screens.PersonalInformation.route) {
+                            val avatarCache = LocalAvatarCache.current
+                            val uid = FirebaseAuth.getInstance().currentUser?.uid
+
+                            LaunchedEffect(uid) {
+                                if (uid != null) {
+                                    avatarCache.loadAvatar(uid)
+                                } else {
+                                    avatarCache.clearCache()
+                                }
+                            }
+
+                            IconButton(onClick = { navHostController.navigate(Screens.PersonalInformation.route) }) {
+                                val url = avatarCache.avatarUrl
+                                if (!url.isNullOrBlank()) {
+                                    val context = LocalContext.current
+                                    Image(
+                                        painter = rememberAsyncImagePainter(
+                                            model = ImageRequest.Builder(context)
+                                                .data(url)
+                                                .crossfade(false)
+                                                .build()
+                                        ),
+                                        contentDescription = "Profile",
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                    )
+                                } else {
+                                    Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                                }
                             }
                         }
                     }

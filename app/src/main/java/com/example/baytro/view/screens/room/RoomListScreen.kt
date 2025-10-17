@@ -134,7 +134,41 @@ fun ViewRoomList(
 ) {
     var expandedFloorNumber by remember { mutableIntStateOf(-1) }
     Log.d("RoomList", "BuildingIdInRoomList: $buildingId")
+    val totalRooms = floors.sumOf { it.rooms.size }
     Box(modifier = Modifier.fillMaxSize()) {
+        if (floors.isEmpty() || totalRooms == 0) {
+            // Empty state
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.List,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "No rooms yet",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Create the first room for this building",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                FloatingActionButton(onClick = { navController.navigate(Screens.AddRoom.createRoute(buildingId)) }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add room")
+                }
+            }
+        } else {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
             horizontalAlignment = Alignment.Start,
@@ -200,14 +234,17 @@ fun ViewRoomList(
                 )
             }
         }
-        //add room
-        FloatingActionButton(
-            onClick = {navController.navigate(Screens.AddRoom.createRoute(buildingId))},
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Add room")
+        }
+        //add room - only show if there are floors/rooms or if not in empty state
+        if (!(floors.isEmpty() || totalRooms == 0)) {
+            FloatingActionButton(
+                onClick = {navController.navigate(Screens.AddRoom.createRoute(buildingId))},
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add room")
+            }
         }
     }
 }

@@ -12,6 +12,7 @@ import com.example.baytro.data.room.RoomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 class RoomListVM(
     private val roomRepository: RoomRepository,
@@ -48,6 +49,9 @@ class RoomListVM(
     fun fetchRooms() {
         viewModelScope.launch {
             try {
+                // Add delay to prevent showing "no rooms" during loading
+                delay(500)
+                
                 val building = _building.value?: buildingRepository.getById(buildingId)
                 _building.value = building
                 val rooms = roomRepository.getAll()

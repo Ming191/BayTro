@@ -18,6 +18,7 @@ sealed class Screens(val route: String, val title: String) {
     object SignUp : Screens("sign_up_screen", "Sign Up")
     object SignOut : Screens("sign_in_screen", "Sign Out")
     object PersonalInformation : Screens("personal_information_screen", "Personal Information")
+    object ViewPersonalInformation : Screens("view_personal_information_screen", "View Personal Information")
     object EditPersonalInformation : Screens("edit_personal_information_screen", "Edit Personal Information")
     object ChangePassword : Screens("change_password_screen", "Change Password")
     object ForgotPassword : Screens("forgot_password_screen", "Forgot Password")

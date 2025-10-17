@@ -33,6 +33,7 @@ import com.example.baytro.auth.ChangePasswordFormState
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.PasswordTextField
+import com.example.baytro.view.components.PasswordStrengthIndicator
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.auth.ChangePasswordVM
@@ -140,6 +141,12 @@ fun ChangePasswordContent(
                     .fillMaxWidth()
                     .focusRequester(newPasswordFocus)
             )
+            
+            // Add password strength indicator
+            if (formState.newPassword.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                PasswordStrengthIndicator(password = formState.newPassword)
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
