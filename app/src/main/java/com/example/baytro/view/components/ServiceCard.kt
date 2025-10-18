@@ -56,7 +56,8 @@ fun ServiceActionButton(
 fun ServiceCard(
     service: Service,
     onEdit: (Service) -> Unit,
-    onDelete: (Service) -> Unit
+    onDelete: (Service) -> Unit,
+    unableToDelete: Boolean = true
 ) {
     Box(
         modifier = Modifier
@@ -117,7 +118,7 @@ fun ServiceCard(
                             .width(16.dp)
                     )
 
-                    if (onDelete(service) != {}) {
+                    if (unableToDelete) {
                         ServiceActionButton(
                             icon = Icons.Filled.Delete,
                             contentDescription = "Delete",

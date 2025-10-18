@@ -65,7 +65,6 @@ fun EditServiceScreen(
     EditServiceContent(
         uiState = uiState,
         formState = formState,
-        onNameChange = { viewModel.onNameChange(it) },
         onPriceChange = { viewModel.onPriceChange(it) },
         onUnitSelected = { viewModel.onUnitChange(it) },
         onToggleRoom = { viewModel.onToggleRoom(it) },
@@ -102,7 +101,6 @@ fun EditServiceScreen(
 fun EditServiceContent(
     uiState: UiState<Service>,
     formState: AddServiceFormState,
-    onNameChange: (String) -> Unit,
     onPriceChange: (String) -> Unit,
     onUnitSelected: (Metric) -> Unit,
     onToggleRoom: (String) -> Unit,
@@ -155,8 +153,9 @@ fun EditServiceContent(
                 ) {
                     OutlinedTextField(
                         value = formState.name,
-                        onValueChange = onNameChange,
+                        onValueChange = {},
                         label = { Text("Service name") },
+                        readOnly = true,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading
                     )

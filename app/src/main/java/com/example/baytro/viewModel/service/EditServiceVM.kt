@@ -3,7 +3,6 @@ package com.example.baytro.viewModel.service
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.service.Metric
@@ -63,11 +62,6 @@ class EditServiceVM(
                 _uiState.value = UiState.Error(e.message ?: "Error loading service")
             }
         }
-    }
-
-    // Reuse các hàm từ AddServiceVM
-    fun onNameChange(value: String) {
-        _formState.value = _formState.value.copy(name = value)
     }
     fun onPriceChange(value: String) {
         _formState.value = _formState.value.copy(price = value)

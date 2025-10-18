@@ -246,7 +246,8 @@ fun ServiceListContent (
                                             "Delete clicked unable for service: ${service.name}"
                                         )
                                     }
-                                }
+                                },
+                                unableToDelete = service.name != "Water" && service.name != "Electrics"
                             )
                         }
                     }
