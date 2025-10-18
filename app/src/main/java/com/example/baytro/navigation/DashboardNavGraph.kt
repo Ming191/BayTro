@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.tenant.TenantListScreen
+import com.example.baytro.view.SettingsScreen
 import com.example.baytro.view.screens.billing.LandlordBillsScreen
 
 import com.example.baytro.view.screens.dashboard.TenantDashboard
@@ -19,6 +20,10 @@ import com.google.firebase.auth.FirebaseAuth
 fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     composable(Screens.Dashboard.route) {
         DashboardScreen()
+    }
+
+    composable(Screens.Settings.route) {
+        SettingsScreen()
     }
 
     composable(Screens.TenantDashboard.route) {
@@ -51,6 +56,11 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
                 val route = Screens.MeterReadingHistory.createRoute(contractId)
                 Log.d("DashboardNavGraph", "Navigating to route: $route")
                 navController.navigate(route) {
+                    launchSingleTop = true
+                }
+            },
+            onNavigateToPayment = {
+                navController.navigate(Screens.TenantBillScreen.route) {
                     launchSingleTop = true
                 }
             }

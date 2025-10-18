@@ -160,6 +160,8 @@ sealed class Screens(val route: String, val title: String) {
     // =================================================================
     // BILLING SCREENS
     // =================================================================
+    object TenantBillScreen : Screens("tenant_bill_screen", "My Bill")
+    object Settings : Screens("settings_screen", "Settings")
     object LandlordBills : Screens("landlord_bills/{$ARG_LANDLORD_ID}", "Bills Dashboard") {
         val arguments = listOf(
             navArgument(ARG_LANDLORD_ID) { type = NavType.StringType }

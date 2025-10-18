@@ -36,7 +36,6 @@ import com.google.firebase.auth.FirebaseAuth
 @Composable
 fun TenantScaffold(
     navHostController: NavHostController,
-    onDrawerClicked: () -> Unit,
 ) {
     val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
 
@@ -44,7 +43,6 @@ fun TenantScaffold(
         Screens.MeterReading.route,
         Screens.AddRequest.route
     )
-
     Box(modifier = Modifier.fillMaxSize()) {
         if (currentRoute in routesWithOwnScaffold) {
             AppNavigationController(
@@ -62,6 +60,7 @@ fun TenantScaffold(
                         Screens.UpdateRequest.route -> "Update Request"
                         Screens.MaintenanceRequestList.route -> "Maintenance"
                         Screens.BillList.route -> "Bills"
+                        Screens.TenantBillScreen.route -> "My Bill"
                         Screens.MeterReadingHistory.route -> "Reading History"
                         else -> "BayTro"
                     }
@@ -69,20 +68,9 @@ fun TenantScaffold(
                     CenterAlignedTopAppBar(
                         title = { Text(titleText) },
                         navigationIcon = {
-                            val isMainScreen = currentRoute in listOf(
-                                Screens.TenantDashboard.route,
-                                Screens.BillList.route,
-                                Screens.MaintenanceRequestList.route,
-                                Screens.TenantEmptyContract.route
-                            )
-
-                            if (!isMainScreen && navHostController.previousBackStackEntry != null) {
+                            if (navHostController.previousBackStackEntry != null) {
                                 IconButton(onClick = { navHostController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                                }
-                            } else {
-                                IconButton(onClick = onDrawerClicked) {
-                                    Icon(Icons.Default.Menu, contentDescription = "Menu")
                                 }
                             }
                         },
@@ -145,4 +133,3 @@ fun TenantScaffold(
         }
     }
 }
-
