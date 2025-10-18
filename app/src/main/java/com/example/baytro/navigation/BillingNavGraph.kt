@@ -3,6 +3,7 @@ package com.example.baytro.navigation
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.example.baytro.view.screens.billing.BillDetailsScreen
 import com.example.baytro.view.screens.billing.LandlordBillsScreen
 import com.example.baytro.view.screens.billing.TenantBillScreen
 
@@ -10,7 +11,7 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
 
     // Tenant Bill Screen (no parameters - viewModel fetches current user)
     composable(Screens.TenantBillScreen.route) {
-        TenantBillScreen()
+        TenantBillScreen(navController = navController)
     }
 
     // Landlord Bills Dashboard
@@ -33,7 +34,7 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
         val tenantId = backStackEntry.arguments?.getString(Screens.ARG_TENANT_ID) ?: ""
 
         TenantBillScreen(
-//            tenantId = tenantId
+            navController = navController
         )
     }
 
@@ -42,12 +43,8 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
         route = Screens.BillDetails.route,
         arguments = Screens.BillDetails.arguments
     ) { backStackEntry ->
-        val billId = backStackEntry.arguments?.getString(Screens.ARG_BILL_ID) ?: ""
-
-        // This will show the bill details - you can create a dedicated screen later
-        // For now it navigates to a placeholder
-        TenantBillScreen(
-//            tenantId = "" // Bill details can be loaded by billId
+        BillDetailsScreen(
+            navController = navController
         )
     }
 
@@ -57,11 +54,8 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
         arguments = Screens.BillingHistory.arguments
     ) { backStackEntry ->
         val tenantId = backStackEntry.arguments?.getString(Screens.ARG_TENANT_ID) ?: ""
-
-        // Placeholder - you can create a BillingHistoryScreen later
-        // For now it shows the current bill
         TenantBillScreen(
-//            tenantId = tenantId
+            navController = navController
         )
     }
 }

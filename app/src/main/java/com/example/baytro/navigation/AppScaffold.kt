@@ -39,7 +39,6 @@ fun AppScaffold (
                     Screens.ContractList.route,
                     Screens.MaintenanceRequestList.route,
                     Screens.ServiceList.route,
-                    Screens.PendingMeterReadings.route,
                     Screens.LandlordBills.route,
                 )
                 val isTopLevel = currentRoute in topLevelRoutes
@@ -83,7 +82,7 @@ fun AppScaffold (
                 ) {
                     AppNavigationController(
                         navHostController = navHostController,
-                        startDestination = Screens.Dashboard.route
+                        startDestination = Screens.Dashboard.route,
                     )
                 }
             },

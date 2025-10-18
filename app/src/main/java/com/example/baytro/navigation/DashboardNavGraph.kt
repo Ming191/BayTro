@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.baytro.view.screens.DashboardScreen
 import com.example.baytro.view.screens.TenantListScreen
+import com.example.baytro.view.SettingsScreen
 import com.example.baytro.view.screens.billing.LandlordBillsScreen
 import com.example.baytro.view.screens.dashboard.TenantDashboard
 import com.example.baytro.view.screens.contract.TenantEmptyContractView
@@ -18,6 +19,10 @@ import com.google.firebase.auth.FirebaseAuth
 fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     composable(Screens.Dashboard.route) {
         DashboardScreen()
+    }
+
+    composable(Screens.Settings.route) {
+        SettingsScreen()
     }
 
     composable(Screens.TenantDashboard.route) {

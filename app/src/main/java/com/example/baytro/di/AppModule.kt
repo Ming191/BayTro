@@ -1,6 +1,5 @@
 package com.example.baytro.di
 
-import androidx.lifecycle.SavedStateHandle
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
 import com.example.baytro.data.BuildingRepository
@@ -44,6 +43,8 @@ import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.request.UpdateRequestVM
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
+import com.example.baytro.viewModel.SettingsVM
+import com.example.baytro.viewModel.billing.BillDetailsViewModel
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
@@ -63,7 +64,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.module.dsl.viewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val appModule = module {
@@ -103,142 +104,42 @@ val authModule = module {
 
     single { IdCardDataViewModel() }
     single { UserRoleCache(androidContext()) }
-
-    viewModel {
-        SplashScreenVM(get())
-    }
-    viewModel {
-        NewLandlordUserVM(
-            androidContext(),
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
-    viewModel {
-        SignUpVM(get())
-    }
-    viewModel {
-        SignInVM(
-            get(),
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
-    viewModel {
-        ForgotPasswordVM(get())
-    }
-    viewModel {
-        AddBuildingVM(
-            androidContext(),
-            get(),
-            get(),
-            get()
-        )
-    }
-    viewModel {
-        BuildingListVM(
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
-    viewModel {
-        AddContractVM(
-            androidContext(),
-            get(), get(),
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
-    viewModel {
-        UploadIdCardVM(
-            androidContext(),
-            get(),
-            get(),
-            get()
-        )
-    }
-    viewModel {
-        NewTenantUserVM(
-            androidContext(),
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
-
-    viewModel {
-        ContractDetailsVM(
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
-
-    viewModel {
-        TenantJoinVM(
-            get(),
-            get(),
-            get()
-        )
-    }
-
-    viewModel {
-        ContractListVM(
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
-
-    viewModel {
-        EditContractVM(
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-        )
-    }
-    viewModel { RequestListVM(get(), get(), get(), get(), get(), get()) }
-    viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
-    viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), get(),handle) }
-    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(),get(),get(), handle) }
-    viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(),get(), handle) }
-    viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
-    viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
-    viewModel { MeterReadingVM(get(), get(), get(), get(), get()) }
-    viewModel { PendingMeterReadingsVM(get(), get(), get(), get()) }
-    viewModel { MeterReadingHistoryVM(get()) }
-    viewModel { AddRequestVM(get(), get(), get(), get()) }
-    viewModel { (requestId: String) -> UpdateRequestVM(get(), get(), get(), requestId) }
-    viewModel { AssignRequestVM(get()) }
-    viewModel {
-        ImportBuildingRoomVM(
-            androidContext(),
-            get(),
-            get(),
-            get()
-        )
-    }
-    viewModel { LandlordBillsViewModel(get(), get(), get(), get()) }
-    viewModel { TenantBillViewModel(get(), get(), get()) }
+    viewModelOf(::SplashScreenVM)
+    viewModelOf(::NewLandlordUserVM)
+    viewModelOf(::SignUpVM)
+    viewModelOf(::SignInVM)
+    viewModelOf(::ForgotPasswordVM)
+    viewModelOf(::AddBuildingVM)
+    viewModelOf(::BuildingListVM)
+    viewModelOf(::AddContractVM)
+    viewModelOf(::UploadIdCardVM)
+    viewModelOf(::NewTenantUserVM)
+    viewModelOf(::ContractDetailsVM)
+    viewModelOf(::TenantJoinVM)
+    viewModelOf(::ContractListVM)
+    viewModelOf(::EditContractVM)
+    viewModelOf(::RequestListVM)
+    viewModelOf(::AddRoomVM)
+    viewModelOf(::RoomListVM)
+    viewModelOf(::RoomDetailsVM)
+    viewModelOf(::EditRoomVM)
+    viewModelOf(::EditBuildingVM)
+    viewModelOf(::TenantDashboardVM)
+    viewModelOf(::MeterReadingVM)
+    viewModelOf(::PendingMeterReadingsVM)
+    viewModelOf(::MeterReadingHistoryVM)
+    viewModelOf(::AddRequestVM)
+    viewModelOf(::UpdateRequestVM)
+    viewModelOf(::AssignRequestVM)
+    viewModelOf(::ImportBuildingRoomVM)
+    viewModelOf(::LandlordBillsViewModel)
+    viewModelOf(::TenantBillViewModel)
+    viewModelOf(::SettingsVM)
+    viewModelOf(::BillDetailsViewModel)
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }
     single<RoomRepository> { RoomRepository(get()) }
-    viewModel { ServiceListVM(get(), get()) }
-    viewModel {  (handle: SavedStateHandle) -> AddServiceVM(get(),get(),get(), handle) }
+    viewModelOf(::ServiceListVM)
+    viewModelOf(::AddServiceVM)
 }

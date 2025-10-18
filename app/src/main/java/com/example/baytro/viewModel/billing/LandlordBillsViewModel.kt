@@ -53,7 +53,7 @@ class LandlordBillsViewModel(
     private val _selectedDate: MutableStateFlow<Pair<Int, Int>>
     private val _selectedStatus = MutableStateFlow<BillStatus?>(null)
     private val _pendingCountsByBuilding = MutableStateFlow<Map<String, Int>>(emptyMap())
-    private val _isInitialized = MutableStateFlow(false) // Add this flag
+    private val _isInitialized = MutableStateFlow(false)
 
     private val _errorEvent = MutableSharedFlow<SingleEvent<String>>()
     val errorEvent: SharedFlow<SingleEvent<String>> = _errorEvent.asSharedFlow()
@@ -68,8 +68,7 @@ class LandlordBillsViewModel(
 
         val landlordId = auth.currentUser?.uid
 
-        // Luồng 1: Dữ liệu động từ Firestore (hóa đơn và pending)
-        // Only trigger loading when buildingId or date changes, not when buildings list changes
+
         val dynamicDataFlow = combine(
             _selectedBuildingId,
             _selectedDate
@@ -79,10 +78,9 @@ class LandlordBillsViewModel(
             _isLoading.value = true
             if (landlordId == null || buildingId == null) {
                 _isLoading.value = false
-                flowOf(Pair(emptyList<BillSummary>(), 0))
+                flowOf(Pair(emptyList(), 0))
             } else {
                 combine(
-                    // Use the current buildings value from the StateFlow
                     billRepository.listenForBillsByBuildingAndMonth(landlordId, buildingId, date.first, date.second, _buildings.value)
                         .catch { e -> _errorEvent.emit(SingleEvent("Failed to load bills: ${e.message}")); emit(emptyList()) },
                     meterReadingRepository.listenForPendingReadingsByBuilding(landlordId, buildingId)
@@ -95,7 +93,6 @@ class LandlordBillsViewModel(
             }
         }
 
-        // Luồng 2: Gộp tất cả các luồng state lại để tạo ra UiState cuối cùng
         uiState = combine(
             _isLoading, _buildings, _selectedBuildingId, _selectedDate, _selectedStatus, _pendingCountsByBuilding, dynamicDataFlow
         ) { values ->
@@ -109,7 +106,6 @@ class LandlordBillsViewModel(
 
             val filteredBills = if (selectedStatus == null) allBills else allBills.filter { it.status == selectedStatus }
 
-            // Cập nhật danh sách buildings với số lượng pending tương ứng
             val buildingsWithCounts = buildings.map { it.copy(pendingCount = pendingCountsMap[it.id] ?: 0) }
 
             LandlordBillsUiState(
@@ -121,7 +117,6 @@ class LandlordBillsViewModel(
                 pendingReadingsCount = selectedPendingCount,
                 totalPendingReadings = pendingCountsMap.values.sum(),
                 filteredBills = filteredBills
-                // `billsForSelectedMonth` không còn cần thiết trong UiState nếu không dùng đến
             )
         }.stateIn(
             scope = viewModelScope,
@@ -138,7 +133,6 @@ class LandlordBillsViewModel(
             return
         }
 
-        // Prevent re-initialization if buildings are already loaded
         if (_isInitialized.value) return
 
         _isLoading.value = true
@@ -150,12 +144,8 @@ class LandlordBillsViewModel(
                 if (_selectedBuildingId.value == null) {
                     _selectedBuildingId.value = buildings.firstOrNull()?.id
                 }
-
-                // Bắt đầu lắng nghe số lượng pending cho tất cả tòa nhà
                 listenForAllPendingCounts(landlordId, buildings.map { it.id })
-
-                _isInitialized.value = true // Set initialized flag
-
+                _isInitialized.value = true
             } catch (e: Exception) {
                 _errorEvent.emit(SingleEvent("Failed to load buildings: ${e.message}"))
                 _isLoading.value = false
@@ -163,10 +153,9 @@ class LandlordBillsViewModel(
         }
     }
 
-    // Hàm mới để lắng nghe tất cả số lượng pending
     private fun listenForAllPendingCounts(landlordId: String, buildingIds: List<String>) {
         if (buildingIds.isEmpty()) {
-            _isLoading.value = false // Không có tòa nhà, tắt loading
+            _isLoading.value = false
             return
         }
 
@@ -181,8 +170,6 @@ class LandlordBillsViewModel(
         }.launchIn(viewModelScope)
     }
 
-    // --- CÁC HÀM ACTION TỪ UI ---
-
     fun selectBuilding(buildingId: String) {
         if (uiState.value.selectedBuildingId == buildingId) return
         _selectedBuildingId.value = buildingId
@@ -192,21 +179,16 @@ class LandlordBillsViewModel(
         _selectedStatus.value = status
     }
 
-    fun goToNextMonth() {
+    private fun updateMonth(offset: Int) {
+        val (month, year) = _selectedDate.value
         val calendar = Calendar.getInstance().apply {
-            set(Calendar.MONTH, _selectedDate.value.first - 1)
-            set(Calendar.YEAR, _selectedDate.value.second)
-            add(Calendar.MONTH, 1)
+            set(Calendar.MONTH, month - 1)
+            set(Calendar.YEAR, year)
+            add(Calendar.MONTH, offset)
         }
         _selectedDate.value = Pair(calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.YEAR))
     }
 
-    fun goToPreviousMonth() {
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.MONTH, _selectedDate.value.first - 1)
-            set(Calendar.YEAR, _selectedDate.value.second)
-            add(Calendar.MONTH, -1)
-        }
-        _selectedDate.value = Pair(calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.YEAR))
-    }
+    fun goToNextMonth() = updateMonth(1)
+    fun goToPreviousMonth() = updateMonth(-1)
 }

@@ -5,9 +5,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class PaymentMethod {
-    BANK_TRANSFER,
+    BANK_TRANSFER_MANUAL,
     CASH,
-    OTHER
+    BANK_TRANSFER_AUTO
 }
 
 @Serializable
@@ -33,15 +33,14 @@ data class Bill(
     val paymentDueDate: Timestamp,
 
     val paymentCode: String? = null,
-    val paymentInfo: String = "",
+    val paymentDetails: PaymentDetails? = null,
 
-    // Các trường được điền bởi webhook
     val paymentDate: Timestamp? = null,
     val paidAmount: Double? = null,
     val sepayTransactionId: Long? = null,
     val paidBy_BankHolderName: String? = null,
 
-    val paymentMethod: PaymentMethod? = PaymentMethod.OTHER
+    val paymentMethod: PaymentMethod? = null,
 )
 
 @Serializable
@@ -68,3 +67,10 @@ fun Bill.toSummary(buildingNameOverride: String? = null): BillSummary {
         paymentDueDate = this.paymentDueDate
     )
 }
+
+@Serializable
+data class PaymentDetails(
+    val accountNumber: String,
+    val bankCode: String,
+    val accountHolderName: String
+)

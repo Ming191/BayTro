@@ -11,7 +11,9 @@ enum class Gender {
 
 @Serializable
 enum class BankCode {
-    MB, VCB, BIDV
+    MBBank,
+    Vietcombank,
+    BIDV
 }
 
 @Serializable
@@ -37,6 +39,7 @@ sealed class Role() {
     data class Landlord(
         val bankCode: String,
         val bankAccountNumber: String,
+        val paymentCodeTemplate: PaymentCodeTemplate? = null
     ): Role()
 }
 
@@ -55,4 +58,10 @@ data class User (
     val address: String,
     val profileImgUrl: String?,
     val fcmToken: String? = null,
+)
+
+@Serializable
+data class PaymentCodeTemplate(
+    val prefix: String = "BAYTRO",
+    val suffixLength: Int = 6
 )

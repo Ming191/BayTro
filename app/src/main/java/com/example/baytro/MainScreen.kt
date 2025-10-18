@@ -54,55 +54,10 @@ fun MainScreen() {
 
 @Composable
 fun TenantMainScreen() {
-    val scope = rememberCoroutineScope()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val navController = rememberNavController()
-
-    ModalNavigationDrawer(
-        drawerContent = {
-            ModalDrawerSheet {
-                NavigationDrawerView(
-                    currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route,
-                    onDrawerClicked = {
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    },
-                    onMaintenanceClicked = {
-                        navController.navigate(Screens.MaintenanceRequestList.route)
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    },
-                    onDashboardClicked = {
-                        navController.navigate(Screens.TenantDashboard.route) {
-                            popUpTo(Screens.TenantDashboard.route) { inclusive = true }
-                        }
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    },
-                    onBillClicked = {
-                        navController.navigate(Screens.TenantBillScreen.route)
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    },
-                    isTenant = true
-                )
-            }
-        },
-        drawerState = drawerState
-    ) {
-        TenantScaffold(
-            navHostController = navController,
-            onDrawerClicked = {
-                scope.launch {
-                    drawerState.open()
-                }
-            }
-        )
-    }
+    TenantScaffold(
+        navHostController = navController
+    )
 }
 
 @Composable
