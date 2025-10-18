@@ -3,6 +3,7 @@ package com.example.baytro.viewModel.service
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavHostController
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
@@ -103,10 +104,16 @@ class ServiceListVM(
         }
     }
 
-    fun onEditService(service: Service) {
-        _serviceListFormState.value = _serviceListFormState.value.copy(selectedService = service)
-        // TODO: Navigate to edit screen
+    fun onEditService(service: Service, navController: NavHostController) {
+        val building = _serviceListFormState.value.selectedBuilding
+        if (building != null) {
+            _serviceListFormState.value = _serviceListFormState.value.copy(selectedService = service)
+            navController.navigate("edit_service_screen/${building.id}/${service.id}")
+        } else {
+            Log.w(TAG, "No building selected — cannot navigate to edit screen")
+        }
     }
+
 
     fun onDeleteService(service: Service) {
         viewModelScope.launch {

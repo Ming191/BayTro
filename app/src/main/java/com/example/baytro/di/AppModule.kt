@@ -46,6 +46,7 @@ import com.example.baytro.viewModel.request.AssignRequestVM
 import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.request.UpdateRequestVM
 import com.example.baytro.viewModel.service.AddServiceVM
+import com.example.baytro.viewModel.service.EditServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
@@ -268,4 +269,5 @@ val serviceModule = module {
     single<RoomRepository> { RoomRepository(get()) }
     viewModel { ServiceListVM(get(), get()) }
     viewModel {  (handle: SavedStateHandle) -> AddServiceVM(get(),get(),get(), handle) }
+    viewModel { EditServiceVM(get(), get(), get()) }
 }
