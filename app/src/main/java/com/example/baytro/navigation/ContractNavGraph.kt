@@ -59,4 +59,3 @@ fun NavGraphBuilder.contractNavGraph(navController: NavHostController) {
         )
     }
 }
-

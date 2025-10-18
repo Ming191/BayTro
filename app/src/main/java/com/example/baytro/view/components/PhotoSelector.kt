@@ -37,7 +37,8 @@ fun PhotoSelectorView(
     aspectRatioY: Float = 4f,
     maxResultWidth: Int = 1080,
     maxResultHeight: Int = 1440,
-    launchKey: Int = 0
+    launchKey: Int = 0,
+    useCircularFrame: Boolean = false
 ) {
     val context = LocalContext.current
     var pendingCropUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
@@ -108,8 +109,13 @@ fun PhotoSelectorView(
                 setToolbarTitle("Crop Image")
                 setHideBottomControls(false)
                 setFreeStyleCropEnabled(false)
-                setShowCropGrid(true)
+                setShowCropGrid(false)
                 setCompressionQuality(90)
+
+                if (useCircularFrame) {
+                    setCircleDimmedLayer(true)
+                    setShowCropFrame(false)
+                }
             }
 
             val uCropIntent = UCrop.of(pendingCropUris[currentCropIndex], destinationUri)

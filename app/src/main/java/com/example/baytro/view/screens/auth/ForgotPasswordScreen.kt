@@ -53,18 +53,7 @@ fun ForgotPasswordScreen(
     val uiState by viewModel.forgotPasswordUIState.collectAsState()
     val context = LocalContext.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Reset Password") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         ForgotPasswordContent(
             formState = formState,
             uiState = uiState,

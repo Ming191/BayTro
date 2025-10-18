@@ -26,7 +26,7 @@ class AddRoomVM(
 
     private val _addRoomFormState = MutableStateFlow(AddRoomFormState())
     val addRoomFormState: StateFlow<AddRoomFormState> = _addRoomFormState
-    
+
     private val _buildingName = MutableStateFlow("")
     val buildingName: StateFlow<String> = _buildingName
 
@@ -42,7 +42,7 @@ class AddRoomVM(
             existingRooms = roomRepository.getRoomsByBuildingId(buildingId)
         }
     }
-    
+
     private fun loadBuildingName() {
         viewModelScope.launch {
             try {

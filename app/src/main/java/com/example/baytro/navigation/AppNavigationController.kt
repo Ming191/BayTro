@@ -51,6 +51,9 @@ fun AppNavigationController(
         // Dashboard and main features
         dashboardNavGraph(navHostController)
 
+        //Profile manager
+        profileNavGraph(navHostController)
+
         // Request management
         requestNavGraph(navHostController)
 
