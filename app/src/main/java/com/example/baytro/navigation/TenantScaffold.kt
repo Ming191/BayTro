@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,7 +22,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 @Composable
 fun TenantScaffold(
     navHostController: NavHostController,
-    onDrawerClicked: () -> Unit,
 ) {
     val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
 
@@ -31,7 +29,6 @@ fun TenantScaffold(
         Screens.MeterReading.route,
         Screens.AddRequest.route
     )
-
     Box(modifier = Modifier.fillMaxSize()) {
         if (currentRoute in routesWithOwnScaffold) {
             AppNavigationController(
@@ -56,20 +53,9 @@ fun TenantScaffold(
                     CenterAlignedTopAppBar(
                         title = { Text(titleText) },
                         navigationIcon = {
-                            val isMainScreen = currentRoute in listOf(
-                                Screens.TenantDashboard.route,
-                                Screens.BillList.route,
-                                Screens.MaintenanceRequestList.route,
-                                Screens.TenantEmptyContract.route
-                            )
-
-                            if (!isMainScreen && navHostController.previousBackStackEntry != null) {
+                            if (navHostController.previousBackStackEntry != null) {
                                 IconButton(onClick = { navHostController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                                }
-                            } else {
-                                IconButton(onClick = onDrawerClicked) {
-                                    Icon(Icons.Default.Menu, contentDescription = "Menu")
                                 }
                             }
                         }
