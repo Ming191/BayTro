@@ -11,7 +11,10 @@ fun NavGraphBuilder.serviceNavGraph(navController: NavHostController) {
         ServiceListScreen(navController = navController)
     }
 
-    composable(Screens.AddService.route) {
+    composable(
+        Screens.AddService.route,
+        arguments = Screens.AddService.arguments
+    ) {
         AddServiceScreen(navController = navController)
     }
 }

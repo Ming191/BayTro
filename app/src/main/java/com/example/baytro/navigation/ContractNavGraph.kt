@@ -30,7 +30,10 @@ fun NavGraphBuilder.contractNavGraph(navController: NavHostController) {
             navigateBack = { navController.popBackStack() }
         )
     }
-    composable(Screens.AddContract.route) {
+    composable(
+        Screens.AddContract.route,
+        arguments = Screens.AddContract.arguments
+    ) {
         AddContractScreen(
             navigateToDetails = { contractId ->
                 navController.navigate(Screens.ContractDetails.createRoute(contractId)) {

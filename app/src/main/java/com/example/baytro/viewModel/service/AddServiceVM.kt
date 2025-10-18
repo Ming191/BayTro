@@ -27,6 +27,10 @@ class AddServiceVM(
         private const val TAG = "AddServiceVM"
     }
     private val buildingId: String? = savedStateHandle["buildingId"]
+    private val roomId: String? = savedStateHandle["roomId"]
+
+    private val isFromAddRoom: Boolean = savedStateHandle["isFromAddRoom"] ?: false
+
     private val _uiState = MutableStateFlow<UiState<Service>>(UiState.Idle)
     val uiState: StateFlow<UiState<Service>> = _uiState
 
@@ -88,9 +92,15 @@ class AddServiceVM(
                 val rooms = roomRepo.getRoomsByBuildingId(buildingId)
                 _formState.value = _formState.value.copy(availableRooms = rooms)
                 Log.d(TAG, "Fetched ${rooms.size} rooms for building $buildingId")
-
+                if (!roomId.isNullOrEmpty()) {
+                    val selected = rooms.find { it.id == roomId } ?: roomRepo.getById(roomId)
+                    if (selected != null) {
+                        Log.d(TAG, "Auto-selected room from nav args: ${selected.roomNumber}")
+                        onToggleRoom(selected.id)
+                    }
+                }
                 // Auto-select all rooms
-                if (rooms.isNotEmpty()) {
+                if (rooms.isNotEmpty() && roomId.isNullOrEmpty()) {
                     val allRoomIds = rooms.map { it.id }.toSet()
                     _formState.value = _formState.value.copy(selectedRooms = allRoomIds)
                     Log.d(TAG, "Auto-selected all ${rooms.size} rooms")

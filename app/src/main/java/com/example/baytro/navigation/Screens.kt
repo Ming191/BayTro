@@ -31,7 +31,15 @@ sealed class Screens(val route: String, val title: String) {
     object ContractList : Screens("contracts_screen", "Contracts")
     object MaintenanceRequestList : Screens("maintenance_screen", "Maintenance")
     object ServiceList : Screens("services_screen", "Services")
-    object AddService : Screens("add_service_screen", "Add Service")
+    object AddService : Screens("add_service_screen/{$ARG_ROOM_ID}/{$ARG_BUILDING_ID}/{isFromAddRoom}", "Add Service") {
+        val arguments = listOf(
+            navArgument(ARG_ROOM_ID) { type = NavType.StringType },
+            navArgument(ARG_BUILDING_ID) { type = NavType.StringType },
+            navArgument("isFromAddRoom") { type = NavType.BoolType; defaultValue = false }
+
+        )
+        fun createRoute(roomId: String, buildingId: String, isFromAddRoom: Boolean) = "add_service_screen/$roomId/$buildingId/$isFromAddRoom"
+    }
     object NewLandlordUser : Screens("new_landlord_user_screen", "New Landlord")
     object NewTenantUser : Screens("new_tenant_user_screen", "New Tenant")
     object AddContract : Screens("add_contract_screen/{$ARG_ROOM_ID}", "Add Contract") {

@@ -8,16 +8,14 @@ import com.example.baytro.utils.ValidationResult
 
 
 data class AddContractFormState(
-    val selectedBuilding: Building? = null,
-    val selectedRoom: Room? = null,
     val startDate: String = "",
     val endDate: String = "",
     val rentalFee: String = "",
     val deposit: String = "",
     val status: Status = Status.PENDING,
     val photosURL: List<String> = emptyList(),
-    val availableBuildings: List<Building> = emptyList(),
-    val availableRooms: List<Room> = emptyList(),
+    val availableBuildings: Building? = null,
+    val availableRooms: Room? = null,
     val selectedPhotos: List<Uri> = emptyList(),
 
     val buildingIdError: ValidationResult = ValidationResult.Success,

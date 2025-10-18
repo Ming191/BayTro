@@ -1,5 +1,6 @@
 package com.example.baytro.navigation
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -36,7 +37,6 @@ fun AppScaffold (
     navHostController: NavHostController,
     onDrawerClicked: () -> Unit
 ) {
-    val authState = LocalAuthState.current
     Row(
         modifier = Modifier
             .fillMaxSize(),
@@ -84,6 +84,7 @@ fun AppScaffold (
                     actions = {
                         IconButton(onClick = { navHostController.navigate(Screens.PersonalInformation.route) }) {
                             val photoUrl = FirebaseAuth.getInstance().currentUser?.photoUrl
+                            Log.d("AppScaffold", "photoUrl: $photoUrl")
                             if (photoUrl != null) {
                                 Image(
                                     painter = rememberAsyncImagePainter(model = photoUrl),

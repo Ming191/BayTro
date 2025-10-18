@@ -76,9 +76,7 @@ fun ServiceCard(
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-
-                ) {
+                Row{
                     Spacer(
                         modifier = Modifier
                             .height(8.dp)
@@ -105,13 +103,14 @@ fun ServiceCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
                 ) {
-                    ServiceActionButton(
-                        icon = Icons.Filled.Edit,
-                        contentDescription = "Edit",
-                        backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                        onClick = { onEdit(service) }
-                    )
-
+                    if(onEdit(service) != {}) {
+                        ServiceActionButton(
+                            icon = Icons.Filled.Edit,
+                            contentDescription = "Edit",
+                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                            onClick = { onEdit(service) }
+                        )
+                    }
                     Spacer(
                         modifier = Modifier
                             .width(16.dp)

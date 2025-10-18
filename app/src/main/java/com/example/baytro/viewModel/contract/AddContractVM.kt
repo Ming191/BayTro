@@ -47,6 +47,7 @@ class AddContractVM (
     val addContractFormState : StateFlow<AddContractFormState> = _addContractFormState
 
     init {
+        Log.d(TAG, "init: roomId=$roomId")
         Log.d(TAG, "init: fetching buildings for current user")
         fetchBuildings()
     }
@@ -61,12 +62,14 @@ class AddContractVM (
         _addContractUiState.value = UiState.Loading
         viewModelScope.launch {
             try {
-                val buildings = buildingRepo.getBuildingsByUserId(currentUser.uid)
-                _addContractFormState.value = _addContractFormState.value.copy(availableBuildings = buildings)
-                if (buildings.isNotEmpty() && _addContractFormState.value.selectedBuilding == null) {
-                    onBuildingChange(buildings[0])
-                }
-                _addContractUiState.value = if (buildings.isEmpty()) {
+                val room = roomRepo.getById(roomId)
+                val building = buildingRepo.getById(room?.buildingId ?: "")
+                _addContractFormState.value = _addContractFormState.value.copy(availableBuildings = building)
+                _addContractFormState.value = _addContractFormState.value.copy(availableRooms = room)
+//                if (buildings.isNotEmpty() && _addContractFormState.value.selectedBuilding == null) {
+//                    onBuildingChange(buildings[0])
+//                }
+                _addContractUiState.value = if (building == null) {
                     UiState.Error("No buildings found. Please add a building first.")
                 } else UiState.Idle
             } catch (e: Exception) {
@@ -75,54 +78,34 @@ class AddContractVM (
         }
     }
 
-    private fun fetchRooms(buildingId: String) {
-        _addContractUiState.value = UiState.Loading
-        viewModelScope.launch {
-            try {
-                val rooms = roomRepo.getRoomsByBuildingId(buildingId)
-                val contracts = contractRepo.getAll()
-                val availableRooms = rooms.filter { room ->
-                    contracts.none { contract ->
-                        contract.roomId == room.id && contract.status != Status.ENDED
-                    }
-                }
-                _addContractFormState.value = _addContractFormState.value.copy(availableRooms = availableRooms)
-                if (availableRooms.isNotEmpty() && _addContractFormState.value.selectedRoom == null) {
-                    onRoomChange(availableRooms[0])
-                }
-                _addContractUiState.value = if (availableRooms.isEmpty()) {
-                    UiState.Error("No available rooms found for this building.")
-                } else UiState.Idle
-            } catch (e: Exception) {
-                _addContractFormState.value = _addContractFormState.value.copy(availableRooms = emptyList(), selectedRoom = null)
-                _addContractUiState.value = UiState.Error(e.message ?: "Error fetching rooms")
-            }
-        }
-    }
-
-
-    fun onBuildingChange(building: Building) {
-        Log.d(TAG, "onBuildingChange: building=$building")
-        _addContractFormState.value =
-            _addContractFormState.value.copy(
-                selectedBuilding = building,
-                buildingIdError = ValidationResult.Success,
-                selectedRoom = null)
-        if (building.id.isNotBlank()) {
-            fetchRooms(building.id)
-        } else {
-            Log.w(TAG, "onBuildingChange: building has blank id; skipping fetchRooms")
-        }
-    }
+//    private fun fetchRooms(buildingId: String) {
+//        _addContractUiState.value = UiState.Loading
+//        viewModelScope.launch {
+//            try {
+//                val rooms = roomRepo.getRoomsByBuildingId(buildingId)
+//                val contracts = contractRepo.getAll()
+//                val availableRooms = rooms.filter { room ->
+//                    contracts.none { contract ->
+//                        contract.roomId == room.id && contract.status != Status.ENDED
+//                    }
+//                }
+//                _addContractFormState.value = _addContractFormState.value.copy(availableRooms = availableRooms)
+//                if (availableRooms.isNotEmpty() && _addContractFormState.value.selectedRoom == null) {
+//                    onRoomChange(availableRooms[0])
+//                }
+//                _addContractUiState.value = if (availableRooms.isEmpty()) {
+//                    UiState.Error("No available rooms found for this building.")
+//                } else UiState.Idle
+//            } catch (e: Exception) {
+//                _addContractFormState.value = _addContractFormState.value.copy(availableRooms = emptyList(), selectedRoom = null)
+//                _addContractUiState.value = UiState.Error(e.message ?: "Error fetching rooms")
+//            }
+//        }
+//    }
 
     fun clearError() {
         Log.d(TAG, "clearError: setting UiState to Idle")
         _addContractUiState.value = UiState.Idle
-    }
-
-    fun onRoomChange(room: Room) {
-        Log.d(TAG, "onRoomChange: room=$room")
-        _addContractFormState.value = _addContractFormState.value.copy(selectedRoom = room)
     }
 
     fun onStartDateChange(startDate: String) {
@@ -212,12 +195,12 @@ class AddContractVM (
             _addContractUiState.value = UiState.Error("No authenticated user. Please log in again.")
             return
         }
-        val selectedRoom = formState.selectedRoom
-        if (selectedRoom == null) {
-            Log.w(TAG, "onSubmit: no room selected; aborting submit")
-            _addContractUiState.value = UiState.Error("No room selected. Please select a room.")
-            return
-        }
+//        val selectedRoom = formState.selectedRoom
+//        if (selectedRoom == null) {
+//            Log.w(TAG, "onSubmit: no room selected; aborting submit")
+//            _addContractUiState.value = UiState.Error("No room selected. Please select a room.")
+//            return
+//        }
 
         Log.d(TAG, "onSubmit: creating contract with ${formState.selectedPhotos.size} photos")
         viewModelScope.launch {
@@ -226,14 +209,14 @@ class AddContractVM (
                 val newContract = Contract(
                     id = "",
                     tenantIds = emptyList(), //TODO: Set tenant ID when tenant management is implemented
-                    roomId = selectedRoom.id,
+                    roomId = formState.availableRooms?.id.toString(),
                     startDate = formState.startDate,
                     endDate = formState.endDate,
                     rentalFee = formState.rentalFee.toInt(),
                     deposit = formState.deposit.toInt(),
                     status = formState.status,
                     photosURL = emptyList(),
-                    buildingId = selectedRoom.buildingId,
+                    buildingId = formState.availableBuildings?.id.toString(),
                     landlordId = currentUser.uid,
                     contractNumber = UUID.randomUUID().toString().take(8)
                 )

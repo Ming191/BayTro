@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.service
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -44,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
 import com.example.baytro.data.service.Metric
@@ -65,6 +67,7 @@ fun AddServiceScreen(
 ) {
     val formState by viewModel.formState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+
 
     var showLoading by remember { mutableStateOf(true) }
     var showContent by remember { mutableStateOf(false) }
@@ -113,7 +116,11 @@ fun AddServiceScreen(
                 onToggleRoom = { viewModel.onToggleRoom(it) },
                 onToggleSelectAll = { viewModel.onToggleSelectAll() },
                 onSearchTextChange = { viewModel.onSearchTextChange(it) },
-                onConfirm = { viewModel.onConfirm() },
+                onConfirm = {
+
+                        viewModel.onConfirm()
+
+                },
                 isLoading = uiState is UiState.Loading
             )
         }

@@ -40,13 +40,11 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 @Preview(showBackground = true)
 fun AddContractScreenPreview() {
-    val sampleBuildings = emptyList<Building>()
-    val sampleRooms = emptyList<Room>()
+    val sampleBuilding = null
+    val sampleRoom = null
     val formState = AddContractFormState(
-        availableBuildings = sampleBuildings,
-        availableRooms = sampleRooms,
-        selectedBuilding = null,
-        selectedRoom = null,
+        availableBuildings = sampleBuilding,
+        availableRooms = sampleRoom,
         startDate = "2024-07-01",
         endDate = "2025-06-30",
         rentalFee = "1000",
@@ -56,8 +54,6 @@ fun AddContractScreenPreview() {
 
     AddContractContent(
         formState = formState,
-        onBuildingSelected = {},
-        onRoomSelected = {},
         onStartDateSelected = {},
         onEndDateSelected = {},
         onDepositChange = {},
@@ -99,8 +95,6 @@ fun AddContractScreen(
 
     AddContractContent(
         formState = formState,
-        onBuildingSelected = viewModel::onBuildingChange,
-        onRoomSelected = viewModel::onRoomChange,
         onStartDateSelected = viewModel::onStartDateChange,
         onEndDateSelected = viewModel::onEndDateChange,
         onDepositChange = viewModel::onDepositChange,
@@ -116,8 +110,6 @@ fun AddContractScreen(
 @Composable
 fun AddContractContent(
     formState: AddContractFormState,
-    onBuildingSelected: (Building) -> Unit,
-    onRoomSelected: (Room) -> Unit,
     onStartDateSelected: (String) -> Unit = {},
     onEndDateSelected: (String) -> Unit = {},
     onDepositChange: (String) -> Unit = {},
@@ -148,7 +140,6 @@ fun AddContractContent(
             LazyColumn (
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .padding(16.dp)
            ) {
                 item {
@@ -158,31 +149,49 @@ fun AddContractContent(
                             .padding(bottom = 16.dp),
                         subhead = "Contract Details"
                     )
-                    DropdownSelectField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        label = "Select building",
-                        options = formState.availableBuildings,
-                        selectedOption = formState.selectedBuilding,
-                        onOptionSelected = onBuildingSelected,
-                        optionToString = { it.name },
-                        enabled = formState.availableBuildings.isNotEmpty()
+                    RequiredTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = formState.availableBuildings?.name.toString(),
+                        onValueChange = {},
+                        label = "Building name",
+                        isError = false,
+                        errorMessage = null,
+                        readOnly = true
                     )
+//                    DropdownSelectField(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(bottom = 16.dp),
+//                        label = "Select building",
+//                        options = formState.availableBuildings,
+//                        selectedOption = formState.selectedBuilding,
+//                        onOptionSelected = onBuildingSelected,
+//                        optionToString = { it.name },
+//                        enabled = formState.availableBuildings.isNotEmpty()
+//                    )
                 }
 
                 item {
-                    DropdownSelectField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        label = "Select room",
-                        options = formState.availableRooms,
-                        selectedOption = formState.selectedRoom,
-                        onOptionSelected = onRoomSelected,
-                        optionToString = { it.roomNumber },
-                        enabled = formState.availableRooms.isNotEmpty()
+                    RequiredTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = formState.availableRooms?.roomNumber.toString(),
+                        onValueChange = {},
+                        label = "Room number",
+                        isError = false,
+                        errorMessage = null,
+                        readOnly = true
                     )
+//                    DropdownSelectField(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(bottom = 16.dp),
+//                        label = "Select room",
+//                        options = formState.availableRooms,
+//                        selectedOption = formState.selectedRoom,
+//                        onOptionSelected = onRoomSelected,
+//                        optionToString = { it.roomNumber },
+//                        enabled = formState.availableRooms.isNotEmpty()
+//                    )
                 }
 
                 item {
