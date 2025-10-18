@@ -4,6 +4,7 @@ import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.MediaRepository
+import com.example.baytro.data.billing.BillRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.meter_reading.MeterReadingRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
@@ -16,9 +17,6 @@ import com.example.baytro.service.FptAiService
 import com.example.baytro.service.MeterReadingApiService
 import com.example.baytro.service.MeterReadingCloudFunctions
 import com.example.baytro.viewModel.AddBuildingVM
-import com.example.baytro.viewModel.request.AddRequestVM
-import com.example.baytro.viewModel.request.AssignRequestVM
-import com.example.baytro.viewModel.request.UpdateRequestVM
 import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.EditBuildingVM
 import com.example.baytro.viewModel.Room.AddRoomVM
@@ -31,17 +29,22 @@ import com.example.baytro.viewModel.auth.ForgotPasswordVM
 import com.example.baytro.viewModel.auth.PersonalInformationVM
 import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
+import com.example.baytro.viewModel.billing.LandlordBillsViewModel
+import com.example.baytro.viewModel.billing.TenantBillViewModel
 import com.example.baytro.viewModel.contract.AddContractVM
 import com.example.baytro.viewModel.contract.ContractDetailsVM
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.EditContractVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
-import com.example.baytro.viewModel.dashboard.TenantDashboardVM
 import com.example.baytro.viewModel.dashboard.MeterReadingVM
+import com.example.baytro.viewModel.dashboard.TenantDashboardVM
+import com.example.baytro.viewModel.importExcel.ImportBuildingRoomVM
 import com.example.baytro.viewModel.meter_reading.MeterReadingHistoryVM
 import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsVM
-import com.example.baytro.viewModel.importExcel.ImportBuildingRoomVM
+import com.example.baytro.viewModel.request.AddRequestVM
+import com.example.baytro.viewModel.request.AssignRequestVM
 import com.example.baytro.viewModel.request.RequestListVM
+import com.example.baytro.viewModel.request.UpdateRequestVM
 import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
@@ -84,8 +87,6 @@ val appModule = module {
         }
     }
     single<FirebaseFunctions> { Firebase.functions }
-    
-    // Avatar cache
     single { AvatarCache(get()) }
 
 }
@@ -103,14 +104,13 @@ val authModule = module {
     single<RequestRepository> { RequestRepository(get()) }
     single<MeterReadingRepository> { MeterReadingRepository(get()) }
     single<MeterReadingCloudFunctions> { MeterReadingCloudFunctions(get()) }
-
+    single<BillRepository> { BillRepository(get()) }
 
     single { IdCardDataViewModel() }
     single { UserRoleCache(androidContext()) }
 
     viewModel {
-        SplashScreenVM(get()
-        )
+        SplashScreenVM(get())
     }
     viewModel {
         NewLandlordUserVM(
@@ -122,8 +122,7 @@ val authModule = module {
         )
     }
     viewModel {
-        SignUpVM(get()
-        )
+        SignUpVM(get())
     }
     viewModel {
         SignInVM(
@@ -135,9 +134,7 @@ val authModule = module {
         )
     }
     viewModel {
-        ForgotPasswordVM(
-            get()
-        )
+        ForgotPasswordVM(get())
     }
     viewModel {
         ChangePasswordVM(
@@ -225,10 +222,10 @@ val authModule = module {
 
     viewModel {
         ContractListVM(
-        get(),
-        get(),
-        get(),
-        get()
+            get(),
+            get(),
+            get(),
+            get()
         )
     }
 
@@ -239,7 +236,8 @@ val authModule = module {
             get(),
             get(),
             get(),
-        ) }
+        )
+    }
     viewModel { RequestListVM(get(), get(), get(), get(), get(), get()) }
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), get(),handle) }
@@ -248,7 +246,7 @@ val authModule = module {
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
     viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
     viewModel { MeterReadingVM(get(), get(), get(), get(), get()) }
-    viewModel { PendingMeterReadingsVM(get(), get(), get()) }
+    viewModel { PendingMeterReadingsVM(get(), get(), get(), get()) }
     viewModel { MeterReadingHistoryVM(get()) }
     viewModel { AddRequestVM(get(), get(), get(), get()) }
     viewModel { (requestId: String) -> UpdateRequestVM(get(), get(), get(), requestId) }
@@ -262,6 +260,8 @@ val authModule = module {
             get()
         )
     }
+    viewModel { LandlordBillsViewModel(get(), get(), get(), get()) }
+    viewModel { TenantBillViewModel(get()) }
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }

@@ -30,11 +30,9 @@ data class TenantDashboardUiState(
     val monthsStayed: Int = 0,
     val daysStayed: Int = 0,
     val billPaymentDeadline: Int = 0,
+    val roomName: String = "",
+    val buildingName: String = ""
 )
-
-sealed interface TenantDashboardAction {
-    object Refresh : TenantDashboardAction
-}
 
 sealed interface TenantDashboardEvent {
     object NavigateToEmptyContract : TenantDashboardEvent
@@ -62,15 +60,6 @@ class TenantDashboardVM(
         loadDashboardData()
     }
 
-    fun onAction(action: TenantDashboardAction) {
-        when (action) {
-            is TenantDashboardAction.Refresh -> {
-                Log.d("TenantDashboardVM", "Refresh action received")
-                loadDashboardData()
-            }
-        }
-    }
-
     private fun loadDashboardData() {
         Log.d("TenantDashboardVM", "loadDashboardData() started - OFFLINE-FIRST")
         viewModelScope.launch {
@@ -95,6 +84,8 @@ class TenantDashboardVM(
 
                 val (months, days) = calculateStayDuration(activeContract.startDate)
                 val billPaymentDeadline = getBillPaymentDeadline(activeContract)
+                val roomName = getRoomName(activeContract.roomId)
+                val buildingName = getBuildingName(activeContract.roomId)
 
                 _uiState.update {
                     it.copy(
@@ -103,7 +94,9 @@ class TenantDashboardVM(
                         contract = activeContract,
                         monthsStayed = months,
                         daysStayed = days,
-                        billPaymentDeadline = billPaymentDeadline
+                        billPaymentDeadline = billPaymentDeadline,
+                        roomName = roomName,
+                        buildingName = buildingName
                     )
                 }
 
@@ -120,6 +113,27 @@ class TenantDashboardVM(
         val room = roomRepository.getById(contract.roomId)
         val building = room?.let { buildingRepository.getById(it.buildingId) }
         return building?.paymentDue ?: 0
+    }
+
+    private suspend fun getRoomName(roomId: String): String {
+        return try {
+            val room = roomRepository.getById(roomId)
+            room?.roomNumber ?: ""
+        } catch (e: Exception) {
+            Log.e("TenantDashboardVM", "Error fetching room name", e)
+            ""
+        }
+    }
+
+    private suspend fun getBuildingName(roomId: String): String {
+        return try {
+            val room = roomRepository.getById(roomId)
+            val building = room?.let { buildingRepository.getById(it.buildingId) }
+            building?.name ?: ""
+        } catch (e: Exception) {
+            Log.e("TenantDashboardVM", "Error fetching building name", e)
+            ""
+        }
     }
 
     private fun calculateStayDuration(startDateString: String): Pair<Int, Int> {

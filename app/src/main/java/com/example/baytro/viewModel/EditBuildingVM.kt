@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.view.screens.UiState
@@ -22,7 +23,7 @@ data class BuildingFormState(
     val name: String = "",
     val floor: String = "",
     val address: String = "",
-    val status: String = "Active",
+    val status: BuildingStatus = BuildingStatus.ACTIVE,
     val billingDate: String = "",
     val paymentStart: String = "",
     val paymentDue: String = "",
@@ -69,7 +70,7 @@ class EditBuildingVM(
                     name = b?.name ?: "",
                     floor = b?.floor.toString(),
                     address = b?.address ?: "",
-                    status = b?.status ?: "",
+                    status = b?.status ?: BuildingStatus.ACTIVE,
                     billingDate = b?.billingDate.toString(),
                     paymentStart = b?.paymentStart.toString(),
                     paymentDue = b?.paymentDue.toString(),
@@ -90,7 +91,7 @@ class EditBuildingVM(
             "name" -> _formState.value.copy(name = value)
             "floor" -> _formState.value.copy(floor = value)
             "address" -> _formState.value.copy(address = value)
-            "status" -> _formState.value.copy(status = value)
+            "status" -> _formState.value.copy(status = BuildingStatus.valueOf(value))
             "billingDate" -> _formState.value.copy(billingDate = value)
             "paymentStart" -> _formState.value.copy(paymentStart = value)
             "paymentDue" -> _formState.value.copy(paymentDue = value)
@@ -194,7 +195,7 @@ class EditBuildingVM(
     }
 
     fun saveBuilding() {
-        val (isValid, errorField) = validateAll()
+        val (isValid, _) = validateAll()
         if (!isValid) return
 
         val state = _formState.value

@@ -191,16 +191,6 @@ fun LandlordMainScreen() {
                             drawerState.close()
                         }
                     },
-                    onMeterReadingsClicked = {
-                        navController.navigate(Screens.PendingMeterReadings.route) {
-                            launchSingleTop = true
-                            restoreState = true
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        }
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    }
                 )
             }
         },

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.contract.Status
 import com.example.baytro.data.room.RoomRepository
@@ -75,8 +76,8 @@ class BuildingListVM(
 
             val matchesStatus = when (status) {
                 BuildingStatusFilter.ALL -> true
-                BuildingStatusFilter.ACTIVE -> building.status.equals("active", ignoreCase = true)
-                BuildingStatusFilter.INACTIVE -> building.status.equals("inactive", ignoreCase = true)
+                BuildingStatusFilter.ACTIVE -> building.status == BuildingStatus.ACTIVE
+                BuildingStatusFilter.INACTIVE -> building.status == BuildingStatus.INACTIVE
             }
 
             matchesQuery && matchesStatus

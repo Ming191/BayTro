@@ -11,6 +11,10 @@ sealed class Screens(val route: String, val title: String) {
         const val ARG_ROOM_ID = "roomId"
         const val ARG_REQUEST_ID = "requestId"
         const val ARG_LANDLORD_ID = "landlordId"
+        const val ARG_TENANT_ID = "tenantId"
+        const val ARG_BILL_ID = "billId"
+        const val ARG_ROOM_NAME = "roomName"
+        const val ARG_BUILDING_NAME = "buildingName"
     }
 
     object SplashScreen : Screens("splash_screen", "")
@@ -50,14 +54,17 @@ sealed class Screens(val route: String, val title: String) {
     // =================================================================
     // SCREEN WITH ARGUMENTS
     // =================================================================
-    object MeterReading : Screens("meter_reading_screen/{$ARG_CONTRACT_ID}/{$ARG_ROOM_ID}/{$ARG_LANDLORD_ID}", "Meter Reading") {
+    object MeterReading : Screens("meter_reading_screen/{$ARG_CONTRACT_ID}/{$ARG_ROOM_ID}/{$ARG_BUILDING_ID}/{$ARG_LANDLORD_ID}/{$ARG_ROOM_NAME}/{$ARG_BUILDING_NAME}", "Meter Reading") {
         val arguments = listOf(
             navArgument(ARG_CONTRACT_ID) { type = NavType.StringType },
             navArgument(ARG_ROOM_ID) { type = NavType.StringType },
-            navArgument(ARG_LANDLORD_ID) { type = NavType.StringType }
+            navArgument(ARG_BUILDING_ID) { type = NavType.StringType },
+            navArgument(ARG_LANDLORD_ID) { type = NavType.StringType },
+            navArgument(ARG_ROOM_NAME) { type = NavType.StringType },
+            navArgument(ARG_BUILDING_NAME) { type = NavType.StringType }
         )
-        fun createRoute(contractId: String, roomId: String, landlordId: String) =
-            "meter_reading_screen/$contractId/$roomId/$landlordId"
+        fun createRoute(contractId: String, roomId: String, buildingId: String, landlordId: String, roomName: String, buildingName: String) =
+            "meter_reading_screen/$contractId/$roomId/$buildingId/$landlordId/$roomName/$buildingName"
     }
 
     object PendingMeterReadings : Screens("pending_meter_readings_screen", "Pending Readings")
@@ -129,5 +136,36 @@ sealed class Screens(val route: String, val title: String) {
             navArgument(ARG_REQUEST_ID) { type = NavType.StringType }
         )
         fun createRoute(requestId: String) = "assign_request_screen/$requestId"
+    }
+
+    // =================================================================
+    // BILLING SCREENS
+    // =================================================================
+    object LandlordBills : Screens("landlord_bills/{$ARG_LANDLORD_ID}", "Bills Dashboard") {
+        val arguments = listOf(
+            navArgument(ARG_LANDLORD_ID) { type = NavType.StringType }
+        )
+        fun createRoute(landlordId: String) = "landlord_bills/$landlordId"
+    }
+
+    object TenantBill : Screens("tenant_bill/{$ARG_TENANT_ID}", "My Bill") {
+        val arguments = listOf(
+            navArgument(ARG_TENANT_ID) { type = NavType.StringType }
+        )
+        fun createRoute(tenantId: String) = "tenant_bill/$tenantId"
+    }
+
+    object BillDetails : Screens("bill_details/{$ARG_BILL_ID}", "Bill Details") {
+        val arguments = listOf(
+            navArgument(ARG_BILL_ID) { type = NavType.StringType }
+        )
+        fun createRoute(billId: String) = "bill_details/$billId"
+    }
+
+    object BillingHistory : Screens("billing_history/{$ARG_TENANT_ID}", "Billing History") {
+        val arguments = listOf(
+            navArgument(ARG_TENANT_ID) { type = NavType.StringType }
+        )
+        fun createRoute(tenantId: String) = "billing_history/$tenantId"
     }
 }
