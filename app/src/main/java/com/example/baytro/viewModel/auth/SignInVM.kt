@@ -68,7 +68,8 @@ class SignInVM(
 
                 if (authRepository.checkVerification()) {
                     val repoUser = userRepository.getById(user.uid)
-                    if (repoUser == null) {
+                    if (repoUser == null || repoUser.role == null) {
+                        // No user doc or no role -> treat as first-time user/onboarding instead of MainScreen
                         _signInUIState.value = AuthUIState.FirstTimeUser(user)
                     } else {
                         repoUser.role?.let { role ->

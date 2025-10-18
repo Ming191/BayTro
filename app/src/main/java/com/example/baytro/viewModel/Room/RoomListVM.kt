@@ -12,6 +12,7 @@ import com.example.baytro.data.room.RoomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 class RoomListVM(
     private val roomRepository: RoomRepository,
@@ -34,6 +35,9 @@ class RoomListVM(
     private val _buildingTenants = MutableStateFlow<List<String>>(emptyList())
     val buildingTenants: StateFlow<List<String>> = _buildingTenants
 
+    private val _isLoadingRooms = MutableStateFlow(false)
+    val isLoadingRooms: StateFlow<Boolean> = _isLoadingRooms
+
     fun fetchBuilding() {
         viewModelScope.launch {
             try {
@@ -48,6 +52,8 @@ class RoomListVM(
     fun fetchRooms() {
         viewModelScope.launch {
             try {
+                _isLoadingRooms.value = true
+                
                 val building = _building.value?: buildingRepository.getById(buildingId)
                 _building.value = building
                 val rooms = roomRepository.getAll()
@@ -62,6 +68,8 @@ class RoomListVM(
             } catch (e: Exception) {
                 e.printStackTrace()
                 _floors.value = emptyList()
+            } finally {
+                _isLoadingRooms.value = false
             }
         }
     }

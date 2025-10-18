@@ -124,7 +124,7 @@ fun ServiceListScreen(
 @Composable
 fun ServiceListContent (
     formState: ServiceListFormState,
-    onEdit: (Service) -> Unit,
+    onEdit: (Service, NavHostController) -> Unit,
     onDelete: (Service) -> Unit,
     onBuildingSelected: (Building) -> Unit,
     navController: NavHostController,
@@ -231,11 +231,21 @@ fun ServiceListContent (
                                 service = service,
                                 onEdit = {
                                     Log.d("ServiceListContent", "Edit clicked for service: ${service.name}")
-                                    onEdit(it)
+                                    onEdit(it, navController)
                                 },
                                 onDelete = {
-                                    Log.d("ServiceListContent", "Delete clicked for service: ${service.name}")
-                                    onDelete(it)
+                                    if (service.name != "Water" && service.name != "Electrics") {
+                                        Log.d(
+                                            "ServiceListContent",
+                                            "Delete clicked for service: ${service.name}"
+                                        )
+                                        onDelete(it)
+                                    } else {
+                                        Log.d(
+                                            "ServiceListContent",
+                                            "Delete clicked unable for service: ${service.name}"
+                                        )
+                                    }
                                 }
                             )
                         }

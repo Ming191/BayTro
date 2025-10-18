@@ -43,7 +43,7 @@ fun RequiredTextField(
         keyboardOptions = keyboardOptions ?: KeyboardOptions.Default,
         keyboardActions = keyboardActions ?: KeyboardActions.Default,
         readOnly = readOnly,
-        trailingIcon = trailingIcon
+        trailingIcon = trailingIcon,
     )
 }
 

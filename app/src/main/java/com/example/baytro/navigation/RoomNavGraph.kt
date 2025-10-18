@@ -56,4 +56,3 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
         )
     }
 }
-

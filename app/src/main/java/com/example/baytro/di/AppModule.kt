@@ -12,6 +12,7 @@ import com.example.baytro.data.request.RequestRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.data.user.UserRoleCache
+import com.example.baytro.utils.AvatarCache
 import com.example.baytro.service.FptAiService
 import com.example.baytro.service.MeterReadingApiService
 import com.example.baytro.service.MeterReadingCloudFunctions
@@ -22,7 +23,10 @@ import com.example.baytro.viewModel.Room.AddRoomVM
 import com.example.baytro.viewModel.Room.EditRoomVM
 import com.example.baytro.viewModel.Room.RoomDetailsVM
 import com.example.baytro.viewModel.Room.RoomListVM
+import com.example.baytro.viewModel.auth.ChangePasswordVM
+import com.example.baytro.viewModel.auth.EditPersonalInformationVM
 import com.example.baytro.viewModel.auth.ForgotPasswordVM
+import com.example.baytro.viewModel.auth.PersonalInformationVM
 import com.example.baytro.viewModel.auth.SignInVM
 import com.example.baytro.viewModel.auth.SignUpVM
 import com.example.baytro.viewModel.billing.LandlordBillsViewModel
@@ -42,6 +46,7 @@ import com.example.baytro.viewModel.request.AssignRequestVM
 import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.request.UpdateRequestVM
 import com.example.baytro.viewModel.service.AddServiceVM
+import com.example.baytro.viewModel.service.EditServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
 import com.example.baytro.viewModel.SettingsVM
 import com.example.baytro.viewModel.billing.BillDetailsViewModel
@@ -50,6 +55,7 @@ import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
 import com.example.baytro.viewModel.splash.SplashScreenVM
 import com.example.baytro.viewModel.splash.UploadIdCardVM
+import com.example.baytro.viewModel.tenant.TenantListVM
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
@@ -84,6 +90,7 @@ val appModule = module {
         }
     }
     single<FirebaseFunctions> { Firebase.functions }
+    single { AvatarCache(get()) }
 
 }
 
@@ -140,6 +147,12 @@ val authModule = module {
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }
     single<RoomRepository> { RoomRepository(get()) }
+    viewModelOf(::EditServiceVM)
     viewModelOf(::ServiceListVM)
     viewModelOf(::AddServiceVM)
+    viewModelOf(::TenantListVM)
+    viewModelOf(::PersonalInformationVM)
+    viewModelOf(::EditPersonalInformationVM)
+    viewModelOf(::ChangePasswordVM)
+
 }

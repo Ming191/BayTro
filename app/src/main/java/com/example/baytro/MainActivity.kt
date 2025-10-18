@@ -14,6 +14,9 @@ import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.data.user.UserRoleState
 import com.example.baytro.navigation.AppNavigation
 import com.example.baytro.navigation.Screens
+import com.example.baytro.utils.AvatarCache
+import com.example.baytro.utils.LocalAvatarCache
+import androidx.compose.runtime.CompositionLocalProvider
 import com.example.baytro.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
@@ -25,13 +28,14 @@ import org.koin.android.ext.android.inject
 class MainActivity : ComponentActivity() {
     private val userRepository: UserRepository by inject()
     private val roleCache: UserRoleCache by inject()
+    private val avatarCache: AvatarCache by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         val currentUser = FirebaseAuth.getInstance().currentUser
-        val startDestination: String
+        var startDestination: String
 
         // Load user role synchronously BEFORE setContent
         if (currentUser != null) {
@@ -46,20 +50,33 @@ class MainActivity : ComponentActivity() {
                     }
                     UserRoleState.setRole(tempRole)
 
+                    // Verify actual user exists and update role; if not, sign out to show SignIn
                     CoroutineScope(Dispatchers.IO).launch {
                         val user = userRepository.getById(currentUser.uid)
-                        user?.role?.let { UserRoleState.setRole(it) }
+                        if (user?.role == null) {
+                            FirebaseAuth.getInstance().signOut()
+                            UserRoleState.clearRole()
+                        } else {
+                            UserRoleState.setRole(user.role)
+                        }
                     }
                 } else {
                     val user = userRepository.getById(currentUser.uid)
-                    UserRoleState.setRole(user?.role)
-
-                    user?.role?.let { role ->
-                        roleCache.setRoleType(currentUser.uid, role)
+                    if (user?.role == null) {
+                        FirebaseAuth.getInstance().signOut()
+                        UserRoleState.clearRole()
+                    } else {
+                        UserRoleState.setRole(user.role)
+                        roleCache.setRoleType(currentUser.uid, user.role)
                     }
                 }
             }
-            startDestination = Screens.MainScreen.route
+            // Re-evaluate start based on auth after potential signOut above
+            startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
+                Screens.MainScreen.route
+            } else {
+                Screens.SignIn.route
+            }
         } else {
             UserRoleState.clearRole()
             startDestination = Screens.SignIn.route
@@ -67,11 +84,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    AppNavigation(startDestination = startDestination)
+                CompositionLocalProvider(LocalAvatarCache provides avatarCache) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        AppNavigation(startDestination = startDestination)
+                    }
                 }
             }
         }

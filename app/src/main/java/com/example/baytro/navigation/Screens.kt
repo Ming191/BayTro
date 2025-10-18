@@ -15,11 +15,19 @@ sealed class Screens(val route: String, val title: String) {
         const val ARG_BILL_ID = "billId"
         const val ARG_ROOM_NAME = "roomName"
         const val ARG_BUILDING_NAME = "buildingName"
+
+        const val ARG_SERVICE_ID = "serviceId"
     }
 
     object SplashScreen : Screens("splash_screen", "")
     object SignIn : Screens("sign_in_screen", "Sign In")
     object SignUp : Screens("sign_up_screen", "Sign Up")
+    object SignOut : Screens("sign_in_screen", "Sign Out")
+    object PersonalInformation : Screens("personal_information_screen", "Personal Information")
+    object ViewPersonalInformation : Screens("view_personal_information_screen", "View Personal Information")
+    object EditPersonalInformation : Screens("edit_personal_information_screen", "Edit Personal Information")
+    object ChangePassword : Screens("change_password_screen", "Change Password")
+    object PoliciesAndTerms : Screens("policies_and_terms_screen", "Policies and Terms")
     object ForgotPassword : Screens("forgot_password_screen", "Forgot Password")
     object MainScreen : Screens("main_screen", "BayTro")
     object Dashboard : Screens("dashboard_screen", "Dashboard")
@@ -60,6 +68,23 @@ sealed class Screens(val route: String, val title: String) {
         fun createRoute(contractId: String, roomId: String, buildingId: String, landlordId: String, roomName: String, buildingName: String) =
             "meter_reading_screen/$contractId/$roomId/$buildingId/$landlordId/$roomName/$buildingName"
     }
+
+    object EditService : Screens(
+        "edit_service_screen/{$ARG_BUILDING_ID}/{$ARG_SERVICE_ID}",
+        "Edit Service"
+    ) {
+        const val ARG_SERVICE_ID = "serviceId"
+
+        val arguments = listOf(
+            navArgument(ARG_BUILDING_ID) { type = NavType.StringType },
+            navArgument(ARG_SERVICE_ID) { type = NavType.StringType }
+        )
+
+        fun createRoute(buildingId: String, serviceId: String): String {
+            return "edit_service_screen/$buildingId/$serviceId"
+        }
+    }
+
 
     object PendingMeterReadings : Screens("pending_meter_readings_screen", "Pending Readings")
     object MeterReadingHistory : Screens("meter_reading_history/{$ARG_CONTRACT_ID}", "Reading History") {

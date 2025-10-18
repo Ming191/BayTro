@@ -166,7 +166,7 @@ class AddContractVM (
                 ValidationResult.Success
             }
         } else {
-                        Validator.validateNonEmpty(formState.endDate, "End Date")
+            Validator.validateNonEmpty(formState.endDate, "End Date")
         }
         val rentalFeeValidator = Validator.validateInteger(formState.rentalFee, "Rental Fee")
         val depositValidator = Validator.validateInteger(formState.deposit, "Deposit")

@@ -54,7 +54,7 @@ data class User (
     val fullName: String,
     val dateOfBirth: String,
 
-    val gender: Gender,
+    val gender: Gender? = null,
     val address: String,
     val profileImgUrl: String?,
     val fcmToken: String? = null,
