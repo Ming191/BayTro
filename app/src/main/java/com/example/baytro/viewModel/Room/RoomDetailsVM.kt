@@ -6,10 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.contract.Contract
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
+import com.example.baytro.data.service.Service
 import com.example.baytro.data.user.User
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.navigation.Screens
@@ -21,11 +23,19 @@ class RoomDetailsVM(
     private val roomRepository: RoomRepository,
     private val contractRepository: ContractRepository,
     private val userRepository: UserRepository,
+    private val buildingRepository: BuildingRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val roomId: String = checkNotNull(savedStateHandle["roomId"])
     private val _room = MutableStateFlow<Room?>(null)
     val room: StateFlow<Room?> = _room
+
+    private val _buildingServices = MutableStateFlow<List<Service>>(emptyList())
+    val buildingServices: StateFlow<List<Service>> = _buildingServices
+
+    private val _extraServices = MutableStateFlow<List<Service>>(emptyList())
+    val extraServices: StateFlow<List<Service>> = _extraServices
+
 
     private val _contract = MutableStateFlow<List<Contract>>(emptyList())
     val contract: StateFlow<List<Contract>> = _contract
@@ -46,9 +56,29 @@ class RoomDetailsVM(
                 val room = roomRepository.getById(roomId)
                 Log.d("RoomDetailsVM", "RoomInRoomDetailsVM: $room")
                 _room.value = room
+                loadBuildingServices()
+                listenToExtraServicesRealtime()
             } catch (e: Exception) {
                 e.printStackTrace()
                 _room.value = null
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun loadBuildingServices() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val buildingId = _room.value?.buildingId
+                if (buildingId != null) {
+                    val services = buildingRepository.getServicesByBuildingId(buildingId)
+                    _buildingServices.value = services
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _buildingServices.value = emptyList()
             } finally {
                 _isLoading.value = false
             }
@@ -82,6 +112,21 @@ class RoomDetailsVM(
         }
     }
 
+    fun listenToExtraServicesRealtime() {
+        viewModelScope.launch {
+            val roomId = _room.value?.id ?: return@launch
+            try {
+                roomRepository.listenToRoomExtraServices(roomId)
+                    .collect { extras ->
+                        _extraServices.value = extras
+                    }
+            } catch (e: Exception) {
+                Log.e("RoomDetailsVM", "Error listening to extra services", e)
+            }
+        }
+    }
+
+
     fun onDeleteClick() {
         _isDeleteOnClicked.value = true
     }
@@ -109,4 +154,17 @@ class RoomDetailsVM(
         }
     }
 
+    fun deleteService(service: Service) {
+        viewModelScope.launch {
+            try {
+                val roomId = room.value?.id
+                if (roomId != null) {
+                    roomRepository.removeExtraServiceFromRoom(roomId,service.id)
+                    Log.d("RoomDetailsVM", "Service deleted successfully.")
+                }
+            } catch (e: Exception) {
+                Log.e("RoomDetailsVM", "Error deleting service", e)
+            }
+        }
+    }
 }

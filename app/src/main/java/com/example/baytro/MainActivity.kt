@@ -16,6 +16,8 @@ import com.example.baytro.navigation.AppNavigation
 import com.example.baytro.navigation.Screens
 import com.example.baytro.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
+import dev.gitlive.firebase.firestore.DocumentReference
+import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

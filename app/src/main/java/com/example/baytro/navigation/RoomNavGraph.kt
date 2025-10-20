@@ -27,8 +27,7 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
                 navController.popBackStack()
             },
             onAddServiceClick = { roomId, buildingId ->
-                navController.navigate(Screens.AddService.createRoute(roomId,buildingId, true)) {
-
+                navController.navigate(Screens.AddService.createRoute(roomId,buildingId)) {
                 }
             }
         )
@@ -39,7 +38,13 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
         arguments = Screens.EditRoom.arguments
     ) {
         EditRoomScreen(
-            backToRoomListScreen = {
+            onEditExtraServiceClick = { roomId, serviceId ->
+                navController.navigate(Screens.EditService.createRouteFromRoom(roomId, serviceId))
+            },
+            onDeleteServiceClick = {
+                navController.navigate(Screens.ServiceList.route)
+            },
+            onBackClick = {
                 navController.popBackStack()
             }
         )
@@ -50,8 +55,8 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
         arguments = Screens.RoomDetails.arguments
     ) {
         RoomDetailsScreen(
-            onAddServiceClick = { roomId, buildingId, isFromAddRoom ->
-                navController.navigate(Screens.AddService.createRoute(roomId, buildingId, isFromAddRoom))
+            onAddServiceClick = { roomId, buildingId ->
+                navController.navigate(Screens.AddService.createRoute(roomId, buildingId))
             },
             onAddContractClick = { roomId ->
                 navController.navigate(Screens.AddContract.createRoute(roomId))
@@ -61,6 +66,15 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
             },
             onEditRoomOnClick = { roomId ->
                 navController.navigate(Screens.EditRoom.createRoute(roomId))
+            },
+            onEditServiceClick = { serviceId, buildingId ->
+                navController.navigate(Screens.EditService.createRoute(buildingId, serviceId))
+            },
+            onEditExtraServiceClick = { serviceId, roomId ->
+                navController.navigate(Screens.EditService.createRouteFromRoom(roomId, serviceId))
+            },
+            onDeleteServiceClick = { service ->
+                navController.navigate(Screens.ServiceList.route)
             },
             onBackClick = {
                 navController.popBackStack()

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -38,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.baytro.data.service.Service
 import com.example.baytro.utils.Utils.formatCurrency
 import com.example.baytro.view.components.ButtonComponent
 import com.example.baytro.view.components.CardComponent
@@ -50,10 +52,13 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun RoomDetailsScreen(
     viewModel: RoomDetailsVM = koinViewModel(),
-    onAddServiceClick: (String, String, Boolean) -> Unit,
+    onAddServiceClick: (String, String) -> Unit,
     onAddContractClick: (String) -> Unit,
     onViewContractClick: (String) -> Unit,
     onEditRoomOnClick: (String) -> Unit,
+    onEditServiceClick: (String, String) -> Unit,
+    onEditExtraServiceClick: (String, String) -> Unit,
+    onDeleteServiceClick: (Service) -> Unit,
     onBackClick: () -> Unit
 ) {
     fun editTextUI(text : String) : String {
@@ -69,6 +74,8 @@ fun RoomDetailsScreen(
     }
 
     val room by viewModel.room.collectAsState()
+    val buildingServices by viewModel.buildingServices.collectAsState()
+    val extraServices by viewModel.extraServices.collectAsState()
     val contracts by viewModel.contract.collectAsState()
     val tenants by viewModel.tenants.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -78,8 +85,10 @@ fun RoomDetailsScreen(
     if (contracts.isNotEmpty()) {
         Log.d("RoomDetailsScreen", "First contract number: ${contracts[0]}")
     }
+    //Log.d("RoomDetailsScreen", "buildingService: ${buildingServices[0]}")
     LaunchedEffect(Unit) {
         viewModel.loadRoom()
+        //viewModel.loadBuildingServices()
         viewModel.getRoomContract()
         viewModel.getRoomTenants()
     }
@@ -179,23 +188,44 @@ fun RoomDetailsScreen(
                 }
             }
             item {
-                DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Services")
-                val services = room?.extraService ?: emptyList()
-                if (services.isNotEmpty()) {
+                DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Building services")
+                if (buildingServices.isNotEmpty()) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp)
-                            .verticalScroll(rememberScrollState()) // Scroll độc lập
-                            .padding(horizontal = 16.dp),
+                            .heightIn(max = 180.dp)
+                            .verticalScroll(rememberScrollState())
+                            .padding(bottom = 16.dp),// Scroll độc lập
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        services.forEach { service ->
+                        buildingServices.forEach { service ->
                             ServiceCard(
                                 service = service,
-                                onEdit = {},
-                                onDelete = {}
+                                onEdit = { onEditServiceClick(service.id, room?.buildingId.toString()) },
+                                onDelete = null
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Extra services")
+                if (extraServices.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 180.dp)
+                            .verticalScroll(rememberScrollState()),// Scroll độc lập
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        extraServices.forEach { service ->
+                            ServiceCard(
+                                service = service,
+                                onEdit = { onEditExtraServiceClick(service.id, room?.id.toString()) },
+                                onDelete = { viewModel.deleteService(service) }
                             )
                         }
                         Row(
@@ -207,10 +237,13 @@ fun RoomDetailsScreen(
                             Icon(
                                 Icons.Default.Add,
                                 contentDescription = null,
-                                modifier = Modifier.
-                                padding(end = 8.dp)
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
                                     .clickable {
-                                        onAddServiceClick(room?.id.toString(),room?.buildingId.toString(), false)
+                                        onAddServiceClick(
+                                            room?.id.toString(),
+                                            room?.buildingId.toString(),
+                                        )
                                     }
                             )
                             Text("Add service here")
@@ -226,9 +259,13 @@ fun RoomDetailsScreen(
                         Icon(
                             Icons.Default.Add,
                             contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
+                            modifier = Modifier
+                                .padding(end = 8.dp)
                                 .clickable {
-                                    onAddServiceClick(room?.buildingId.toString(), room?.id.toString(), false)
+                                    onAddServiceClick(
+                                        room?.id.toString(),
+                                        room?.buildingId.toString()
+                                    )
                                 }
                         )
                         Text("Add service here")

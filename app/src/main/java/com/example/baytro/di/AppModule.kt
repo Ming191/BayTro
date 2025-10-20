@@ -42,6 +42,7 @@ import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsVM
 import com.example.baytro.viewModel.importExcel.ImportBuildingRoomVM
 import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.service.AddServiceVM
+import com.example.baytro.viewModel.service.EditServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
@@ -235,7 +236,7 @@ val authModule = module {
     viewModel { RequestListVM(get(), get(), get(), get(), get(), get()) }
     viewModel { (handle: SavedStateHandle) -> AddRoomVM(get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> RoomListVM(get(), get(), get(),handle) }
-    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(),get(),get(), handle) }
+    viewModel { (handle: SavedStateHandle) -> RoomDetailsVM(get(),get(),get(), get(), handle) }
     viewModel { (handle: SavedStateHandle) -> EditRoomVM(get(),get(), handle) }
     viewModel { EditBuildingVM(androidContext(), get(), get(), get()) }
     viewModel { TenantDashboardVM(get(), get(), get(), get(), get()) }
@@ -256,8 +257,10 @@ val authModule = module {
     }
 }
 val serviceModule = module {
+    ->
     single<BuildingRepository> { BuildingRepository(get()) }
     single<RoomRepository> { RoomRepository(get()) }
     viewModel { ServiceListVM(get(), get()) }
     viewModel {  (handle: SavedStateHandle) -> AddServiceVM(get(),get(),get(), handle) }
+    viewModel { EditServiceVM(get(), get(), get()) }
 }

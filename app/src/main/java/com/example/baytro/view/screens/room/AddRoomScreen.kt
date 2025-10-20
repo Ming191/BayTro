@@ -3,6 +3,7 @@ package com.example.baytro.view.screens.room
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavHostController
 import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.service.Service
@@ -48,8 +50,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun AddRoomScreen(
     backToRoomListScreen: () -> Unit,
     onAddServiceClick: (String, String) -> Unit,
-    viewModel: AddRoomVM = koinViewModel(),
-) {
+    viewModel: AddRoomVM = koinViewModel()
+){
     // --- State for each TextField ---
     val roomNumber: (String) -> Unit = viewModel::onRoomNumberChange
     val floor: (String) -> Unit = viewModel::onFloorChange
@@ -183,8 +185,8 @@ fun AddRoomScreen(
                     services.forEach { service ->
                         ServiceCard(
                             service = service,
-                            onEdit = {},
-                            onDelete = {}
+                            onEdit = null,
+                            onDelete = null
                         )
                     }
                     Row(

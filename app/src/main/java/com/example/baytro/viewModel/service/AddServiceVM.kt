@@ -39,6 +39,7 @@ class AddServiceVM(
 
     init {
         Log.d(TAG, "init: fetching buildings for current user")
+        Log.d(TAG, "init: roomID = $roomId, buildingID = $buildingId")
         fetchBuildings()
     }
 
@@ -47,19 +48,22 @@ class AddServiceVM(
         val currentUser = auth.getCurrentUser() ?: return
         viewModelScope.launch {
             try {
-                _uiState.value = UiState.Loading
-                val buildings = buildingRepo.getBuildingsByUserId(currentUser.uid)
-                _formState.value = _formState.value.copy(availableBuildings = buildings)
                 // Auto-select building from nav args if available
-                buildingId?.let { id ->
-                    val selected = buildings.find { it.id == id } ?: buildingRepo.getById(id)
+                if(buildingId != null){
+                    val selected = buildingRepo.getById(buildingId)
                     if (selected != null) {
                         Log.d(TAG, "Auto-selected building from nav args: ${selected.name}")
                         onBuildingSelected(selected)
                         _uiState.value = UiState.Idle
                         return@launch
+                    } else {
+                        _uiState.value = UiState.Error("Building not found")
+                        return@launch
                     }
                 }
+                _uiState.value = UiState.Loading
+                val buildings = buildingRepo.getBuildingsByUserId(currentUser.uid)
+                _formState.value = _formState.value.copy(availableBuildings = buildings)
                 // Auto-select first building if available
                 if (buildings.isNotEmpty() && _formState.value.selectedBuilding == null) {
                     onBuildingSelected(buildings[0])
@@ -172,10 +176,10 @@ class AddServiceVM(
                 val allRoomsSelected = state.selectedRooms.size == state.availableRooms.size && state.availableRooms.isNotEmpty()
 
                 if (state.selectedRooms.isEmpty() || allRoomsSelected) {
-                    val updatedServices = building.services.toMutableList()
-                    updatedServices.add(newService)
-
-                    buildingRepo.updateFields(building.id, mapOf("services" to updatedServices))
+                    val serviceId = buildingRepo.addServiceToBuilding(building.id, newService)
+                    //updatedServices.add(newService)
+                    Log.d(TAG, "Service added to building ${building.name} in subcollection with id=$serviceId")
+                    //buildingRepo.updateFields(building.id, mapOf("services" to updatedServices))
 
                     if (allRoomsSelected) {
                         Log.d(TAG, "All rooms selected - Service added to building ${building.name} (apply to all)")
@@ -183,34 +187,27 @@ class AddServiceVM(
                         Log.d(TAG, "No rooms selected - Service added to building ${building.name} (apply to all)")
                     }
                     _uiState.value = UiState.Success(newService)
+                    return@launch
                 } else {
                     var successCount = 0
                     var failCount = 0
 
                     state.selectedRooms.forEach { roomId ->
-                        val room = roomRepo.getById(roomId)
-                        if (room != null) {
-                            try {
-                                val updatedExtraServices = room.extraService.toMutableList()
-                                updatedExtraServices.add(newService)
-
-                                val updatedRoom = room.copy(extraService = updatedExtraServices)
-                                val success = roomRepo.update(roomId, updatedRoom)
-
-                                if (success) {
+                        state.selectedRooms.forEach { roomId ->
+                            val room = roomRepo.getById(roomId)
+                            if (room != null) {
+                                try {
+                                    val extraServiceId = roomRepo.addExtraServiceToRoom(roomId, newService)
+                                    Log.d(TAG, "Service added to room ${room.roomNumber} with extraServiceId=$extraServiceId")
                                     successCount++
-                                    Log.d(TAG, "Service added to room ${room.roomNumber}")
-                                } else {
+                                } catch (e: Exception) {
                                     failCount++
-                                    Log.e(TAG, "Failed to update room ${room.roomNumber}")
+                                    Log.e(TAG, "Error adding extra service to room ${room.roomNumber}: ${e.message}")
                                 }
-                            } catch (e: Exception) {
+                            } else {
                                 failCount++
-                                Log.e(TAG, "Error updating room ${room.roomNumber}: ${e.message}")
+                                Log.e(TAG, "Room not found: $roomId")
                             }
-                        } else {
-                            failCount++
-                            Log.e(TAG, "Room not found: $roomId")
                         }
                     }
 
