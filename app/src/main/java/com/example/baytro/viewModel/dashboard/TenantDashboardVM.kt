@@ -4,13 +4,22 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
+import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.billing.Bill
+import com.example.baytro.data.billing.BillRepository
 import com.example.baytro.data.contract.Contract
 import com.example.baytro.data.contract.ContractRepository
+import com.example.baytro.data.meter_reading.MeterReading
+import com.example.baytro.data.meter_reading.MeterReadingRepository
+import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.User
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.SingleEvent
+import com.google.firebase.firestore.FirebaseFirestoreException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -27,11 +36,12 @@ data class TenantDashboardUiState(
     val isLoading: Boolean = true,
     val user: User? = null,
     val contract: Contract? = null,
+    val room: Room? = null,
+    val building: Building? = null,
+    val lastApprovedReading: MeterReading? = null,
+    val currentBill: Bill? = null,
     val monthsStayed: Int = 0,
-    val daysStayed: Int = 0,
-    val billPaymentDeadline: Int = 0,
-    val roomName: String = "",
-    val buildingName: String = ""
+    val daysStayed: Int = 0
 )
 
 sealed interface TenantDashboardEvent {
@@ -43,7 +53,9 @@ class TenantDashboardVM(
     private val userRepository: UserRepository,
     private val contractRepository: ContractRepository,
     private val roomRepository: RoomRepository,
-    private val buildingRepository: BuildingRepository
+    private val buildingRepository: BuildingRepository,
+    private val meterReadingRepository: MeterReadingRepository,
+    private val billRepository: BillRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TenantDashboardUiState())
@@ -61,20 +73,38 @@ class TenantDashboardVM(
     }
 
     private fun loadDashboardData() {
-        Log.d("TenantDashboardVM", "loadDashboardData() started - OFFLINE-FIRST")
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val currentUser = authRepository.getCurrentUser()
-                if (currentUser == null) {
-                    _errorEvent.emit(SingleEvent("User not authenticated"))
-                    _uiState.update { it.copy(isLoading = false) }
-                    Log.e("TenantDashboardVM", "User not authenticated")
-                    return@launch
-                }
+                    ?: run {
+                        _errorEvent.emit(SingleEvent("User not authenticated"))
+                        _uiState.update { it.copy(isLoading = false) }
+                        return@launch
+                    }
 
-                val user = userRepository.getById(currentUser.uid)
-                val activeContract = contractRepository.getActiveContract(currentUser.uid)
+                // Parallel user + contract
+                val (user, activeContract) = coroutineScope {
+                    val userDef = async {
+                        try {
+                            userRepository.getById(currentUser.uid)
+                        } catch (e: Exception) {
+                            Log.e("TenantDashboardVM", "User fetch failed", e)
+                            _errorEvent.emit(SingleEvent("Profile unavailable"))
+                            null
+                        }
+                    }
+                    val contractDef = async {
+                        try {
+                            contractRepository.getActiveContract(currentUser.uid)
+                        } catch (e: Exception) {
+                            Log.e("TenantDashboardVM", "Contract fetch failed", e)
+                            _errorEvent.emit(SingleEvent("Contract unavailable"))
+                            null
+                        }
+                    }
+                    userDef.await() to contractDef.await()
+                }
 
                 if (activeContract == null) {
                     _event.emit(TenantDashboardEvent.NavigateToEmptyContract)
@@ -82,57 +112,55 @@ class TenantDashboardVM(
                     return@launch
                 }
 
+                val (room, building, lastReading, currentBill) = coroutineScope {
+                    val roomDef = async {
+                        try { roomRepository.getById(activeContract.roomId) } catch (e: Exception) { Log.e("TenantDashboardVM", "Room fetch failed", e); null }
+                    }
+                    val buildingDef = async {
+                        try { buildingRepository.getById(activeContract.buildingId) } catch (e: Exception) { Log.e("TenantDashboardVM", "Building fetch failed", e); null }
+                    }
+                    val lastReadingDef = async {
+                        try { meterReadingRepository.getLastApprovedReading(activeContract.id) } catch (e: Exception) { Log.e("TenantDashboardVM", "Reading fetch failed", e); null }
+                    }
+                    val currentBillDef = async {
+                        try { billRepository.getCurrentBillByContract(activeContract.id) } catch (e: Exception) { Log.e("TenantDashboardVM", "Bill fetch failed", e); null }
+                    }
+
+                    Quadruple(
+                        roomDef.await(),
+                        buildingDef.await(),
+                        lastReadingDef.await(),
+                        currentBillDef.await()
+                    )
+                }
+
                 val (months, days) = calculateStayDuration(activeContract.startDate)
-                val billPaymentDeadline = getBillPaymentDeadline(activeContract)
-                val roomName = getRoomName(activeContract.roomId)
-                val buildingName = getBuildingName(activeContract.roomId)
 
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         user = user,
                         contract = activeContract,
+                        room = room,
+                        building = building,
+                        lastApprovedReading = lastReading?.getOrNull(),
+                        currentBill = currentBill?.getOrNull(),
                         monthsStayed = months,
-                        daysStayed = days,
-                        billPaymentDeadline = billPaymentDeadline,
-                        roomName = roomName,
-                        buildingName = buildingName
+                        daysStayed = days
                     )
                 }
-
-                Log.d("TenantDashboardVM", "Dashboard loaded from offline cache successfully")
             } catch (e: Exception) {
-                Log.e("TenantDashboardVM", "Error loading dashboard data", e)
-                _errorEvent.emit(SingleEvent("Failed to load dashboard: ${e.message}"))
+                val errorMsg = when {
+                    e is dev.gitlive.firebase.firestore.FirebaseFirestoreException &&
+                            e.code == FirebaseFirestoreException.Code.UNAVAILABLE -> {
+                                "Offline—retrying when connected"
+                            }
+                    else -> "Dashboard load failed: ${e.message}"
+                }
+                _errorEvent.emit(SingleEvent(errorMsg))
+                Log.e("TenantDashboardVM", "Error loading dashboard", e)
                 _uiState.update { it.copy(isLoading = false) }
             }
-        }
-    }
-
-    private suspend fun getBillPaymentDeadline(contract: Contract): Int {
-        val room = roomRepository.getById(contract.roomId)
-        val building = room?.let { buildingRepository.getById(it.buildingId) }
-        return building?.paymentDue ?: 0
-    }
-
-    private suspend fun getRoomName(roomId: String): String {
-        return try {
-            val room = roomRepository.getById(roomId)
-            room?.roomNumber ?: ""
-        } catch (e: Exception) {
-            Log.e("TenantDashboardVM", "Error fetching room name", e)
-            ""
-        }
-    }
-
-    private suspend fun getBuildingName(roomId: String): String {
-        return try {
-            val room = roomRepository.getById(roomId)
-            val building = room?.let { buildingRepository.getById(it.buildingId) }
-            building?.name ?: ""
-        } catch (e: Exception) {
-            Log.e("TenantDashboardVM", "Error fetching building name", e)
-            ""
         }
     }
 
@@ -141,13 +169,18 @@ class TenantDashboardVM(
             val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
             val startDate = LocalDate.parse(startDateString, formatter)
             val today = LocalDate.now()
-            val totalDays = ChronoUnit.DAYS.between(startDate, today)
-            val months = (totalDays / 30).toInt()
-            val days = (totalDays % 30).toInt()
-            Pair(months, days)
+
+            val years = startDate.until(today, ChronoUnit.YEARS)
+            val months = startDate.plusYears(years).until(today, ChronoUnit.MONTHS)
+            val days = startDate.plusYears(years).plusMonths(months).until(today, ChronoUnit.DAYS)
+
+            val totalMonths = years * 12 + months
+            Pair(totalMonths.toInt(), days.toInt())
         } catch (e: Exception) {
             Log.e("TenantDashboardVM", "Error calculating stay duration", e)
             Pair(0, 0)
         }
     }
 }
+
+data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)

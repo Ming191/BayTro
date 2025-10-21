@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.data.meter_reading.MeterReadingRepository
 import com.example.baytro.utils.SingleEvent
+import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -36,7 +37,7 @@ class MeterReadingHistoryVM(
     val errorEvent: SharedFlow<SingleEvent<String>> = _errorEvent.asSharedFlow()
 
     private var contractId: String? = null
-    private var lastReadingTimestamp: Long? = null
+    private var lastReadingTimestamp: Timestamp? = null
 
     fun onAction(action: MeterReadingHistoryAction) {
         when (action) {

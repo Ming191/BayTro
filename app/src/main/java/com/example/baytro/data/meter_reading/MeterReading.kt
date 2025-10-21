@@ -1,6 +1,7 @@
 package com.example.baytro.data.meter_reading
 
 import com.example.baytro.data.MeterStatus
+import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -22,11 +23,11 @@ data class MeterReading(
     @SerialName("status")
     val status: MeterStatus = MeterStatus.PENDING,
     @SerialName("createdAt")
-    val createdAt: Long = 0,
+    val createdAt: Timestamp? = null,
     @SerialName("approvedAt")
-    val approvedAt: String? = null,
+    val approvedAt: Timestamp? = null,
     @SerialName("declinedAt")
-    val declinedAt: String? = null,
+    val declinedAt: Timestamp? = null,
     @SerialName("declineReason")
     val declineReason: String? = null,
 

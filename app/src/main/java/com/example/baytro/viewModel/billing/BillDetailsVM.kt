@@ -12,6 +12,7 @@ import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRoleState
 import com.example.baytro.utils.SingleEvent
 import com.google.firebase.functions.FirebaseFunctions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +21,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.URL
 import java.net.URLEncoder
 
 data class BillDetailsUiState(
@@ -29,7 +33,9 @@ data class BillDetailsUiState(
     val qrCodeUrl: String? = null,
     val error: String? = null,
     val isLandlord: Boolean = false,
-    val showManualChargeDialog: Boolean = false
+    val showManualChargeDialog: Boolean = false,
+
+    val bankApps: List<BankAppInfo> = emptyList()
 )
 
 sealed interface BillDetailsEvent {
@@ -65,6 +71,41 @@ class BillDetailsViewModel(
         } else {
             checkUserRole()
             observeBillDetails()
+            fetchBankApps()
+        }
+    }
+
+    private fun fetchBankApps() {
+        viewModelScope.launch {
+            try {
+                val banks = fetchAndroidBankAppsFromApi()
+                _uiState.update { it.copy(bankApps = banks) }
+            } catch (e: Exception) {
+                Log.e("BillDetailsVM", "Error fetching bank apps", e)
+            }
+        }
+    }
+
+    private suspend fun fetchAndroidBankAppsFromApi(): List<BankAppInfo> {
+        return withContext(Dispatchers.IO) {
+            val url = URL("https://api.vietqr.io/v2/android-app-deeplinks")
+            val jsonString = url.readText()
+            val jsonObject = JSONObject(jsonString)
+            val appsArray = jsonObject.getJSONArray("apps")
+
+            val list = mutableListOf<BankAppInfo>()
+            for (i in 0 until appsArray.length()) {
+                val appObject = appsArray.getJSONObject(i)
+                list.add(
+                    BankAppInfo(
+                        appId = appObject.getString("appId"),
+                        appName = appObject.getString("appName"),
+                        appLogo = appObject.getString("appLogo"),
+                        deepLink = appObject.getString("deeplink"),
+                    )
+                )
+            }
+            list
         }
     }
 

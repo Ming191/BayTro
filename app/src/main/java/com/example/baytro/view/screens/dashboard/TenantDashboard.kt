@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.contract.Status
+import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.utils.Utils
 import com.example.baytro.utils.Utils.formatOrdinal
 import com.example.baytro.view.components.TenantDashboardSkeleton
@@ -131,8 +132,8 @@ fun TenantDashboard(
                         uiState.contract!!.roomId,
                         uiState.contract!!.buildingId,
                         uiState.contract!!.landlordId,
-                        uiState.roomName,
-                        uiState.buildingName
+                        uiState.room?.roomNumber ?: "N/A",
+                        uiState.building?.name ?: "N/A"
                     )
                 },
                 onMeterHistoryClick = {
@@ -226,9 +227,11 @@ fun TenantDashboardContent(
                         )
             ) {
                 PaymentSection(
-                    billPaymentDeadline = uiState.billPaymentDeadline,
+                    billPaymentDeadline = uiState.building?.paymentDue ?: 5,
                     rentalFee = uiState.contract?.rentalFee ?: 0,
-                    deposit = uiState.contract?.deposit ?: 0
+                    deposit = uiState.contract?.deposit ?: 0,
+                    lastReading = uiState.lastApprovedReading,
+                    building = uiState.building
                 )
             }
         }
@@ -474,8 +477,33 @@ fun QuickActionsSection(
 fun PaymentSection(
     billPaymentDeadline: Int,
     rentalFee: Int,
-    deposit: Int
+    deposit: Int,
+    lastReading: MeterReading? = null,
+    building: com.example.baytro.data.Building? = null
 ) {
+    // Debug logging
+    Log.d("PaymentSection", "Building: $building")
+    Log.d("PaymentSection", "Services: ${building?.services}")
+    Log.d("PaymentSection", "Services size: ${building?.services?.size}")
+
+    // Extract service rates from building
+    val electricityService = building?.services?.find {
+        Log.d("PaymentSection", "Checking service: ${it.name}, metric: ${it.metric}, price: ${it.price}")
+        it.metric == com.example.baytro.data.service.Metric.KWH
+    }
+
+    val waterService = building?.services?.find {
+        it.metric == com.example.baytro.data.service.Metric.M3
+    }
+
+    Log.d("PaymentSection", "Electricity service: $electricityService")
+    Log.d("PaymentSection", "Water service: $waterService")
+
+    val electricityRate = electricityService?.price?.toDoubleOrNull() ?: 0.0
+    val waterRate = waterService?.price?.toDoubleOrNull() ?: 0.0
+
+    Log.d("PaymentSection", "Electricity rate: $electricityRate")
+    Log.d("PaymentSection", "Water rate: $waterRate")
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "Payment Overview",
@@ -574,9 +602,9 @@ fun PaymentSection(
                     UtilityCard(
                         icon = Icons.Default.ElectricBolt,
                         label = "Electricity",
-                        rate = "4.000 VND/kWH",
-                        usage = "100 kWH",
-                        lastUpdate = "9 Sep 2025",
+                        rate = "${electricityRate.toInt()} VND/kWh",
+                        usage = "${lastReading?.electricityConsumption ?: 0} kWh",
+                        lastUpdate = lastReading?.createdAt?.let { Utils.formatTimestamp(it) } ?: "N/A",
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                         iconColor = MaterialTheme.colorScheme.tertiary
@@ -584,9 +612,9 @@ fun PaymentSection(
                     UtilityCard(
                         icon = Icons.Default.Water,
                         label = "Water",
-                        rate = "18.000 VND/m³",
-                        usage = "100 m³",
-                        lastUpdate = "9 Sep 2025",
+                        rate = "${waterRate.toInt()} VND/m³",
+                        usage = "${lastReading?.waterConsumption ?: 0} m³",
+                        lastUpdate = lastReading?.createdAt?.let { Utils.formatTimestamp(it) } ?: "N/A",
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         iconColor = MaterialTheme.colorScheme.secondary

@@ -19,10 +19,10 @@ class AvatarCache(private val userRepository: UserRepository) {
     
     fun loadAvatar(userId: String) {
         if (_currentUserId == userId && _cachedAvatarUrl != null) {
-            return // Already cached for this user
+            return
         }
         
-        if (_isLoading) return // Already loading
+        if (_isLoading) return
         
         _isLoading = true
         _currentUserId = userId
@@ -32,7 +32,7 @@ class AvatarCache(private val userRepository: UserRepository) {
                 val user = userRepository.getById(userId)
                 _cachedAvatarUrl = user?.profileImgUrl
             } catch (e: Exception) {
-                // Keep existing cached value on error
+                _cachedAvatarUrl = null
             } finally {
                 _isLoading = false
             }
