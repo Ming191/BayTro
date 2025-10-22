@@ -53,9 +53,7 @@ fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
     }
 
     composable(Screens.PoliciesAndTerms.route) {
-        PoliciesAndTermsScreen(
-            onNavigateBack = { navController.popBackStack() }
-        )
+        PoliciesAndTermsScreen()
     }
 
     composable(Screens.ChangePassword.route) {

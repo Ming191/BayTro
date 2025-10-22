@@ -37,7 +37,6 @@ fun AppScaffold (
     navHostController: NavHostController,
     onDrawerClicked: () -> Unit
 ) {
-    val authState = LocalAuthState.current
     Row(
         modifier = Modifier
             .fillMaxSize(),
