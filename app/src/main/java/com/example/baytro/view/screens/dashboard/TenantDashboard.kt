@@ -602,7 +602,7 @@ fun PaymentSection(
                     UtilityCard(
                         icon = Icons.Default.ElectricBolt,
                         label = "Electricity",
-                        rate = "${electricityRate.toInt()} VND/kWh",
+                        rate = "${Utils.formatCurrency(electricityRate.toString())}/kWh",
                         usage = "${lastReading?.electricityConsumption ?: 0} kWh",
                         lastUpdate = lastReading?.createdAt?.let { Utils.formatTimestamp(it) } ?: "N/A",
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -612,7 +612,7 @@ fun PaymentSection(
                     UtilityCard(
                         icon = Icons.Default.Water,
                         label = "Water",
-                        rate = "${waterRate.toInt()} VND/m³",
+                        rate = "${Utils.formatCurrency(electricityRate.toString())}/m³",
                         usage = "${lastReading?.waterConsumption ?: 0} m³",
                         lastUpdate = lastReading?.createdAt?.let { Utils.formatTimestamp(it) } ?: "N/A",
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -656,7 +656,7 @@ fun FeeCard(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -698,46 +698,54 @@ fun UtilityCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = CircleShape,
-                modifier = Modifier.size(44.dp),
-                color = iconColor
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
+                Surface(
+                    shape = CircleShape,
+                    modifier = Modifier.size(40.dp),
+                    color = iconColor
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor
+                    )
+                    Text(
+                        text = rate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor.copy(alpha = 0.7f)
                     )
                 }
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = rate,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor.copy(alpha = 0.7f)
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
                     text = usage,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = contentColor
                 )
-                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = lastUpdate,
                     style = MaterialTheme.typography.bodySmall,
