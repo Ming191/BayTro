@@ -8,17 +8,45 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.service.Metric
 import com.example.baytro.data.service.Service
 import com.example.baytro.data.service.Status
+import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.view.AuthUIState
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+data class AddBuildingFormState(
+    val name: String = "",
+    val floor: String = "",
+    val address: String = "",
+    val status: BuildingStatus = BuildingStatus.ACTIVE,
+    val billingDate: String = "",
+    val paymentStart: String = "",
+    val paymentDue: String = "",
+    val selectedImages: List<Uri> = emptyList(),
+
+    val nameError: Boolean = false,
+    val floorError: Boolean = false,
+    val addressError: Boolean = false,
+    val billingError: Boolean = false,
+    val startError: Boolean = false,
+    val dueError: Boolean = false,
+
+    val nameErrorMsg: String? = null,
+    val floorErrorMsg: String? = null,
+    val addressErrorMsg: String? = null,
+    val billingErrorMsg: String? = null,
+    val startErrorMsg: String? = null,
+    val dueErrorMsg: String? = null
+)
 
 class AddBuildingVM(
     private val context: Context,
@@ -29,6 +57,141 @@ class AddBuildingVM(
     
     private val _addBuildingUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
     val addBuildingUIState: StateFlow<AuthUIState> = _addBuildingUIState
+
+    private val _formState = MutableStateFlow(AddBuildingFormState())
+    val formState: StateFlow<AddBuildingFormState> = _formState.asStateFlow()
+
+    // Form field update methods
+    fun updateName(value: String) {
+        val validation = BuildingValidator.validateName(value)
+        _formState.value = _formState.value.copy(
+            name = value,
+            nameError = validation.isError,
+            nameErrorMsg = validation.message
+        )
+    }
+
+    fun updateFloor(value: String) {
+        val validation = BuildingValidator.validateFloor(value)
+        _formState.value = _formState.value.copy(
+            floor = value,
+            floorError = validation.isError,
+            floorErrorMsg = validation.message
+        )
+    }
+
+    fun updateAddress(value: String) {
+        val validation = BuildingValidator.validateAddress(value)
+        _formState.value = _formState.value.copy(
+            address = value,
+            addressError = validation.isError,
+            addressErrorMsg = validation.message
+        )
+    }
+
+    fun updateStatus(value: BuildingStatus) {
+        _formState.value = _formState.value.copy(status = value)
+    }
+
+    fun updateBillingDate(value: String) {
+        val validation = BuildingValidator.validateBillingDate(value)
+        _formState.value = _formState.value.copy(
+            billingDate = value,
+            billingError = validation.isError,
+            billingErrorMsg = validation.message
+        )
+    }
+
+    fun updatePaymentStart(value: String) {
+        val validation = BuildingValidator.validatePaymentStart(value)
+        _formState.value = _formState.value.copy(
+            paymentStart = value,
+            startError = validation.isError,
+            startErrorMsg = validation.message
+        )
+    }
+
+    fun updatePaymentDue(value: String) {
+        val validation = BuildingValidator.validatePaymentDue(value)
+        _formState.value = _formState.value.copy(
+            paymentDue = value,
+            dueError = validation.isError,
+            dueErrorMsg = validation.message
+        )
+    }
+
+    fun updateSelectedImages(images: List<Uri>) {
+        _formState.value = _formState.value.copy(selectedImages = images)
+    }
+
+    fun validateAndSubmit() {
+        val state = _formState.value
+
+        // Reset errors
+        _formState.value = state.copy(
+            nameError = false,
+            floorError = false,
+            addressError = false,
+            billingError = false,
+            startError = false,
+            dueError = false,
+            nameErrorMsg = null,
+            floorErrorMsg = null,
+            addressErrorMsg = null,
+            billingErrorMsg = null,
+            startErrorMsg = null,
+            dueErrorMsg = null
+        )
+
+        // Validate all fields
+        val nameValidation = BuildingValidator.validateName(state.name)
+        val floorValidation = BuildingValidator.validateFloor(state.floor)
+        val addressValidation = BuildingValidator.validateAddress(state.address)
+        val billingValidation = BuildingValidator.validateBillingDate(state.billingDate)
+        val startValidation = BuildingValidator.validatePaymentStart(state.paymentStart)
+        val dueValidation = BuildingValidator.validatePaymentDue(state.paymentDue)
+
+        // Update state with validation results
+        _formState.value = _formState.value.copy(
+            nameError = nameValidation.isError,
+            nameErrorMsg = nameValidation.message,
+            floorError = floorValidation.isError,
+            floorErrorMsg = floorValidation.message,
+            addressError = addressValidation.isError,
+            addressErrorMsg = addressValidation.message,
+            billingError = billingValidation.isError,
+            billingErrorMsg = billingValidation.message,
+            startError = startValidation.isError,
+            startErrorMsg = startValidation.message,
+            dueError = dueValidation.isError,
+            dueErrorMsg = dueValidation.message
+        )
+
+        // If all validations pass, proceed with submission
+        val allValid = !nameValidation.isError && !floorValidation.isError &&
+                !addressValidation.isError && !billingValidation.isError &&
+                !startValidation.isError && !dueValidation.isError
+
+        if (allValid) {
+            val building = Building(
+                id = "",
+                name = state.name,
+                floor = state.floor.toInt(),
+                address = state.address,
+                status = state.status,
+                billingDate = state.billingDate.toInt(),
+                paymentStart = state.paymentStart.toInt(),
+                paymentDue = state.paymentDue.toInt(),
+                imageUrls = emptyList()
+            )
+
+            if (state.selectedImages.isEmpty()) {
+                addBuilding(building)
+            } else {
+                addBuildingWithImages(building, state.selectedImages)
+            }
+        }
+    }
 
     private fun createDefaultServices(): List<Service> {
         return listOf(
