@@ -23,9 +23,7 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import dev.gitlive.firebase.firestore.Timestamp
 
 class AddRequestVM(
     private val requestRepository: RequestRepository,
@@ -140,13 +138,12 @@ class AddRequestVM(
                 completedSteps++
                 _uploadProgress.value = completedSteps.toFloat() / totalSteps
 
-                val currentDateTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date())
                 val request = Request(
                     tenantId = currentUser.uid,
                     landlordId = activeContract.landlordId,
                     roomId = roomId,
                     status = RequestStatus.PENDING,
-                    createdAt = currentDateTime,
+                    createdAt = Timestamp.now(),
                     scheduledDate = state.scheduledDate,
                     imageUrls = emptyList(),
                     description = state.description,
