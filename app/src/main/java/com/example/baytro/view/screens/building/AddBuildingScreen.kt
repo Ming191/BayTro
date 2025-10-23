@@ -44,7 +44,7 @@ import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
-import com.example.baytro.viewModel.AddBuildingVM
+import com.example.baytro.viewModel.building.AddBuildingVM
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -32,7 +32,8 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,8 +60,8 @@ import com.example.baytro.view.components.BuildingCard
 import com.example.baytro.view.components.BuildingListSkeleton
 import com.example.baytro.view.components.CompactSearchBar
 import com.example.baytro.view.components.EmptyBuildingState
-import com.example.baytro.viewModel.BuildingListVM
-import com.example.baytro.viewModel.BuildingStatusFilter
+import com.example.baytro.viewModel.building.BuildingListVM
+import com.example.baytro.viewModel.building.BuildingStatusFilter
 import org.koin.compose.viewmodel.koinViewModel
 
 private enum class LoadingState {
@@ -213,29 +214,23 @@ fun BuildingListScreen(
                 .padding(bottom = 24.dp, end = 20.dp),
             contentAlignment = Alignment.BottomEnd
         ) {
-            ExtendedFloatingActionButton(
-                onClick = { navController.navigate(Screens.BuildingAdd.route) },
-                icon = {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                text = {
-                    Text(
-                        "Add Building",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
+            FloatingActionButton(
+                onClick = {
+                    navController.navigate(Screens.BuildingAdd.route)
                 },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(
+                elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 6.dp,
                     pressedElevation = 12.dp
                 )
-            )
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
 
         Box(

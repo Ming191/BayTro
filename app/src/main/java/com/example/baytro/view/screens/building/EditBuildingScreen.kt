@@ -44,7 +44,7 @@ import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
-import com.example.baytro.viewModel.EditBuildingVM
+import com.example.baytro.viewModel.building.EditBuildingVM
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 

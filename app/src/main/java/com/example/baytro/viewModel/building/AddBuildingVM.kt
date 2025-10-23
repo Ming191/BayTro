@@ -1,4 +1,4 @@
-package com.example.baytro.viewModel
+package com.example.baytro.viewModel.building
 
 import android.content.Context
 import android.net.Uri

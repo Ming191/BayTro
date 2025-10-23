@@ -18,9 +18,9 @@ import com.example.baytro.service.FptAiService
 import com.example.baytro.service.MeterReadingApiService
 import com.example.baytro.utils.cloudFunctions.DashboardCloudFunctions
 import com.example.baytro.utils.cloudFunctions.MeterReadingCloudFunctions
-import com.example.baytro.viewModel.AddBuildingVM
-import com.example.baytro.viewModel.BuildingListVM
-import com.example.baytro.viewModel.EditBuildingVM
+import com.example.baytro.viewModel.building.AddBuildingVM
+import com.example.baytro.viewModel.building.BuildingListVM
+import com.example.baytro.viewModel.building.EditBuildingVM
 import com.example.baytro.viewModel.Room.AddRoomVM
 import com.example.baytro.viewModel.Room.EditRoomVM
 import com.example.baytro.viewModel.Room.RoomDetailsVM

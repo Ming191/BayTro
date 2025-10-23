@@ -1,4 +1,4 @@
-package com.example.baytro.viewModel
+package com.example.baytro.viewModel.building
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
