@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 enum class BuildingStatus {
     ACTIVE,
     INACTIVE,
-    UNDER_MAINTENANCE
+    ARCHIVED
 }
 
 @Serializable
@@ -41,3 +41,16 @@ fun Building.toSummary(): BuildingSummary {
         name = this.name
     )
 }
+
+@Serializable
+data class BuildingWithStats(
+    val building: Building,
+    val occupiedRooms: Int = 0,
+    val totalRooms: Int = 0,
+    val revenue: Double = 0.0
+)
+
+@Serializable
+data class BuildingListResponse(
+    val buildings: List<BuildingWithStats> = emptyList()
+)

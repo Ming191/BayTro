@@ -1,5 +1,6 @@
 package com.example.baytro.utils
 
+import com.google.firebase.functions.FirebaseFunctionsException
 import dev.gitlive.firebase.firestore.Timestamp
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -68,5 +69,33 @@ object Utils {
             ""
         }
     }
+    /**
+     * Parses FirebaseFunctionsException to extract user-friendly error messages.
+     *
+     * @param e The FirebaseFunctionsException to parse
+     * @return A user-friendly error message
+     */
+    fun parseFirebaseError(e: FirebaseFunctionsException): String {
+        return when (e.code) {
+            FirebaseFunctionsException.Code.OK -> "Operation completed successfully"
+            FirebaseFunctionsException.Code.CANCELLED -> "Operation was cancelled"
+            FirebaseFunctionsException.Code.UNKNOWN -> "An unknown error occurred"
+            FirebaseFunctionsException.Code.INVALID_ARGUMENT -> e.message ?: "Invalid argument provided"
+            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Request timeout. Please try again"
+            FirebaseFunctionsException.Code.NOT_FOUND -> e.message ?: "Resource not found"
+            FirebaseFunctionsException.Code.ALREADY_EXISTS -> e.message ?: "Resource already exists"
+            FirebaseFunctionsException.Code.PERMISSION_DENIED -> "Permission denied. You don't have access to this resource"
+            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> "Resource exhausted. Please try again later"
+            FirebaseFunctionsException.Code.FAILED_PRECONDITION -> e.message ?: "Operation failed precondition check"
+            FirebaseFunctionsException.Code.ABORTED -> "Operation was aborted. Please try again"
+            FirebaseFunctionsException.Code.OUT_OF_RANGE -> e.message ?: "Value out of range"
+            FirebaseFunctionsException.Code.UNIMPLEMENTED -> "This operation is not implemented"
+            FirebaseFunctionsException.Code.INTERNAL -> "Internal server error. Please try again later"
+            FirebaseFunctionsException.Code.UNAVAILABLE -> "Service is currently unavailable. Please try again later"
+            FirebaseFunctionsException.Code.DATA_LOSS -> "Data loss occurred. Please contact support"
+            FirebaseFunctionsException.Code.UNAUTHENTICATED -> "You must be signed in to perform this action"
+        }
+    }
+
 
 }

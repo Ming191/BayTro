@@ -1,231 +1,104 @@
 package com.example.baytro.viewModel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.baytro.auth.AuthRepository
-import com.example.baytro.data.Building
-import com.example.baytro.data.BuildingRepository
-import com.example.baytro.data.BuildingStatus
-import com.example.baytro.data.contract.ContractRepository
-import com.example.baytro.data.contract.Status
-import com.example.baytro.data.room.RoomRepository
+import com.example.baytro.data.BuildingWithStats
+import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
+import com.example.baytro.utils.SingleEvent
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-data class BuildingWithStats(
-    val building: Building,
-    val occupiedRooms: Int,
-    val totalRooms: Int
+data class BuildingListUiState(
+    val isLoading: Boolean = true,
+    val searchQuery: String = "",
+    val statusFilter: BuildingStatusFilter = BuildingStatusFilter.ALL,
+    val buildings: List<BuildingWithStats> = emptyList()
 )
 
+enum class BuildingStatusFilter { ALL, ACTIVE, INACTIVE }
+
+
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class BuildingListVM(
-    private val buildingRepository: BuildingRepository,
-    private val roomRepository: RoomRepository,
-    private val contractRepository: ContractRepository,
-    private val authRepository: AuthRepository
+    private val buildingCloudFunctions: BuildingCloudFunctions
 ) : ViewModel() {
 
-    private val _buildings = MutableStateFlow<List<Building>>(emptyList())
-    val buildings: StateFlow<List<Building>> = _buildings
-
-    private val _buildingsWithStats = MutableStateFlow<List<BuildingWithStats>>(emptyList())
-
-    private val _isLoading = MutableStateFlow(true) // Start with loading true
-    val isLoading: StateFlow<Boolean> = _isLoading
-
-    private val _hasLoadedOnce = MutableStateFlow(false)
-    val hasLoadedOnce: StateFlow<Boolean> = _hasLoadedOnce
-
     private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery
-
     private val _statusFilter = MutableStateFlow(BuildingStatusFilter.ALL)
-    val statusFilter: StateFlow<BuildingStatusFilter> = _statusFilter
+    private val _refreshTrigger = MutableStateFlow(0)
 
-    // Pagination
-    private val _currentPage = MutableStateFlow(0)
-    val currentPage: StateFlow<Int> = _currentPage
+    private val _errorEvent = MutableSharedFlow<SingleEvent<String>>()
+    val errorEvent: SharedFlow<SingleEvent<String>> = _errorEvent.asSharedFlow()
 
-    private val _itemsPerPage = 10
+    private val _buildingsData: StateFlow<Pair<Boolean, List<BuildingWithStats>>> = combine(
+        _searchQuery.debounce(300),
+        _statusFilter,
+        _refreshTrigger
+    ) { query, status, _ ->
+        Pair(query, status)
+    }.flatMapLatest { (query, status) ->
+        flow {
+            emit(Pair(true, emptyList<BuildingWithStats>()))
 
-    @OptIn(FlowPreview::class)
-    val filteredBuildings: StateFlow<List<BuildingWithStats>> = combine(
-        _buildingsWithStats,
-        _searchQuery.debounce(500),
-        _statusFilter
-    ) { list, query, status ->
-        Log.d("BuildingListVM", "filteredBuildings recomputing: list.size=${list.size}, query='$query', status=$status")
-        val normalizedQuery = query.trim().lowercase()
-        val result = list.filter { buildingWithStats ->
-            val building = buildingWithStats.building
-            val matchesQuery = if (normalizedQuery.isBlank()) {
-                true
-            } else {
-                building.name.lowercase().contains(normalizedQuery) ||
-                        building.address.lowercase().contains(normalizedQuery)
+            val result = buildingCloudFunctions.getBuildingListWithStats(
+                searchQuery = query,
+                statusFilter = status.name
+            )
+
+            result.onSuccess { response ->
+                emit(Pair(false, response.buildings))
             }
-
-            val matchesStatus = when (status) {
-                BuildingStatusFilter.ALL -> true
-                BuildingStatusFilter.ACTIVE -> building.status == BuildingStatus.ACTIVE
-                BuildingStatusFilter.INACTIVE -> building.status == BuildingStatus.INACTIVE
-            }
-
-            matchesQuery && matchesStatus
-        }
-        Log.d("BuildingListVM", "filteredBuildings result: ${result.size} items")
-        result
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    // Paginated buildings for current page
-    val paginatedBuildings: StateFlow<List<BuildingWithStats>> = combine(
-        filteredBuildings,
-        _currentPage
-    ) { buildings, page ->
-        Log.d("BuildingListVM", "paginatedBuildings recomputing: buildings.size=${buildings.size}, page=$page")
-        val startIndex = page * _itemsPerPage
-        val endIndex = minOf(startIndex + _itemsPerPage, buildings.size)
-        val result = if (startIndex < buildings.size) {
-            buildings.subList(startIndex, endIndex)
-        } else {
-            emptyList()
-        }
-        Log.d("BuildingListVM", "paginatedBuildings result: ${result.size} items (startIndex=$startIndex, endIndex=$endIndex)")
-        result
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    // Total pages
-    val totalPages: StateFlow<Int> = filteredBuildings.combine(_currentPage) { buildings, _ ->
-        val total = if (buildings.isEmpty()) 0 else ((buildings.size - 1) / _itemsPerPage) + 1
-        Log.d("BuildingListVM", "totalPages computed: $total (from ${buildings.size} buildings)")
-        total
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
-
-    // Has next page
-    val hasNextPage: StateFlow<Boolean> = combine(
-        _currentPage,
-        totalPages
-    ) { page, total ->
-        val hasNext = page < total - 1
-        Log.d("BuildingListVM", "hasNextPage: $hasNext (page=$page, total=$total)")
-        hasNext
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
-    // Has previous page
-    val hasPreviousPage: StateFlow<Boolean> = _currentPage.combine(totalPages) { page, _ ->
-        val hasPrev = page > 0
-        Log.d("BuildingListVM", "hasPreviousPage: $hasPrev (page=$page)")
-        hasPrev
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
-    fun loadBuildings() {
-        viewModelScope.launch {
-            Log.d("BuildingListVM", "loadBuildings() started - Setting isLoading = true")
-            _isLoading.value = true
-            try {
-                val currentUser = authRepository.getCurrentUser()
-                    ?: throw IllegalStateException("No logged in user found")
-
-                Log.d("BuildingListVM", "Fetching buildings for user: ${currentUser.uid}")
-                val userBuildings = buildingRepository.getBuildingsByUserId(currentUser.uid)
-                Log.d("BuildingListVM", "Fetched ${userBuildings.size} buildings")
-
-                // Fetch room statistics for each building in parallel
-                val buildingsWithStats = userBuildings.map { building ->
-                    async {
-                        val rooms = roomRepository.getRoomsByBuildingId(building.id)
-                        val totalRooms = rooms.size
-
-                        // Get all contracts for this building and count active ones
-                        val contracts = contractRepository.getContractsByBuildingId(building.id)
-                        val activeContracts = contracts.filter { it.status == Status.ACTIVE }
-                        val occupiedRooms = activeContracts.distinctBy { it.roomId }.size
-
-                        Log.d("BuildingListVM", "Building ${building.name}: $occupiedRooms/$totalRooms rooms occupied")
-
-                        BuildingWithStats(
-                            building = building,
-                            occupiedRooms = occupiedRooms,
-                            totalRooms = totalRooms
-                        )
-                    }
-                }.awaitAll() // Wait for all async operations to complete
-
-                Log.d("BuildingListVM", "Setting buildings list with ${userBuildings.size} items")
-                _buildings.value = userBuildings
-                _buildingsWithStats.value = buildingsWithStats
-            } catch (e: Exception) {
-                Log.e("BuildingListVM", "Error loading buildings", e)
-                _buildings.value = emptyList()
-                _buildingsWithStats.value = emptyList()
-            } finally {
-                Log.d("BuildingListVM", "loadBuildings() finished - Setting isLoading = false, hasLoadedOnce = true")
-                _isLoading.value = false
-                _hasLoadedOnce.value = true
+            result.onFailure { exception ->
+                _errorEvent.emit(SingleEvent(exception.message ?: "Failed to load buildings"))
+                emit(Pair(false, emptyList()))
             }
         }
-    }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = Pair(true, emptyList())
+    )
 
-    // Force reload buildings (for pull-to-refresh or after editing)
-    fun refreshBuildings() {
-        Log.d("BuildingListVM", "refreshBuildings() called - forcing reload")
-        _hasLoadedOnce.value = false
-        loadBuildings()
-    }
+    val uiState: StateFlow<BuildingListUiState> = combine(
+        _searchQuery,
+        _statusFilter,
+        _buildingsData
+    ) { query, status, (isLoading, buildings) ->
+        BuildingListUiState(
+            isLoading = isLoading,
+            searchQuery = query,
+            statusFilter = status,
+            buildings = buildings
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = BuildingListUiState()
+    )
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
-        _currentPage.value = 0 // Reset to first page when search changes
     }
 
     fun setStatusFilter(filter: BuildingStatusFilter) {
         _statusFilter.value = filter
-        _currentPage.value = 0 // Reset to first page when filter changes
     }
 
-    fun nextPage() {
-        if (hasNextPage.value) {
-            _currentPage.value += 1
-        }
+    fun refresh() {
+        _refreshTrigger.value++
     }
 
-    fun previousPage() {
-        if (hasPreviousPage.value) {
-            _currentPage.value -= 1
-        }
-    }
-
-    //TODO() Add goToPage with validation
-    fun goToPage(page: Int) {
-        if (page >= 0 && page < totalPages.value) {
-            _currentPage.value = page
-        }
-    }
-
-    fun deleteBuilding(buildingId: String) {
+    fun archiveBuilding(buildingId: String) {
         viewModelScope.launch {
-            try {
-                buildingRepository.delete(buildingId)
-            } catch (e: Exception) {
-                Log.e("BuildingListVM", "Error deleting building $buildingId", e)
-            } finally {
-                refreshBuildings()
+            val result = buildingCloudFunctions.archiveBuilding(buildingId)
+            result.onSuccess {
+                refresh()
+            }
+            result.onFailure { exception ->
+                _errorEvent.emit(SingleEvent(exception.message ?: "Failed to archive building"))
             }
         }
-    }
-
-    enum class BuildingStatusFilter {
-        ALL,
-        ACTIVE,
-        INACTIVE
     }
 }
