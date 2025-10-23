@@ -44,7 +44,7 @@ import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
-import com.example.baytro.viewModel.EditBuildingVM
+import com.example.baytro.viewModel.building.EditBuildingVM
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -197,7 +197,7 @@ fun EditBuildingContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
                 item {
                     AnimatedVisibility(
@@ -218,7 +218,7 @@ fun EditBuildingContent(
                         DividerWithSubhead(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 16.dp),
+                                .padding(bottom = 8.dp),
                             subhead = "Building Details"
                         )
                     }
@@ -338,7 +338,7 @@ fun EditBuildingContent(
                     ) {
                         DropdownSelectField(
                             label = "Status",
-                            options = BuildingStatus.entries,
+                            options = BuildingStatus.entries.filter { it != BuildingStatus.ARCHIVED },
                             selectedOption = formState.status,
                             onOptionSelected = { viewModel.updateField("status", it.name) },
                             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -366,7 +366,7 @@ fun EditBuildingContent(
                         DividerWithSubhead(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 16.dp),
+                                .padding(bottom = 8.dp),
                             subhead = "Payment Schedule"
                         )
                     }
@@ -423,7 +423,7 @@ fun EditBuildingContent(
                         )
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -483,7 +483,7 @@ fun EditBuildingContent(
                         DividerWithSubhead(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 16.dp),
+                                .padding(vertical = 8.dp),
                             subhead = "Building Images (Up to 3)"
                         )
                     }
@@ -528,8 +528,8 @@ fun EditBuildingContent(
                 enter = fadeIn()
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilledTonalButton(
                         onClick = onCancel,
