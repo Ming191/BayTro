@@ -66,7 +66,6 @@ class BillRepository(
         }
     }
 
-    // Listen for bills by building and month (for landlord dashboard with building filter)
     fun listenForBillsByBuildingAndMonth(
         landlordId: String,
         buildingId: String,
@@ -107,7 +106,6 @@ class BillRepository(
             }
     }
 
-    // Listen for current bill for a tenant (most recent UNPAID or OVERDUE)
     fun listenForBillsByContractAndMonth(contractId: String, month: Int, year: Int): Flow<List<BillSummary>> {
         Log.d(TAG, "listenForBillsByContractAndMonth: contractId=$contractId, month=$month, year=$year")
         return collection

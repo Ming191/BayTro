@@ -7,7 +7,7 @@ import com.example.baytro.data.BuildingSummary
 import com.example.baytro.data.MeterStatus
 import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.data.meter_reading.MeterReadingRepository
-import com.example.baytro.service.MeterReadingCloudFunctions
+import com.example.baytro.utils.cloudFunctions.MeterReadingCloudFunctions
 import com.example.baytro.utils.SingleEvent
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.ExperimentalCoroutinesApi

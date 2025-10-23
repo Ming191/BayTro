@@ -71,7 +71,7 @@ class RequestListVM(
     private val filteredRequests: StateFlow<FilteredRequestData> = requestListUiState
         .map { state ->
             when (state) {
-                is com.example.baytro.view.screens.UiState.Success -> state.data
+                is UiState.Success -> state.data
                 else -> FilteredRequestData()
             }
         }
@@ -375,13 +375,13 @@ class RequestListVM(
     private fun updateUiWithFilteredRequests(requests: List<FullRequestInfo>) {
         val pending = requests
             .filter { it.request.status == RequestStatus.PENDING }
-            .sortedByDescending { it.request.createdAt }
+            .sortedByDescending { it.request.createdAt.seconds }
         val inProgress = requests
             .filter { it.request.status == RequestStatus.IN_PROGRESS }
-            .sortedByDescending { it.request.createdAt }
+            .sortedByDescending { it.request.createdAt.seconds }
         val done = requests
             .filter { it.request.status == RequestStatus.DONE }
-            .sortedByDescending { it.request.createdAt }
+            .sortedByDescending { it.request.createdAt.seconds }
 
         val finalData = FilteredRequestData(
             pending = pending,
@@ -429,7 +429,8 @@ class RequestListVM(
                     "completionDate" to currentDateTime
                 )
                 requestRepository.updateFields(requestId, updateFields)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
+                // Silent catch - error handling not needed for completion operation
             }
         }
     }

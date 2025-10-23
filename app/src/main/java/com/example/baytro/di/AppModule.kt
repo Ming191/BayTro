@@ -15,7 +15,8 @@ import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.utils.AvatarCache
 import com.example.baytro.service.FptAiService
 import com.example.baytro.service.MeterReadingApiService
-import com.example.baytro.service.MeterReadingCloudFunctions
+import com.example.baytro.utils.cloudFunctions.DashboardCloudFunctions
+import com.example.baytro.utils.cloudFunctions.MeterReadingCloudFunctions
 import com.example.baytro.viewModel.AddBuildingVM
 import com.example.baytro.viewModel.BuildingListVM
 import com.example.baytro.viewModel.EditBuildingVM
@@ -35,6 +36,7 @@ import com.example.baytro.viewModel.contract.AddContractVM
 import com.example.baytro.viewModel.contract.ContractDetailsVM
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.EditContractVM
+import com.example.baytro.viewModel.dashboard.LandlordDashboardVM
 import com.example.baytro.viewModel.contract.TenantJoinVM
 import com.example.baytro.viewModel.dashboard.MeterReadingVM
 import com.example.baytro.viewModel.dashboard.TenantDashboardVM
@@ -59,6 +61,7 @@ import com.example.baytro.viewModel.tenant.TenantListVM
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.gson.Gson
 import com.google.firebase.functions.functions
 import com.google.firebase.storage.FirebaseStorage
 import dev.gitlive.firebase.firestore.FirebaseFirestore
@@ -89,6 +92,7 @@ val appModule = module {
             }
         }
     }
+    single { Gson() }
     single<FirebaseFunctions> { Firebase.functions }
     single { AvatarCache(get()) }
 
@@ -105,6 +109,7 @@ val authModule = module {
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
     single<RequestRepository> { RequestRepository(get()) }
+    single<DashboardCloudFunctions> { DashboardCloudFunctions(get(), get()) }
     single<MeterReadingRepository> { MeterReadingRepository(get()) }
     single<MeterReadingCloudFunctions> { MeterReadingCloudFunctions(get()) }
     single<BillRepository> { BillRepository(get()) }
@@ -143,6 +148,7 @@ val authModule = module {
     viewModelOf(::TenantBillViewModel)
     viewModelOf(::SettingsVM)
     viewModelOf(::BillDetailsViewModel)
+    viewModelOf(::LandlordDashboardVM)
 }
 val serviceModule = module {
     single<BuildingRepository> { BuildingRepository(get()) }

@@ -1280,6 +1280,262 @@ fun PreviewRequestCardSkeleton() {
     RequestCardSkeleton()
 }
 
+@Composable
+fun LandlordDashboardSkeleton() {
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = Modifier.padding(horizontal = 16.dp)
+    ) {
+        // Welcome header skeleton
+        item(key = "landlord_greeting_skeleton") {
+            Column(modifier = Modifier.padding(top = 8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .width(120.dp)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .shimmerEffect()
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .shimmerEffect()
+                )
+            }
+        }
+
+        // Pending actions card skeleton
+        item(key = "landlord_pending_actions_skeleton") {
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .shimmerEffect()
+                        )
+                        Column {
+                            Box(
+                                modifier = Modifier
+                                    .width(120.dp)
+                                    .height(16.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .shimmerEffect()
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Pending action items
+                    repeat(3) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .shimmerEffect()
+                        )
+                        if (it < 2) Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+            }
+        }
+
+        // Financial overview skeleton
+        item(key = "landlord_financial_overview_skeleton") {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .width(150.dp)
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .shimmerEffect()
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    repeat(2) {
+                        ElevatedCard(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .shimmerEffect()
+                                )
+                                Column {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.7f)
+                                            .height(14.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .shimmerEffect()
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.9f)
+                                            .height(20.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .shimmerEffect()
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Occupancy section skeleton
+        item(key = "landlord_occupancy_skeleton") {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .width(100.dp)
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .shimmerEffect()
+                )
+                ElevatedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .shimmerEffect()
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .width(120.dp)
+                                    .height(16.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(80.dp)
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .shimmerEffect()
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(140.dp)
+                                    .height(14.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Revenue history skeleton
+        item(key = "landlord_revenue_history_skeleton") {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .width(140.dp)
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .shimmerEffect()
+                )
+                ElevatedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .shimmerEffect()
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(120.dp)
+                                    .height(20.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                        }
+
+                        HorizontalDivider()
+
+                        repeat(3) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .shimmerEffect()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewRequestListSkeleton() {
@@ -1291,3 +1547,10 @@ fun PreviewRequestListSkeleton() {
 fun PreviewTenantDashboardSkeleton() {
     TenantDashboardSkeleton()
 }
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewLandlordDashboardSkeleton() {
+    LandlordDashboardSkeleton()
+}
+
