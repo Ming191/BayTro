@@ -69,7 +69,6 @@ fun AddBuildingScreen(
     val startFocus = remember { FocusRequester() }
     val dueFocus = remember { FocusRequester() }
 
-    // Animation states for each field
     var sectionTitleVisible by remember { mutableStateOf(false) }
     var nameFieldVisible by remember { mutableStateOf(false) }
     var floorFieldVisible by remember { mutableStateOf(false) }
@@ -487,7 +486,6 @@ fun AddBuildingScreen(
                             )
                         }
 
-                        // Use PhotoCarousel component
                         PhotoCarousel(
                             selectedPhotos = formState.selectedImages,
                             onPhotosSelected = { viewModel.updateSelectedImages(it) },
