@@ -29,7 +29,7 @@ class AddServiceVM(
     private val buildingId: String? = savedStateHandle["buildingId"]
     private val roomId: String? = savedStateHandle["roomId"]
 
-    private val isFromAddRoom: Boolean = savedStateHandle["isFromAddRoom"] ?: false
+    private val isFromAddScreen: Boolean = savedStateHandle["isFromAddScreen"] ?: false
 
     private val _uiState = MutableStateFlow<UiState<Service>>(UiState.Idle)
     val uiState: StateFlow<UiState<Service>> = _uiState
@@ -39,7 +39,7 @@ class AddServiceVM(
 
     init {
         Log.d(TAG, "init: fetching buildings for current user")
-        Log.d(TAG, "init: roomID = $roomId, buildingID = $buildingId")
+        Log.d(TAG, "init: roomID = $roomId, buildingID = $buildingId, isFromAddScreen = $isFromAddScreen" )
         fetchBuildings()
     }
 
@@ -49,7 +49,7 @@ class AddServiceVM(
         viewModelScope.launch {
             try {
                 // Auto-select building from nav args if available
-                if(buildingId != null){
+                if(!buildingId.isNullOrEmpty()){
                     val selected = buildingRepo.getById(buildingId)
                     if (selected != null) {
                         Log.d(TAG, "Auto-selected building from nav args: ${selected.name}")
@@ -60,6 +60,10 @@ class AddServiceVM(
                         _uiState.value = UiState.Error("Building not found")
                         return@launch
                     }
+                } else if(isFromAddScreen) {
+                    _formState.value = _formState.value.copy(availableBuildings = emptyList())
+                    _uiState.value = UiState.Idle
+                    return@launch
                 }
                 _uiState.value = UiState.Loading
                 val buildings = buildingRepo.getBuildingsByUserId(currentUser.uid)
@@ -153,12 +157,20 @@ class AddServiceVM(
     fun onConfirm() {
         viewModelScope.launch {
             val state = _formState.value
-            if (state.name.isBlank() || state.price.isBlank() || state.selectedBuilding == null) {
-                _uiState.value = UiState.Error("Please fill all required fields")
-                return@launch
+            Log.d("onConfirm", "confirm add service")
+            Log.d("onConfirm", "state: ${state.name}, ${state.price}, isFromAddScreen: $isFromAddScreen")
+            if (state.selectedBuilding == null) {
+                if (state.name.trim().isEmpty() || state.price.trim().isEmpty() || !isFromAddScreen) {
+                    _uiState.value = UiState.Error("Please fill all required fields")
+                    return@launch
+                }
             }
+//            if (state.name.isBlank() || state.price.isBlank() || state.selectedBuilding == null) {
+//                _uiState.value = UiState.Error("Please fill all required fields")
+//                return@launch
+//            }
 
-            Log.d(TAG, "onConfirm: Service name=${state.name}, Building=${state.selectedBuilding.name}, Selected rooms count=${state.selectedRooms.size}")
+            Log.d(TAG, "onConfirm: Service name=${state.name}, Building=${state.selectedBuilding?.name}, Selected rooms count=${state.selectedRooms.size}")
             Log.d(TAG, "onConfirm: Selected room IDs=${state.selectedRooms.joinToString()}")
 
             _uiState.value = UiState.Loading
@@ -171,20 +183,26 @@ class AddServiceVM(
                     status = Status.ACTIVE
                 )
 
+                if(isFromAddScreen) {
+                    _uiState.value = UiState.Success(newService)
+                    Log.d("onConfirm","sent service successfully")
+                    return@launch
+                }
+
                 val building = state.selectedBuilding
 
                 val allRoomsSelected = state.selectedRooms.size == state.availableRooms.size && state.availableRooms.isNotEmpty()
 
                 if (state.selectedRooms.isEmpty() || allRoomsSelected) {
-                    val serviceId = buildingRepo.addServiceToBuilding(building.id, newService)
+                    val serviceId = buildingRepo.addServiceToBuilding(building?.id.toString(), newService)
                     //updatedServices.add(newService)
-                    Log.d(TAG, "Service added to building ${building.name} in subcollection with id=$serviceId")
+                    Log.d(TAG, "Service added to building ${building?.name} in subcollection with id=$serviceId")
                     //buildingRepo.updateFields(building.id, mapOf("services" to updatedServices))
 
                     if (allRoomsSelected) {
-                        Log.d(TAG, "All rooms selected - Service added to building ${building.name} (apply to all)")
+                        Log.d(TAG, "All rooms selected - Service added to building ${building?.name} (apply to all)")
                     } else {
-                        Log.d(TAG, "No rooms selected - Service added to building ${building.name} (apply to all)")
+                        Log.d(TAG, "No rooms selected - Service added to building ${building?.name} (apply to all)")
                     }
                     _uiState.value = UiState.Success(newService)
                     return@launch

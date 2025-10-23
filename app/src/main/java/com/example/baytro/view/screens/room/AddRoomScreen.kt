@@ -3,7 +3,6 @@ package com.example.baytro.view.screens.room
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,8 +31,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import androidx.navigation.NavHostController
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.service.Service
 import com.example.baytro.view.components.ChoiceSelection
@@ -48,6 +47,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun AddRoomScreen(
+    getNewExtraService: (LifecycleOwner, (Service) -> Unit) -> Unit,
     backToRoomListScreen: () -> Unit,
     onAddServiceClick: (String, String) -> Unit,
     viewModel: AddRoomVM = koinViewModel()
@@ -62,11 +62,22 @@ fun AddRoomScreen(
     val uiState by viewModel.addRoomUIState.collectAsState()
     val formState by viewModel.addRoomFormState.collectAsState()
     val building by viewModel.building.collectAsState()
-    val services by viewModel.services.collectAsState()
+    val services by viewModel.extraServices.collectAsState()
     val context : Context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     Log.d("AddRoomScreen", "services: ${services.size}")
+    LaunchedEffect(Unit) { // chỉ chạy 1 lần khi composable được tạo
+        getNewExtraService(lifecycleOwner) { service ->
+            viewModel.onExtraServiceChange(service)
+            Log.d("AddRoomScreen", "Received new service: $service")
+        }
+    }
 
     LaunchedEffect(uiState) {
+//        getNewExtraService(lifecycleOwner) { service ->
+//            viewModel.onExtraServiceChange(service)
+//            Log.d("AddRoomScreen", "Received new service: $service")
+//        }
         if (uiState is UiState.Success) {
             Toast.makeText(
                 context,
@@ -201,7 +212,7 @@ fun AddRoomScreen(
                             modifier = Modifier.
                             padding(end = 8.dp)
                                 .clickable {
-                                    onAddServiceClick("",building?.id.toString())
+                                    onAddServiceClick("","",)
                                 }
                         )
                         Text("Add service here")
@@ -219,13 +230,14 @@ fun AddRoomScreen(
                         contentDescription = null,
                         modifier = Modifier.padding(end = 8.dp)
                             .clickable {
-                                onAddServiceClick(null.toString(),building?.id.toString())
+                                onAddServiceClick("","")
                             }
                     )
                     Text("Add service here")
                 }
             }
         }
+
         item {
             SubmitButton(
                 isLoading = uiState is UiState.Loading,

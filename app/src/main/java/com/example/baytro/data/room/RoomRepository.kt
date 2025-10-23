@@ -121,6 +121,25 @@ class RoomRepository(
         return collection.document(id).snapshots.map { it.data<Room>() }
     }
 
+    suspend fun getExtraServicesByRoomId(roomId: String): List<Service> {
+        return try {
+            val snapshot = collection.document(roomId)
+                .collection("extraServices")
+                .get()
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    val service = doc.data<Service>()
+                    service.copy(id = doc.id)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching extra services for room $roomId: ${e.message}")
+            emptyList()
+        }
+    }
+
     fun listenToRoomExtraServices(roomId: String): Flow<List<Service>> {
         return collection.document(roomId)
             .collection("extraServices")

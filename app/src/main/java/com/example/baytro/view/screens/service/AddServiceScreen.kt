@@ -58,6 +58,7 @@ import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.service.AddServiceFormState
 import com.example.baytro.viewModel.service.AddServiceVM
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -73,19 +74,25 @@ fun AddServiceScreen(
     var showContent by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState) {
+        Log.d("AddServiceScreen", "VM hash: ${viewModel.hashCode()}")
         when (uiState) {
             is UiState.Loading -> {
+                Log.d("AddServiceScreen", "Loading...")
                 if (!showContent) {
                     showLoading = true
                 }
             }
             is UiState.Idle, is UiState.Waiting -> {
+                Log.d("AddServiceScreen", "Idle or Waiting...")
                 showLoading = false
                 delay(300)
                 showContent = true
             }
-            is UiState.Success -> {}
+            is UiState.Success -> {
+//
+            }
             is UiState.Error -> {
+                Log.d("AddServiceScreen", "Error...")
                 showLoading = false
                 showContent = true
             }
@@ -127,8 +134,20 @@ fun AddServiceScreen(
 
         when (uiState) {
             is UiState.Success -> {
+                val newService = (uiState as UiState.Success<Service>).data
+                Log.d("AddServiceScreen", "Sending newService $newService back to previous screen")
+
+                val jsonService = Json.encodeToString(newService)
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("newService", jsonService)
+
                 Toast.makeText(
-                    LocalContext.current, "Thêm dịch vụ thành công!", Toast.LENGTH_SHORT).show()
+                    LocalContext.current,
+                    "Thêm dịch vụ thành công!",
+                    Toast.LENGTH_SHORT
+                ).show()
+
                 navController.popBackStack()
                 viewModel.clearError()
             }

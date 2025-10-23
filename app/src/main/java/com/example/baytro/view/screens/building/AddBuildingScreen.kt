@@ -1,7 +1,9 @@
 package com.example.baytro.view.screens.building
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,11 +15,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -25,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,15 +44,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
+import com.example.baytro.data.service.Service
+import com.example.baytro.navigation.Screens
 import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.viewModel.AddBuildingVM
+import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,14 +67,28 @@ fun AddBuildingScreen(
     viewModel: AddBuildingVM = koinViewModel()
 ) {
     val uiState by viewModel.addBuildingUIState.collectAsState()
+    val addBuildingFormState by viewModel.addBuildingFormState.collectAsState()
     val context = LocalContext.current
-    var name by remember { mutableStateOf("") }
-    var floor by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf("Active") }
-    var billingDate by remember { mutableStateOf("") }
-    var paymentStart by remember { mutableStateOf("") }
-    var paymentDue by remember { mutableStateOf("") }
+    val name: (String) -> Unit = viewModel::onNameChange
+    val floor: (String) -> Unit = viewModel::onFloorChange
+    val address: (String) -> Unit = viewModel::onAddressChange
+    val status: (String) -> Unit = viewModel::onStatusChange
+    val billingDate: (String) -> Unit = viewModel::onBillingDateChange
+    val paymentStart: (String) -> Unit = viewModel::onPaymentStartChange
+    val paymentDue: (String) -> Unit = viewModel::onPaymentDueChange
+
+    val buildingServices by viewModel.buildingServices.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(navController) {
+        val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
+        savedStateHandle?.getLiveData<String>("newService")?.observe(lifecycleOwner) { json ->
+            val service = Json.decodeFromString<Service>(json)
+            Log.d("ServiceListScreen", "Received new service: $service")
+            // xử lý thêm service vào danh sách hoặc cập nhật UI
+            viewModel.onBuildingServicesChange(service)
+            savedStateHandle.remove<String>("newService")
+        }
+    }
 
     var nameError by remember { mutableStateOf(false) }
     var floorError by remember { mutableStateOf(false) }
@@ -124,13 +151,13 @@ fun AddBuildingScreen(
                     subhead = "Building Details"
                 )
             }
-            
+
             item {
                 RequiredTextField(
-                    value = name,
+                    value = addBuildingFormState.name,
                     onValueChange = {
-                        name = it
-                        val res = BuildingValidator.validateName(name)
+                        name(it)
+                        val res = BuildingValidator.validateName(addBuildingFormState.name)
                         nameError = res.isError; nameErrorMsg = res.message
                     },
                     label = "Building name",
@@ -146,10 +173,10 @@ fun AddBuildingScreen(
 
             item {
                 OutlinedTextField(
-                    value = floor,
-                    onValueChange = { newValue ->
-                        floor = newValue
-                        val res = BuildingValidator.validateFloor(floor)
+                    value = addBuildingFormState.floor,
+                    onValueChange = {
+                        floor(it)
+                        val res = BuildingValidator.validateFloor(addBuildingFormState.floor)
                         floorError = res.isError; floorErrorMsg = res.message
                     },
                     label = { Text("Floor") },
@@ -174,10 +201,10 @@ fun AddBuildingScreen(
 
             item {
                 RequiredTextField(
-                    value = address,
+                    value = addBuildingFormState.address,
                     onValueChange = {
-                        address = it
-                        val res = BuildingValidator.validateAddress(address)
+                        address(it)
+                        val res = BuildingValidator.validateAddress(addBuildingFormState.address)
                         addressError = res.isError; addressErrorMsg = res.message
                     },
                     label = "Address",
@@ -195,8 +222,8 @@ fun AddBuildingScreen(
                 DropdownSelectField(
                     label = "Status",
                     options = listOf("Active", "Inactive"),
-                    selectedOption = status,
-                    onOptionSelected = { status = it },
+                    selectedOption = addBuildingFormState.status,
+                    onOptionSelected = status ,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -212,10 +239,10 @@ fun AddBuildingScreen(
 
             item {
                 OutlinedTextField(
-                    value = billingDate,
-                    onValueChange = { newValue ->
-                        billingDate = newValue
-                        val res = BuildingValidator.validateBillingDate(billingDate)
+                    value = addBuildingFormState.billingDate,
+                    onValueChange = {
+                        billingDate(it)
+                        val res = BuildingValidator.validateBillingDate(addBuildingFormState.billingDate)
                         billingError = res.isError; billingErrorMsg = res.message
                     },
                     label = { Text("Billing date") },
@@ -245,11 +272,11 @@ fun AddBuildingScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         OutlinedTextField(
-                            value = paymentStart,
-                            onValueChange = { newValue ->
-                                paymentStart = newValue
+                            value = addBuildingFormState.paymentStart,
+                            onValueChange = {
+                                paymentStart(it)
                                 val res =
-                                    BuildingValidator.validatePaymentStart(paymentStart)
+                                    BuildingValidator.validatePaymentStart(addBuildingFormState.paymentStart)
                                 startError = res.isError; startErrorMsg = res.message
                             },
                             label = { Text("Payment start") },
@@ -273,11 +300,11 @@ fun AddBuildingScreen(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         OutlinedTextField(
-                            value = paymentDue,
-                            onValueChange = { newValue ->
-                                paymentDue = newValue
+                            value = addBuildingFormState.paymentDue,
+                            onValueChange = {
+                                paymentDue(it)
                                 val res =
-                                    BuildingValidator.validatePaymentDue(paymentDue)
+                                    BuildingValidator.validatePaymentDue(addBuildingFormState.paymentDue)
                                 dueError = res.isError; dueErrorMsg = res.message
                             },
                             label = { Text("Payment due") },
@@ -301,6 +328,65 @@ fun AddBuildingScreen(
                     }
                 }
             }
+
+            item {
+                DividerWithSubhead(subhead = "Services")
+                if (buildingServices.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .verticalScroll(rememberScrollState()) // Scroll độc lập
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        buildingServices.forEach { service ->
+                            ServiceCard(
+                                service = service,
+                                onEdit = null,
+                                onDelete = null
+                            )
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.
+                                padding(end = 8.dp)
+                                    .clickable {
+                                        navController?.navigate(Screens.AddService.createRoute("","",true))
+                                        //onAddServiceClick("",building?.id.toString())
+                                    }
+                            )
+                            Text("Add service here")
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 8.dp)
+                                .clickable {
+                                    //onAddServiceClick(null.toString(),building?.id.toString())
+                                }
+                        )
+                        Text("Add service here")
+                    }
+                }
+            }
+
 
             item {
                 DividerWithSubhead(
@@ -356,12 +442,12 @@ fun AddBuildingScreen(
                         dueError = false; dueErrorMsg = null
 
                         val checks = listOf(
-                            "name" to BuildingValidator.validateName(name),
-                            "floor" to BuildingValidator.validateFloor(floor),
-                            "address" to BuildingValidator.validateAddress(address),
-                            "billing" to BuildingValidator.validateBillingDate(billingDate),
-                            "start" to BuildingValidator.validatePaymentStart(paymentStart),
-                            "due" to BuildingValidator.validatePaymentDue(paymentDue),
+                            "name" to BuildingValidator.validateName(addBuildingFormState.name),
+                            "floor" to BuildingValidator.validateFloor(addBuildingFormState.floor),
+                            "address" to BuildingValidator.validateAddress(addBuildingFormState.address),
+                            "billing" to BuildingValidator.validateBillingDate(addBuildingFormState.billingDate),
+                            "start" to BuildingValidator.validatePaymentStart(addBuildingFormState.paymentStart),
+                            "due" to BuildingValidator.validatePaymentDue(addBuildingFormState.paymentDue),
                         )
                         val firstInvalid = checks.firstOrNull { it.second.isError }
 
@@ -401,16 +487,16 @@ fun AddBuildingScreen(
 
                         val allGood = firstInvalid == null
                         if (allGood) {
-                            val floorInt = floor.toInt()
-                            val billingDateInt = billingDate.toInt()
-                            val paymentStartInt = paymentStart.toInt()
-                            val paymentDueInt = paymentDue.toInt()
+                            val floorInt = addBuildingFormState.floor.toInt()
+                            val billingDateInt = addBuildingFormState.billingDate.toInt()
+                            val paymentStartInt = addBuildingFormState.paymentStart.toInt()
+                            val paymentDueInt = addBuildingFormState.paymentDue.toInt()
                             val building = Building(
                                 id = "",
-                                name = name,
+                                name = addBuildingFormState.name,
                                 floor = floorInt,
-                                address = address,
-                                status = status,
+                                address = addBuildingFormState.address,
+                                status = addBuildingFormState.status,
                                 billingDate = billingDateInt,
                                 paymentStart = paymentStartInt,
                                 paymentDue = paymentDueInt,

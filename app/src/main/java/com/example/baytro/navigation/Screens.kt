@@ -12,6 +12,8 @@ sealed class Screens(val route: String, val title: String) {
         const val ARG_REQUEST_ID = "requestId"
         const val ARG_LANDLORD_ID = "landlordId"
         const val ARG_SERVICE_ID = "serviceId"
+
+        const val ARG_IS_FROM_ADD_SCREEN = "isFromAddScreen"
     }
 
     object SplashScreen : Screens("splash_screen", "")
@@ -32,14 +34,14 @@ sealed class Screens(val route: String, val title: String) {
     object ContractList : Screens("contracts_screen", "Contracts")
     object MaintenanceRequestList : Screens("maintenance_screen", "Maintenance")
     object ServiceList : Screens("services_screen", "Services")
-    object AddService : Screens("add_service_screen/{$ARG_ROOM_ID}/{$ARG_BUILDING_ID}", "Add Service") {
+    object AddService : Screens("add_service_screen/{$ARG_ROOM_ID}/{$ARG_BUILDING_ID}/{$ARG_IS_FROM_ADD_SCREEN}", "Add Service") {
         val arguments = listOf(
             navArgument(ARG_ROOM_ID) { type = NavType.StringType },
             navArgument(ARG_BUILDING_ID) { type = NavType.StringType },
-            //navArgument("isFromAddRoom") { type = NavType.BoolType; defaultValue = false }
+            navArgument(ARG_IS_FROM_ADD_SCREEN) { type = NavType.BoolType; defaultValue = false }
 
         )
-        fun createRoute(roomId: String, buildingId: String) = "add_service_screen/$roomId/$buildingId"
+        fun createRoute(roomId: String, buildingId: String, isFromAddScreen: Boolean) = "add_service_screen/$roomId/$buildingId/$isFromAddScreen"
     }
 
     object EditService : Screens(

@@ -249,7 +249,7 @@ fun ServiceListContent (
         FloatingActionButton(
             onClick = {
                 Log.d("ServiceListContent", "FAB clicked - navigating to AddService")
-                navController.navigate(Screens.AddService.createRoute("", formState.selectedBuilding?.id.toString()))
+                navController.navigate(Screens.AddService.createRoute("", "",false))
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)

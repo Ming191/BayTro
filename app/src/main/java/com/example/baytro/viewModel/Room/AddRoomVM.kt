@@ -32,14 +32,14 @@ class AddRoomVM(
     private val _building = MutableStateFlow<Building?>(null)
     val building: StateFlow<Building?> = _building
 
-    private val _services = MutableStateFlow<List<Service>>(emptyList())
-    val services: StateFlow<List<Service>> = _services
+    private val _extraServices = MutableStateFlow<List<Service>>(emptyList())
+    val extraServices: StateFlow<List<Service>> = _extraServices
 
     var existingRooms = emptyList<Room>()
 
     init {
         loadBuilding()
-        loadService()
+        //loadService()
         viewModelScope.launch {
             existingRooms = roomRepository.getRoomsByBuildingId(buildingId)
         }
@@ -56,16 +56,16 @@ class AddRoomVM(
         }
     }
 
-    private fun loadService() {
-        viewModelScope.launch {
-            try {
-                val services = buildingRepository.getServicesByBuildingId(buildingId)
-                _services.value = services
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
+//    private fun loadService() {
+//        viewModelScope.launch {
+//            try {
+//                val services = buildingRepository.getServicesByBuildingId(buildingId)
+//                _extraServices.value = services
+//            } catch (e: Exception) {
+//                e.printStackTrace()
+//            }
+//        }
+//    }
     fun onRoomNumberChange(roomNumber: String) {
         _addRoomFormState.value = _addRoomFormState.value.copy(roomNumber = roomNumber)
     }
@@ -87,6 +87,13 @@ class AddRoomVM(
         )
     }
 
+    fun onExtraServiceChange(service: Service) {
+        val updatedServices = _extraServices.value.toMutableList()
+        updatedServices.add(service)
+        _extraServices.value = updatedServices
+        _addRoomFormState.value = _addRoomFormState.value.copy(_extraService = updatedServices)
+    }
+
     fun onInteriorChange(interior: Furniture) {
         _addRoomFormState.value = _addRoomFormState.value.copy(interior = interior)
     }
@@ -103,7 +110,6 @@ class AddRoomVM(
             sizeError = AddRoomValidator.validateSize(form.size),
             rentalFeeError = AddRoomValidator.validateRentalFee(form.rentalFee),
             interiorError = AddRoomValidator.validateInterior(form.interior),
-
         )
         _addRoomFormState.value = updated
         if (listOf(
@@ -129,10 +135,13 @@ class AddRoomVM(
                 rentalFee = formState.rentalFee.toIntOrNull()?:0,
                 status = Status.AVAILABLE,
                 interior = formState.interior,
-                extraService = services.value
+                //extraService = _services.value
             )
             viewModelScope.launch {
-                roomRepository.add(newRoom)
+                val newRoomId = roomRepository.add(newRoom)
+                _extraServices.value.forEach { service ->
+                    roomRepository.addExtraServiceToRoom(newRoomId, service)
+                }
                 _addRoomUIState.value = UiState.Success(newRoom)
             }
         }
