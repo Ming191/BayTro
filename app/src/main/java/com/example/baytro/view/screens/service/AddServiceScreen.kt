@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.service
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -44,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
 import com.example.baytro.data.service.Metric
@@ -56,6 +58,7 @@ import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.service.AddServiceFormState
 import com.example.baytro.viewModel.service.AddServiceVM
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -66,23 +69,30 @@ fun AddServiceScreen(
     val formState by viewModel.formState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
+
     var showLoading by remember { mutableStateOf(true) }
     var showContent by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState) {
+        Log.d("AddServiceScreen", "VM hash: ${viewModel.hashCode()}")
         when (uiState) {
             is UiState.Loading -> {
+                Log.d("AddServiceScreen", "Loading...")
                 if (!showContent) {
                     showLoading = true
                 }
             }
             is UiState.Idle, is UiState.Waiting -> {
+                Log.d("AddServiceScreen", "Idle or Waiting...")
                 showLoading = false
                 delay(300)
                 showContent = true
             }
-            is UiState.Success -> {}
+            is UiState.Success -> {
+//
+            }
             is UiState.Error -> {
+                Log.d("AddServiceScreen", "Error...")
                 showLoading = false
                 showContent = true
             }
@@ -113,15 +123,31 @@ fun AddServiceScreen(
                 onToggleRoom = { viewModel.onToggleRoom(it) },
                 onToggleSelectAll = { viewModel.onToggleSelectAll() },
                 onSearchTextChange = { viewModel.onSearchTextChange(it) },
-                onConfirm = { viewModel.onConfirm() },
+                onConfirm = {
+
+                        viewModel.onConfirm()
+
+                },
                 isLoading = uiState is UiState.Loading
             )
         }
 
         when (uiState) {
             is UiState.Success -> {
+                val newService = (uiState as UiState.Success<Service>).data
+                Log.d("AddServiceScreen", "Sending newService $newService back to previous screen")
+
+                val jsonService = Json.encodeToString(newService)
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("newService", jsonService)
+
                 Toast.makeText(
-                    LocalContext.current, "Thêm dịch vụ thành công!", Toast.LENGTH_SHORT).show()
+                    LocalContext.current,
+                    "Thêm dịch vụ thành công!",
+                    Toast.LENGTH_SHORT
+                ).show()
+
                 navController.popBackStack()
                 viewModel.clearError()
             }

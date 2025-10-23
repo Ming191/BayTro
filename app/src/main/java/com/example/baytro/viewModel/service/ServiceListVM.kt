@@ -104,14 +104,9 @@ class ServiceListVM(
         }
     }
 
-    fun onEditService(service: Service, navController: NavHostController) {
-        val building = _serviceListFormState.value.selectedBuilding
-        if (building != null) {
-            _serviceListFormState.value = _serviceListFormState.value.copy(selectedService = service)
-            navController.navigate("edit_service_screen/${building.id}/${service.id}")
-        } else {
-            Log.w(TAG, "No building selected — cannot navigate to edit screen")
-        }
+    fun onEditService(service: Service) {
+        _serviceListFormState.value = _serviceListFormState.value.copy(selectedService = service)
+        // TODO: Navigate to edit screen
     }
 
 
@@ -119,34 +114,25 @@ class ServiceListVM(
         viewModelScope.launch {
             try {
                 _serviceListUiState.value = UiState.Loading
+
                 val building = _serviceListFormState.value.selectedBuilding
                 if (building == null) {
                     _serviceListUiState.value = UiState.Error("No building selected")
                     return@launch
                 }
 
-                val updatedServices = building.services.toMutableList()
+                //  Xóa service khỏi subcollection "services" trong building
+                buildingRepo.deleteServiceFromBuilding(building.id, service.id)
 
-                val removed = updatedServices.removeAll {
-                    it.name == service.name &&
-                            it.price == service.price &&
-                            it.metric == service.metric
-                }
-
-                if (!removed) {
-                    Log.w(TAG, "Service not found in building's service list")
-                    _serviceListUiState.value = UiState.Error("Service not found")
-                    return@launch
-                }
-
-                buildingRepo.updateFields(building.id, mapOf("services" to updatedServices))
-
-                _serviceListFormState.value = _serviceListFormState.value.copy(
-                    selectedBuilding = building.copy(services = updatedServices)
-                )
+                //  Xóa khỏi UI tạm thời (để giao diện update luôn)
+//                val updatedList = building.services.filterNot { it.id == service.id }
+//
+//                _serviceListFormState.value = _serviceListFormState.value.copy(
+//                    selectedBuilding = building.copy(services = updatedList)
+//                )
 
                 Log.d(TAG, "Service deleted successfully: ${service.name}")
-                _serviceListUiState.value = UiState.Success(updatedServices)
+                //_serviceListUiState.value = UiState.Success(updatedList)
             } catch (e: Exception) {
                 Log.e(TAG, "deleteService error", e)
                 _serviceListUiState.value =
@@ -154,6 +140,7 @@ class ServiceListVM(
             }
         }
     }
+
 
     fun clearError() {
         _serviceListUiState.value = UiState.Idle

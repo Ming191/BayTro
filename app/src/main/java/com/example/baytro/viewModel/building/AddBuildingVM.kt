@@ -21,6 +21,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.launch
 
 data class AddBuildingFormState(
@@ -32,6 +33,7 @@ data class AddBuildingFormState(
     val paymentStart: String = "",
     val paymentDue: String = "",
     val selectedImages: List<Uri> = emptyList(),
+    val buildingServices: List<Service> = emptyList(),
 
     val nameError: Boolean = false,
     val floorError: Boolean = false,
@@ -61,6 +63,12 @@ class AddBuildingVM(
     private val _formState = MutableStateFlow(AddBuildingFormState())
     val formState: StateFlow<AddBuildingFormState> = _formState.asStateFlow()
 
+    private val _buildingServices = MutableStateFlow<List<Service>>(emptyList())
+    val buildingServices: StateFlow<List<Service>> = _buildingServices
+
+    init {
+        createDefaultServices()
+    }
     // Form field update methods
     fun updateName(value: String) {
         val validation = BuildingValidator.validateName(value)
@@ -118,6 +126,14 @@ class AddBuildingVM(
             dueError = validation.isError,
             dueErrorMsg = validation.message
         )
+    }
+
+    fun onBuildingServicesChange(service: Service) {
+        Log.d("AddBuildingVM", "onBuildingServicesChange: $service")
+        val updateBuildingServices = _buildingServices.value.toMutableList()
+        updateBuildingServices.add(service)
+        _buildingServices.value = updateBuildingServices
+        _formState.value = _formState.value.copy(buildingServices = updateBuildingServices)
     }
 
     fun updateSelectedImages(images: List<Uri>) {
@@ -193,8 +209,8 @@ class AddBuildingVM(
         }
     }
 
-    private fun createDefaultServices(): List<Service> {
-        return listOf(
+    private fun createDefaultServices() {
+        val services =  listOf(
             Service(
                 name = "Water",
                 price = "18000",
@@ -208,21 +224,36 @@ class AddBuildingVM(
                 status = Status.ACTIVE
             )
         )
+        _formState.value = _formState.value.copy(
+            buildingServices = services
+        )
+        _buildingServices.value = services
     }
 
     fun addBuilding(building: Building) {
         viewModelScope.launch {
             _addBuildingUIState.value = AuthUIState.Loading
+            _formState.value = _formState.value.copy(
+                name = building.name,
+                floor = building.floor.toString(),
+                address = building.address,
+                status = BuildingStatus.ACTIVE,
+                billingDate = building.billingDate.toString(),
+                paymentStart = building.paymentStart.toString(),
+                paymentDue = building.paymentDue.toString(),
+            )
             try {
                 val currentUser = authRepository.getCurrentUser()
                     ?: throw IllegalStateException("No logged in user found")
                 
                 val buildingWithDefaults = building.copy(
                     userId = currentUser.uid,
-                    services = createDefaultServices()
+                    services = _buildingServices.value
                 )
                 val newId = buildingRepository.add(buildingWithDefaults)
-
+                buildingServices.value.forEach { services ->
+                    buildingRepository.addServiceToBuilding(newId, services)
+                }
                 // Update the document to include its own ID
                 buildingRepository.updateFields(newId, mapOf("id" to newId))
                 
@@ -245,7 +276,7 @@ class AddBuildingVM(
                 val buildingWithDefaults = building.copy(
                     userId = currentUser.uid,
                     imageUrls = emptyList(),
-                    services = createDefaultServices()
+                    services = buildingServices.value
                 )
                 val newId = buildingRepository.add(buildingWithDefaults)
 

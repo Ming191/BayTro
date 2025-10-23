@@ -11,6 +11,8 @@ sealed class Screens(val route: String, val title: String) {
         const val ARG_ROOM_ID = "roomId"
         const val ARG_REQUEST_ID = "requestId"
         const val ARG_LANDLORD_ID = "landlordId"
+
+        const val ARG_IS_FROM_ADD_SCREEN = "isFromAddScreen"
         const val ARG_TENANT_ID = "tenantId"
         const val ARG_BILL_ID = "billId"
         const val ARG_ROOM_NAME = "roomName"
@@ -39,7 +41,41 @@ sealed class Screens(val route: String, val title: String) {
     object ContractList : Screens("contracts_screen", "Contracts")
     object MaintenanceRequestList : Screens("maintenance_screen", "Maintenance")
     object ServiceList : Screens("services_screen", "Services")
-    object AddService : Screens("add_service_screen", "Add Service")
+    object AddService : Screens("add_service_screen/{$ARG_ROOM_ID}/{$ARG_BUILDING_ID}/{$ARG_IS_FROM_ADD_SCREEN}", "Add Service") {
+        val arguments = listOf(
+            navArgument(ARG_ROOM_ID) { type = NavType.StringType },
+            navArgument(ARG_BUILDING_ID) { type = NavType.StringType },
+            navArgument(ARG_IS_FROM_ADD_SCREEN) { type = NavType.BoolType; defaultValue = false }
+
+        )
+        fun createRoute(roomId: String, buildingId: String, isFromAddScreen: Boolean) = "add_service_screen/$roomId/$buildingId/$isFromAddScreen"
+    }
+
+    object EditService : Screens(
+        "edit_service_screen/{${ARG_SERVICE_ID}}?${ARG_BUILDING_ID}={${ARG_BUILDING_ID}}&${ARG_ROOM_ID}={${ARG_ROOM_ID}}",
+        "Edit Service"
+    ) {
+        val arguments = listOf(
+            navArgument(ARG_BUILDING_ID) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null },
+            navArgument(ARG_ROOM_ID) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            },
+            navArgument(ARG_SERVICE_ID) { type = NavType.StringType }
+        )
+
+        fun createRoute(buildingId: String, serviceId: String): String {
+            return "edit_service_screen/$serviceId?${ARG_BUILDING_ID}=$buildingId"
+        }
+        //overload used for nav from room
+        fun createRouteFromRoom(roomId: String, serviceId: String): String {
+            return "edit_service_screen/$serviceId?${ARG_ROOM_ID}=$roomId"
+        }
+    }
     object NewLandlordUser : Screens("new_landlord_user_screen", "New Landlord")
     object NewTenantUser : Screens("new_tenant_user_screen", "New Tenant")
     object AddContract : Screens("add_contract_screen/{$ARG_ROOM_ID}", "Add Contract") {
@@ -68,23 +104,6 @@ sealed class Screens(val route: String, val title: String) {
         fun createRoute(contractId: String, roomId: String, buildingId: String, landlordId: String, roomName: String, buildingName: String) =
             "meter_reading_screen/$contractId/$roomId/$buildingId/$landlordId/$roomName/$buildingName"
     }
-
-    object EditService : Screens(
-        "edit_service_screen/{$ARG_BUILDING_ID}/{$ARG_SERVICE_ID}",
-        "Edit Service"
-    ) {
-        const val ARG_SERVICE_ID = "serviceId"
-
-        val arguments = listOf(
-            navArgument(ARG_BUILDING_ID) { type = NavType.StringType },
-            navArgument(ARG_SERVICE_ID) { type = NavType.StringType }
-        )
-
-        fun createRoute(buildingId: String, serviceId: String): String {
-            return "edit_service_screen/$buildingId/$serviceId"
-        }
-    }
-
 
     object PendingMeterReadings : Screens("pending_meter_readings_screen", "Pending Readings")
     object MeterReadingHistory : Screens("meter_reading_history/{$ARG_CONTRACT_ID}", "Reading History") {

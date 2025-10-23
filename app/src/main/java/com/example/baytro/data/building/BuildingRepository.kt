@@ -52,9 +52,7 @@ class BuildingRepository(
     }
 
     suspend fun getBuildingsByIds(buildingIds: List<String>): List<Building> {
-        if (buildingIds.isEmpty()) {
-            return emptyList()
-        }
+        if (buildingIds.isEmpty()) return emptyList()
 
         return try {
             val batches = buildingIds.chunked(10)
@@ -109,23 +107,70 @@ class BuildingRepository(
     }
 
     fun listenToBuildingServices(buildingId: String): Flow<List<Service>> {
-        return collection.document(buildingId).snapshots.map { snapshot ->
-            if (snapshot.exists) {
-                val building = snapshot.data<Building>()
-                building.services
-            } else {
-                emptyList()
+        return collection.document(buildingId)
+            .collection("services")
+            .snapshots
+            .map { querySnapshot ->
+                querySnapshot.documents.mapNotNull { doc ->
+                    try {
+                        val service = doc.data<Service>()
+                        service.copy(id = doc.id)
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
             }
-        }
     }
 
     suspend fun getServicesByBuildingId(buildingId: String): List<Service> {
-        val snapshot = collection.document(buildingId).get()
-        return if (snapshot.exists) {
-            val building = snapshot.data<Building>()
-            building.services
-        } else {
+        return try {
+            val snapshot = collection.document(buildingId)
+                .collection("services")
+                .get()
+
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    val service = doc.data<Service>()
+                    service.copy(id = doc.id)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    suspend fun addServiceToBuilding(buildingId: String, service: Service): String {
+        val docRef = collection.document(buildingId)
+            .collection("services")
+            .add(service)
+        return docRef.id
+    }
+
+    suspend fun getServiceById(buildingId: String, serviceId: String): Service? {
+        val snapshot = collection.document(buildingId)
+            .collection("services")
+            .document(serviceId)
+            .get()
+
+        return if (snapshot.exists) {
+            val service = snapshot.data<Service>()
+            service.copy(id = serviceId)
+        } else null
+    }
+
+    suspend fun updateServiceInBuilding(buildingId: String, service: Service) {
+        collection.document(buildingId)
+            .collection("services")
+            .document(service.id)
+            .set(service)
+    }
+
+    suspend fun deleteServiceFromBuilding(buildingId: String, serviceId: String) {
+       collection.document(buildingId)
+            .collection("services")
+            .document(serviceId)
+            .delete()
     }
 }

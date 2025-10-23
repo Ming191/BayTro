@@ -55,8 +55,8 @@ fun ServiceActionButton(
 @Composable
 fun ServiceCard(
     service: Service,
-    onEdit: (Service) -> Unit,
-    onDelete: (Service) -> Unit
+    onEdit: ((Service) -> Unit)?,
+    onDelete: ((Service) -> Unit)?
 ) {
     Box(
         modifier = Modifier
@@ -76,9 +76,7 @@ fun ServiceCard(
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-
-                ) {
+                Row{
                     Spacer(
                         modifier = Modifier
                             .height(8.dp)
@@ -105,29 +103,29 @@ fun ServiceCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
                 ) {
-                    ServiceActionButton(
-                        icon = Icons.Filled.Edit,
-                        contentDescription = "Edit",
-                        backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                        onClick = { onEdit(service) }
-                    )
-
+                    if(onEdit != null) {
+                        ServiceActionButton(
+                            icon = Icons.Filled.Edit,
+                            contentDescription = "Edit",
+                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                            onClick = { onEdit(service) }
+                        )
+                    }
                     Spacer(
                         modifier = Modifier
                             .width(16.dp)
                     )
-
-                    if (onDelete(service) != {}) {
+                    // Chỉ hiển thị nút xóa cho các dịch vụ không phải là nước và điện
+                    if(
+                        onDelete != null &&
+                        !service.name.equals("water", ignoreCase = true) &&
+                        !service.name.equals("electricity", ignoreCase = true)
+                    ) {
                         ServiceActionButton(
                             icon = Icons.Filled.Delete,
                             contentDescription = "Delete",
                             backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
                             onClick = { onDelete(service) }
-                        )
-
-                        Spacer(
-                            modifier = Modifier
-                                .width(16.dp)
                         )
                     }
                 }

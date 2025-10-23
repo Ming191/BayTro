@@ -1,5 +1,7 @@
 package com.example.baytro.navigation
 
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -135,7 +137,7 @@ fun AppScaffold (
                 ) {
                     AppNavigationController(
                         navHostController = navHostController,
-                        startDestination = Screens.Dashboard.route,
+                        startDestination = Screens.Dashboard.route
                     )
                 }
             },
