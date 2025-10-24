@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.contract
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -95,6 +96,7 @@ fun EditContractScreen(
     )
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditContractContent(
@@ -116,35 +118,10 @@ fun EditContractContent(
     }
 
     Scaffold(
-        bottomBar = {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(animationSpec = tween(300, delayMillis = 550)) + slideInVertically(
-                    animationSpec = tween(300, delayMillis = 550),
-                    initialOffsetY = { it / 3 }
-                ),
-                exit = fadeOut(animationSpec = tween(200))
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 0.dp, bottom = 32.dp, start = 16.dp, end = 16.dp)
-                ) {
-                    SubmitButton(
-                        text = "Update",
-                        isLoading = uiState is UiState.Loading,
-                        onClick = onSubmit,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    )
-                }
-            }
-        },
-        content = { innerPadding ->
+        content = {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .padding(16.dp)
             ) {
                 item {
@@ -373,6 +350,31 @@ fun EditContractContent(
                             existingImageUrls = formState.existingPhotosURL,
                             maxSelectionCount = 5,
                         )
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn(animationSpec = tween(300, delayMillis = 550)) + slideInVertically(
+                            animationSpec = tween(300, delayMillis = 550),
+                            initialOffsetY = { it / 3 }
+                        ),
+                        exit = fadeOut(animationSpec = tween(200))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 0.dp, bottom = 32.dp, start = 16.dp, end = 16.dp)
+                        ) {
+                            SubmitButton(
+                                text = "Update",
+                                isLoading = uiState is UiState.Loading,
+                                onClick = onSubmit,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                            )
+                        }
                     }
                 }
             }

@@ -12,14 +12,15 @@ import com.example.baytro.data.request.RequestRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.data.user.UserRoleCache
+import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import com.example.baytro.utils.AvatarCache
 import com.example.baytro.service.FptAiService
 import com.example.baytro.service.MeterReadingApiService
 import com.example.baytro.utils.cloudFunctions.DashboardCloudFunctions
 import com.example.baytro.utils.cloudFunctions.MeterReadingCloudFunctions
-import com.example.baytro.viewModel.AddBuildingVM
-import com.example.baytro.viewModel.BuildingListVM
-import com.example.baytro.viewModel.EditBuildingVM
+import com.example.baytro.viewModel.building.AddBuildingVM
+import com.example.baytro.viewModel.building.BuildingListVM
+import com.example.baytro.viewModel.building.EditBuildingVM
 import com.example.baytro.viewModel.Room.AddRoomVM
 import com.example.baytro.viewModel.Room.EditRoomVM
 import com.example.baytro.viewModel.Room.RoomDetailsVM
@@ -95,12 +96,13 @@ val appModule = module {
     single { Gson() }
     single<FirebaseFunctions> { Firebase.functions }
     single { AvatarCache(get()) }
+    single<BuildingCloudFunctions> { BuildingCloudFunctions(get(), get()) }
 
 }
 
 val authModule = module {
     single<UserRepository> { UserRepository(get()) }
-    single<BuildingRepository> { BuildingRepository(get()) }
+    single<BuildingRepository> { BuildingRepository(get(), get()) }
     single<AuthRepository> { FirebaseAuthRepository(get(), get()) }
     single<MediaRepository> { MediaRepository(get()) }
     single<RoomRepository> { RoomRepository(get()) }
@@ -113,7 +115,6 @@ val authModule = module {
     single<MeterReadingRepository> { MeterReadingRepository(get()) }
     single<MeterReadingCloudFunctions> { MeterReadingCloudFunctions(get()) }
     single<BillRepository> { BillRepository(get()) }
-
     single { IdCardDataViewModel() }
     single { UserRoleCache(androidContext()) }
     viewModelOf(::SplashScreenVM)
@@ -151,8 +152,6 @@ val authModule = module {
     viewModelOf(::LandlordDashboardVM)
 }
 val serviceModule = module {
-    single<BuildingRepository> { BuildingRepository(get()) }
-    single<RoomRepository> { RoomRepository(get()) }
     viewModelOf(::EditServiceVM)
     viewModelOf(::ServiceListVM)
     viewModelOf(::AddServiceVM)
@@ -160,5 +159,4 @@ val serviceModule = module {
     viewModelOf(::PersonalInformationVM)
     viewModelOf(::EditPersonalInformationVM)
     viewModelOf(::ChangePasswordVM)
-
 }
