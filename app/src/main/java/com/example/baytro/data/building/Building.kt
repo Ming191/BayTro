@@ -1,5 +1,6 @@
 package com.example.baytro.data
 
+import androidx.compose.runtime.Stable
 import com.example.baytro.data.service.Service
 import com.google.firebase.firestore.DocumentId
 import kotlinx.serialization.Serializable
@@ -10,6 +11,7 @@ enum class BuildingStatus {
     ARCHIVED
 }
 
+@Stable
 @Serializable
 data class Building(
     @kotlinx.serialization.Transient
@@ -26,6 +28,7 @@ data class Building(
     val services: List<Service> = emptyList(),
 )
 
+@Stable
 @Serializable
 data class BuildingSummary(
     @kotlinx.serialization.Transient

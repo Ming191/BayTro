@@ -1,6 +1,5 @@
 package com.example.baytro.view.screens.building
 
-import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -38,7 +37,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,19 +50,17 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
-import com.example.baytro.data.Building
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.service.Service
 import com.example.baytro.navigation.Screens
-import com.example.baytro.data.BuildingStatus
-import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.viewModel.building.AddBuildingVM
 import kotlinx.coroutines.delay
-import com.example.baytro.view.components.ServiceCard
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -77,13 +73,7 @@ fun AddBuildingScreen(
     val uiState by viewModel.addBuildingUIState.collectAsState()
     val formState by viewModel.formState.collectAsState()
     val context = LocalContext.current
-//    val name: (String) -> Unit = viewModel::onNameChange
-//    val floor: (String) -> Unit = viewModel::onFloorChange
-//    val address: (String) -> Unit = viewModel::onAddressChange
-//    val status: (String) -> Unit = viewModel::onStatusChange
-//    val billingDate: (String) -> Unit = viewModel::onBillingDateChange
-//    val paymentStart: (String) -> Unit = viewModel::onPaymentStartChange
-//    val paymentDue: (String) -> Unit = viewModel::onPaymentDueChange
+
 
     val buildingServices by viewModel.buildingServices.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -97,20 +87,6 @@ fun AddBuildingScreen(
             savedStateHandle.remove<String>("newService")
         }
     }
-
-    var nameError by remember { mutableStateOf(false) }
-    var floorError by remember { mutableStateOf(false) }
-    var addressError by remember { mutableStateOf(false) }
-    var billingError by remember { mutableStateOf(false) }
-    var startError by remember { mutableStateOf(false) }
-    var dueError by remember { mutableStateOf(false) }
-
-    var nameErrorMsg by remember { mutableStateOf<String?>(null) }
-    var floorErrorMsg by remember { mutableStateOf<String?>(null) }
-    var addressErrorMsg by remember { mutableStateOf<String?>(null) }
-    var billingErrorMsg by remember { mutableStateOf<String?>(null) }
-    var startErrorMsg by remember { mutableStateOf<String?>(null) }
-    var dueErrorMsg by remember { mutableStateOf<String?>(null) }
 
     val nameFocus = remember { FocusRequester() }
     val floorFocus = remember { FocusRequester() }

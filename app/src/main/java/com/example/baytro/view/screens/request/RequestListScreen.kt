@@ -10,8 +10,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +24,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -50,9 +50,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -61,14 +64,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import com.example.baytro.data.Building
+import com.example.baytro.data.BuildingSummary
 import com.example.baytro.data.request.FullRequestInfo
 import com.example.baytro.data.request.Request
 import com.example.baytro.data.request.RequestStatus
@@ -76,12 +83,10 @@ import com.example.baytro.view.components.CarouselOrientation
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequestListSkeleton
-import com.example.baytro.view.components.PaginationControls
 import com.example.baytro.view.components.Tabs
-import com.example.baytro.view.screens.UiState
-import com.example.baytro.viewModel.request.FilteredRequestData
-import com.example.baytro.viewModel.request.RequestListFormState
 import com.example.baytro.viewModel.request.RequestListVM
+import com.example.baytro.viewModel.request.RequestListUiState
+import com.example.baytro.viewModel.request.CategorizedRequests
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -103,15 +108,22 @@ fun RequestListScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabData.size })
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    val uiState by viewModel.requestListUiState.collectAsState()
-    val formState by viewModel.formState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    var hasLoadedOnce by remember { mutableStateOf(false) }
+    // Lifecycle management - refresh on first composition
+    DisposableEffect(Unit) {
+        viewModel.refresh()
+        onDispose { }
+    }
 
-    LaunchedEffect(uiState) {
-        if (uiState is UiState.Success && !hasLoadedOnce) {
-            hasLoadedOnce = true
+    // Handle error events
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                snackbarHostState.showSnackbar(message)
+            }
         }
     }
 
@@ -128,7 +140,7 @@ fun RequestListScreen(
         }
     }
 
-    if (!hasLoadedOnce && uiState is UiState.Loading) {
+    if (uiState.isLoading) {
         Surface(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 topBar = {
@@ -137,7 +149,8 @@ fun RequestListScreen(
                         onTabSelected = {},
                         isTabSelectionEnabled = false
                     )
-                }
+                },
+                snackbarHost = { SnackbarHost(snackbarHostState) }
             ) { paddingValues ->
                 Box(modifier = Modifier.padding(paddingValues)) {
                     RequestListSkeleton(itemCount = 5)
@@ -147,14 +160,14 @@ fun RequestListScreen(
     } else {
         RequestListContent(
             viewModel = viewModel,
-            formState = formState,
+            uiState = uiState,
             selectedTabIndex = selectedTabIndex,
             pagerState = pagerState,
             onTabSelected = onTabSelected,
-            uiState = uiState,
             onAddRequest = onAddRequest,
             onAssignRequest = onAssignRequest,
-            onUpdateRequest = onUpdateRequest
+            onUpdateRequest = onUpdateRequest,
+            snackbarHostState = snackbarHostState
         )
     }
 }
@@ -162,112 +175,93 @@ fun RequestListScreen(
 @Composable
 private fun RequestListContent(
     viewModel: RequestListVM,
-    formState: RequestListFormState,
+    uiState: RequestListUiState,
     selectedTabIndex: Int,
     pagerState: PagerState,
     onTabSelected: (Int) -> Unit,
-    uiState: UiState<FilteredRequestData>,
     onAddRequest: () -> Unit,
     onAssignRequest: (String) -> Unit,
-    onUpdateRequest: (String) -> Unit
+    onUpdateRequest: (String) -> Unit,
+    snackbarHostState: SnackbarHostState
 ) {
     var showFilterDialog by remember { mutableStateOf(false) }
     var isSpeedDialOpen by remember { mutableStateOf(false) }
 
+    val lazyListStates = remember {
+        mapOf(
+            0 to LazyListState(),
+            1 to LazyListState(),
+            2 to LazyListState()
+        )
+    }
+
     if (showFilterDialog) {
         FilterDialog(
-            buildings = formState.availableBuildings,
-            selectedBuilding = formState.selectedBuilding,
-            onBuildingSelected = viewModel::onBuildingChange,
+            buildings = uiState.buildings,
+            selectedBuildingId = uiState.selectedBuildingId,
+            onBuildingSelected = viewModel::selectBuilding,
             onDismiss = { showFilterDialog = false }
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                Tabs(
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelected = { if (uiState is UiState.Success) onTabSelected(it) },
-                    tabData = tabData
-                )
-            },
-            floatingActionButton = {}
-        ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
-                when (val state = uiState) {
-                    is UiState.Loading -> RequestListSkeleton(itemCount = 5)
-                    is UiState.Success -> RequestListPager(
-                        pagerState = pagerState,
-                        requestData = state.data,
-                        isLandlord = formState.isLandlord,
-                        selectedTabIndex = selectedTabIndex,
-                        onAssignRequest = onAssignRequest,
-                        viewModel = viewModel,
-                        onUpdateRequest = onUpdateRequest
-                    )
-                    is UiState.Error -> ErrorStateContent(
-                        message = state.message,
-                        onRetry = viewModel::refreshRequests
-                    )
-                    else -> { /* No-op */ }
-                }
-            }
-        }
-
-        if (isSpeedDialOpen) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { isSpeedDialOpen = false }
-                    ),
-                color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)
-            ) {}
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            if (uiState is UiState.Success) {
-                val speedDialItems = if (formState.isLandlord) {
-                    listOfNotNull(
-                        if (formState.availableBuildings.isNotEmpty()) {
-                            SpeedDialMenuItem(
-                                icon = Icons.Default.FilterList,
-                                label = "Filter"
-                            )
-                        } else null
-                    )
-                } else {
-                    listOf(
+    Scaffold(
+        topBar = {
+            Tabs(
+                selectedTabIndex = selectedTabIndex,
+                onTabSelected = onTabSelected,
+                tabData = tabData
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            val speedDialItems = if (uiState.isLandlord) {
+                listOfNotNull(
+                    if (uiState.buildings.isNotEmpty()) {
                         SpeedDialMenuItem(
-                            icon = Icons.Default.Add,
-                            label = "New Request"
+                            icon = Icons.Default.FilterList,
+                            label = "Filter"
                         )
+                    } else null
+                )
+            } else {
+                listOf(
+                    SpeedDialMenuItem(
+                        icon = Icons.Default.Add,
+                        label = "New Request"
                     )
-                }
-
-                if (speedDialItems.isNotEmpty()) {
-                    SpeedDialFab(
-                        isMenuOpen = isSpeedDialOpen,
-                        onToggleMenu = { isSpeedDialOpen = !isSpeedDialOpen },
-                        items = speedDialItems,
-                        mainIconOpen = Icons.Filled.Menu,
-                        onItemClick = { item ->
-                            when (item.label) {
-                                "Filter" -> showFilterDialog = true
-                                "New Request" -> onAddRequest()
-                            }
-                        }
-                    )
-                }
+                )
             }
+
+            if (speedDialItems.isNotEmpty()) {
+                SpeedDialFab(
+                    isMenuOpen = isSpeedDialOpen,
+                    onToggleMenu = { isSpeedDialOpen = !isSpeedDialOpen },
+                    items = speedDialItems,
+                    mainIconOpen = Icons.Filled.Menu,
+                    onItemClick = { item ->
+                        when (item.label) {
+                            "Filter" -> showFilterDialog = true
+                            "New Request" -> onAddRequest()
+                        }
+                    }
+                )
+            }
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.padding(paddingValues)) {
+            RequestListPager(
+                pagerState = pagerState,
+                categorizedRequests = uiState.categorizedRequests,
+                isLandlord = uiState.isLandlord,
+                selectedTabIndex = selectedTabIndex,
+                onAssignRequest = onAssignRequest,
+                onUpdateRequest = onUpdateRequest,
+                lazyListStates = lazyListStates,
+                snackbarHostState = snackbarHostState,
+                viewModel = viewModel,
+                hasNextPage = uiState.nextCursor != null,
+                isLoadingMore = uiState.isLoadingMore
+            )
         }
     }
 }
@@ -288,67 +282,74 @@ private fun RequestListTopBar(
 }
 
 @Composable
-private fun ErrorStateContent(message: String, onRetry: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onRetry) { Text("Retry") }
-        }
-    }
-}
-
-@Composable
 private fun RequestListPager(
     pagerState: PagerState,
-    requestData: FilteredRequestData,
+    categorizedRequests: CategorizedRequests,
     isLandlord: Boolean,
     selectedTabIndex: Int,
     onAssignRequest: (String) -> Unit,
+    onUpdateRequest: (String) -> Unit,
+    lazyListStates: Map<Int, LazyListState>,
+    snackbarHostState: SnackbarHostState,
     viewModel: RequestListVM,
-    onUpdateRequest: (String) -> Unit
+    hasNextPage: Boolean,
+    isLoadingMore: Boolean
 ) {
     HorizontalPager(state = pagerState, key = { page -> tabData[page].first }) { page ->
         val (requestsForPage, statusText) = when (page) {
-            0 -> requestData.pending to tabData[0].first.lowercase()
-            1 -> requestData.inProgress to tabData[1].first.lowercase()
-            2 -> requestData.done to tabData[2].first.lowercase()
+            0 -> categorizedRequests.pending to tabData[0].first.lowercase()
+            1 -> categorizedRequests.inProgress to tabData[1].first.lowercase()
+            2 -> categorizedRequests.done to tabData[2].first.lowercase()
             else -> emptyList<FullRequestInfo>() to "requests"
         }
 
-        if (page == selectedTabIndex) {
+        // Always render all pages to persist state, but make visible only selected
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (page == selectedTabIndex) Modifier
+                    else Modifier.graphicsLayer(alpha = 0f)
+                )
+        ) {
             RequestListPage(
-                pageIndex = page,
                 requests = requestsForPage,
                 emptyMessage = "No $statusText requests found.",
                 isLandlord = isLandlord,
                 onAssignRequest = onAssignRequest,
+                onUpdateRequest = onUpdateRequest,
+                lazyListState = lazyListStates[page] ?: rememberLazyListState(),
+                snackbarHostState = snackbarHostState,
                 viewModel = viewModel,
-                onUpdateRequest = onUpdateRequest
+                hasNextPage = hasNextPage && page == selectedTabIndex,
+                isLoadingMore = isLoadingMore,
+                tabIndex = page,
+                isVisible = page == selectedTabIndex
             )
-        } else {
-            Box(modifier = Modifier.fillMaxSize())
         }
     }
 }
 
 @Composable
 private fun RequestListPage(
-    pageIndex: Int,
     requests: List<FullRequestInfo>,
     emptyMessage: String,
     isLandlord: Boolean,
     onAssignRequest: (String) -> Unit,
+    onUpdateRequest: (String) -> Unit,
+    lazyListState: LazyListState,
+    snackbarHostState: SnackbarHostState,
     viewModel: RequestListVM,
-    onUpdateRequest: (String) -> Unit
+    hasNextPage: Boolean,
+    isLoadingMore: Boolean,
+    tabIndex: Int,
+    isVisible: Boolean
 ) {
-    val animatedItemIds = remember { mutableSetOf<String>() }
+    val animatedItemIds = remember(tabIndex) { mutableSetOf<String>() }
     var emptyStateVisible by remember { mutableStateOf(false) }
 
     if (requests.isEmpty()) {
-        LaunchedEffect(Unit) {
-            emptyStateVisible = true
-        }
+        LaunchedEffect(Unit) { emptyStateVisible = true }
 
         AnimatedVisibility(
             visible = emptyStateVisible,
@@ -360,54 +361,31 @@ private fun RequestListPage(
             }
         }
     } else {
-        val items by when (pageIndex) {
-            0 -> viewModel.paginatedPending.collectAsState()
-            1 -> viewModel.paginatedInProgress.collectAsState()
-            else -> viewModel.paginatedDone.collectAsState()
-        }
-        val current by when (pageIndex) {
-            0 -> viewModel.currentPagePending.collectAsState()
-            1 -> viewModel.currentPageInProgress.collectAsState()
-            else -> viewModel.currentPageDone.collectAsState()
-        }
-        val total by when (pageIndex) {
-            0 -> viewModel.totalPagesPending.collectAsState()
-            1 -> viewModel.totalPagesInProgress.collectAsState()
-            else -> viewModel.totalPagesDone.collectAsState()
-        }
-        val next by when (pageIndex) {
-            0 -> viewModel.hasNextPagePending.collectAsState()
-            1 -> viewModel.hasNextPageInProgress.collectAsState()
-            else -> viewModel.hasNextPageDone.collectAsState()
-        }
-        val prev by when (pageIndex) {
-            0 -> viewModel.hasPreviousPagePending.collectAsState()
-            1 -> viewModel.hasPreviousPageInProgress.collectAsState()
-            else -> viewModel.hasPreviousPageDone.collectAsState()
-        }
+        LaunchedEffect(lazyListState, isVisible, hasNextPage, isLoadingMore) {
+            if (!isVisible) return@LaunchedEffect
 
-        val onNextPage: () -> Unit = when (pageIndex) {
-            0 -> viewModel::nextPagePending
-            1 -> viewModel::nextPageInProgress
-            else -> viewModel::nextPageDone
-        }
-        val onPrevPage: () -> Unit = when (pageIndex) {
-            0 -> viewModel::previousPagePending
-            1 -> viewModel::previousPageInProgress
-            else -> viewModel::previousPageDone
-        }
-        val onGoToPage: (Int) -> Unit = when (pageIndex) {
-            0 -> viewModel::goToPagePending
-            1 -> viewModel::goToPageInProgress
-            else -> viewModel::goToPageDone
+            snapshotFlow {
+                val layoutInfo = lazyListState.layoutInfo
+                val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+                lastVisibleItem?.index
+            }.collect { lastVisibleIndex ->
+                if (lastVisibleIndex != null &&
+                    hasNextPage &&
+                    !isLoadingMore &&
+                    lastVisibleIndex >= requests.size - 3
+                ) {
+                    viewModel.loadNextPage()
+                }
+            }
         }
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            state = lazyListState
         ) {
-            itemsIndexed(items = items, key = { _, item -> item.request.id }) { index, info ->
+            itemsIndexed(items = requests, key = { _, item -> item.request.id }) { _, info ->
                 val itemId = info.request.id
                 var visible by remember(itemId) {
                     mutableStateOf(animatedItemIds.contains(itemId))
@@ -439,23 +417,23 @@ private fun RequestListPage(
                         info = info,
                         isLandlord = isLandlord,
                         onAssignRequest = onAssignRequest,
-                        onCompleteRequest = viewModel::completeRequest,
-                        onUpdateRequest = onUpdateRequest
+                        onUpdateRequest = onUpdateRequest,
+                        snackbarHostState = snackbarHostState
                     )
                 }
             }
 
-            if (total > 1) {
+            // Loading indicator at bottom
+            if (isLoadingMore) {
                 item {
-                    PaginationControls(
-                        currentPage = current,
-                        totalPages = total,
-                        hasNextPage = next,
-                        hasPreviousPage = prev,
-                        onNextPage = onNextPage,
-                        onPreviousPage = onPrevPage,
-                        onPageClick = onGoToPage
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator()
+                    }
                 }
             }
         }
@@ -467,8 +445,8 @@ fun RequestCard(
     info: FullRequestInfo,
     isLandlord: Boolean,
     onAssignRequest: (String) -> Unit,
-    onCompleteRequest: (String) -> Unit,
-    onUpdateRequest: (String) -> Unit = {}
+    onUpdateRequest: (String) -> Unit = {},
+    snackbarHostState: SnackbarHostState
 ) {
     val request = info.request
     val statusColor = when (request.status) {
@@ -482,7 +460,6 @@ fun RequestCard(
         shape = RoundedCornerShape(16.dp),
     ) {
         Row {
-            // Dải màu chỉ báo trạng thái
             Box(
                 modifier = Modifier
                     .width(5.dp)
@@ -545,8 +522,8 @@ fun RequestCard(
                     isLandlord = isLandlord,
                     onAssignRequest = onAssignRequest,
                     info = info,
-                    onCompleteRequest = onCompleteRequest,
-                    onUpdateRequest = onUpdateRequest
+                    onUpdateRequest = onUpdateRequest,
+                    snackbarHostState = snackbarHostState
                 )
             }
         }
@@ -572,7 +549,6 @@ private fun StatusBadge(status: RequestStatus) {
             "Completed"
         )
     }
-
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = backgroundColor
@@ -593,7 +569,6 @@ fun RequestCardDetails(info: FullRequestInfo) {
     val request = info.request
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Thông tin người yêu cầu và vị trí
         DetailRow(
             icon = Icons.Filled.Person,
             label = "Requester",
@@ -605,7 +580,6 @@ fun RequestCardDetails(info: FullRequestInfo) {
             value = "${info.buildingName} - Room ${info.roomName}"
         )
 
-        // Ngày hẹn
         if (request.scheduledDate.isNotBlank()) {
             DetailRow(
                 icon = Icons.Filled.DateRange,
@@ -614,7 +588,6 @@ fun RequestCardDetails(info: FullRequestInfo) {
             )
         }
 
-        // Thông tin theo từng trạng thái
         when (request.status) {
             RequestStatus.IN_PROGRESS -> {
                 request.assigneeName?.let { name ->
@@ -653,7 +626,7 @@ private fun DetailRow(
     icon: ImageVector,
     label: String,
     value: String,
-    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -704,14 +677,13 @@ fun RequestCardActions(
     info: FullRequestInfo,
     isLandlord: Boolean,
     onAssignRequest: (String) -> Unit,
-    onCompleteRequest: (String) -> Unit,
-    onUpdateRequest: (String) -> Unit
+    onUpdateRequest: (String) -> Unit,
+    snackbarHostState: SnackbarHostState
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var showContactDialog by remember { mutableStateOf(false) }
-    var isCompletingRequest by remember { mutableStateOf(false) }
 
-    // Contact dialog for tenant in IN_PROGRESS status (choice between landlord and assignee)
     if (showContactDialog && request.status == RequestStatus.IN_PROGRESS && !isLandlord) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showContactDialog = false },
@@ -725,10 +697,16 @@ fun RequestCardActions(
                 androidx.compose.material3.TextButton(
                     onClick = {
                         showContactDialog = false
-                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
-                            data = "tel:${info.landlordPhoneNumber}".toUri()
+                        if (info.landlordPhoneNumber.isNotBlank()) {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                                data = "tel:${info.landlordPhoneNumber}".toUri()
+                            }
+                            context.startActivity(intent)
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Landlord phone number not available")
+                            }
                         }
-                        context.startActivity(intent)
                     }
                 ) {
                     Text("Landlord")
@@ -739,10 +717,16 @@ fun RequestCardActions(
                     androidx.compose.material3.TextButton(
                         onClick = {
                             showContactDialog = false
-                            val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
-                                data = "tel:$phone".toUri()
+                            if (phone.isNotBlank()) {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                                    data = "tel:$phone".toUri()
+                                }
+                                context.startActivity(intent)
+                            } else {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Assignee phone number not available")
+                                }
                             }
-                            context.startActivity(intent)
                         }
                     ) {
                         Text("Assignee")
@@ -753,35 +737,36 @@ fun RequestCardActions(
     }
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Contact button logic
         OutlinedButton(
             onClick = {
                 if (!isLandlord && request.status == RequestStatus.IN_PROGRESS) {
-                    // Tenant in IN_PROGRESS: show dialog to choose between landlord and assignee
                     showContactDialog = true
                 } else {
-                    // Other cases: direct call
                     val phoneNumber = if (isLandlord) {
                         info.tenantPhoneNumber
                     } else {
                         info.landlordPhoneNumber
                     }
-                    val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
-                        data = "tel:$phoneNumber".toUri()
+
+                    if (phoneNumber.isNotBlank()) {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                            data = "tel:$phoneNumber".toUri()
+                        }
+                        context.startActivity(intent)
+                    } else {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Phone number not available")
+                        }
                     }
-                    context.startActivity(intent)
                 }
             },
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(8.dp),
-            enabled = !isCompletingRequest
+            shape = RoundedCornerShape(8.dp)
         ) {
             Text("Contact", style = MaterialTheme.typography.labelLarge)
         }
 
-        // Action buttons
         when {
-            // Landlord PENDING: show Assign button
             isLandlord && request.status == RequestStatus.PENDING -> {
                 Button(
                     onClick = { onAssignRequest(request.id) },
@@ -794,37 +779,6 @@ fun RequestCardActions(
                     Text("Assign", style = MaterialTheme.typography.labelLarge)
                 }
             }
-            // Tenant IN_PROGRESS: show Complete button
-            !isLandlord && request.status == RequestStatus.IN_PROGRESS -> {
-                Button(
-                    onClick = {
-                        isCompletingRequest = true
-                        onCompleteRequest(request.id)
-                        android.widget.Toast.makeText(
-                            context,
-                            "Request marked as completed",
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiary
-                    ),
-                    enabled = !isCompletingRequest
-                ) {
-                    if (isCompletingRequest) {
-                        androidx.compose.material3.CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onTertiary
-                        )
-                    } else {
-                        Text("Complete", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-            }
-            // Tenant PENDING: show Update button
             !isLandlord && request.status == RequestStatus.PENDING -> {
                 Button(
                     onClick = { onUpdateRequest(request.id) },
@@ -843,9 +797,9 @@ fun RequestCardActions(
 
 @Composable
 private fun FilterDialog(
-    buildings: List<Building>,
-    selectedBuilding: Building?,
-    onBuildingSelected: (Building) -> Unit,
+    buildings: List<BuildingSummary>,
+    selectedBuildingId: String?,
+    onBuildingSelected: (String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     androidx.compose.material3.AlertDialog(
@@ -870,12 +824,14 @@ private fun FilterDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                val selectedBuilding = buildings.find { it.id == selectedBuildingId }
+
                 DropdownSelectField(
                     modifier = Modifier.fillMaxWidth(),
                     label = "Select Building",
                     options = buildings,
                     selectedOption = selectedBuilding,
-                    onOptionSelected = onBuildingSelected,
+                    onOptionSelected = { onBuildingSelected(it.id) },
                     optionToString = { it.name }
                 )
             }

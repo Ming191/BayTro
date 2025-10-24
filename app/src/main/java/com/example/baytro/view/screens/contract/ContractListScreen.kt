@@ -1,41 +1,42 @@
 package com.example.baytro.view.screens.contract
 
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HomeWork
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,20 +44,30 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.baytro.data.Building
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.baytro.data.contract.Status
+import com.example.baytro.utils.cloudFunctions.ContractWithRoom
 import com.example.baytro.view.components.CompactSearchBar
 import com.example.baytro.view.components.ContractListSkeleton
 import com.example.baytro.view.components.DropdownSelectField
-import com.example.baytro.view.components.PaginationControls
 import com.example.baytro.view.components.Tabs
+import com.example.baytro.viewModel.contract.ContractListUiState
 import com.example.baytro.viewModel.contract.ContractListVM
 import com.example.baytro.viewModel.contract.ContractTab
-import com.example.baytro.viewModel.contract.ContractWithRoom
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+
+private enum class LoadingState {
+    LOADING, CONTENT, EMPTY
+}
 
 private val tabData: List<Pair<String, ImageVector>> = listOf(
     "Active" to Icons.Filled.HomeWork,
@@ -69,105 +80,62 @@ fun ContractListScreen(
     viewModel: ContractListVM = koinViewModel(),
     onContractClick: (String) -> Unit
 ) {
-    val selectedTab by viewModel.selectedTab.collectAsState()
-    val filteredContracts by viewModel.filteredContracts.collectAsState()
-    val loading by viewModel.loading.collectAsState()
-    val ownedBuildings by viewModel.ownedBuildings.collectAsState()
-    val pagerState = rememberPagerState(initialPage = selectedTab.ordinal, pageCount = { tabData.size })
-    val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    var hasLoadedOnce by remember { mutableStateOf(false) }
-
-    Log.d("ContractListScreen", "Recomposing - loading=$loading, hasLoadedOnce=$hasLoadedOnce, contractsCount=${filteredContracts.size}")
-
-    LaunchedEffect(loading) {
-        if (!loading && !hasLoadedOnce) {
-            Log.d("ContractListScreen", "First load complete, transitioning to content")
-            delay(300)
-            hasLoadedOnce = true
-        }
-    }
-
-    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
-        if (!pagerState.isScrollInProgress) {
-            viewModel.selectTab(ContractTab.entries[pagerState.currentPage])
-        }
-    }
-
-    if (!hasLoadedOnce && loading) {
-        Log.d("ContractListScreen", "Rendering skeleton loading")
-        Surface(modifier = Modifier.fillMaxSize()) {
-            Scaffold(
-                topBar = {
-                    Tabs(
-                        selectedTabIndex = selectedTab.ordinal,
-                        onTabSelected = {},
-                        tabData = tabData
-                    )
-                }
-            ) { paddingValues ->
-                Box(modifier = Modifier.padding(paddingValues)) {
-                    ContractListSkeleton(itemCount = 5)
-                }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refresh()
             }
         }
-    } else {
-        // Show actual content after first load
-        Log.d("ContractListScreen", "Rendering content with ${filteredContracts.size} contracts")
-        ContractListContent(
-            viewModel = viewModel,
-            selectedTabIndex = selectedTab.ordinal,
-            pagerState = pagerState,
-            onTabSelected = { index ->
-                scope.launch {
-                    pagerState.animateScrollToPage(index)
-                }
-            },
-            ownedBuildings = ownedBuildings,
-            onContractClick = onContractClick
-        )
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
+    ContractListContent(
+        viewModel = viewModel,
+        uiState = uiState,
+        onTabSelected = { index ->
+            viewModel.selectTab(ContractTab.entries[index])
+        },
+        onContractClick = onContractClick
+    )
 }
 
 @Composable
 private fun ContractListContent(
     viewModel: ContractListVM,
-    selectedTabIndex: Int,
-    pagerState: PagerState,
+    uiState: ContractListUiState,
     onTabSelected: (Int) -> Unit,
-    ownedBuildings: List<Building>,
     onContractClick: (String) -> Unit
 ) {
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val filteredContracts by viewModel.filteredContracts.collectAsState()
-    val selectedBuildingId by viewModel.selectedBuildingId.collectAsState()
-    val error by viewModel.error.collectAsState()
-
     var showNoBuildingsDialog by remember { mutableStateOf(false) }
-    val animatedItemIds = remember { mutableSetOf<String>() }
 
-    var visible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        delay(150)
-        visible = true
-    }
-
-    LaunchedEffect(selectedTabIndex) {
-        animatedItemIds.clear()
-    }
-
-    LaunchedEffect(ownedBuildings) {
-        if (ownedBuildings.isEmpty()) {
+    // Only show dialog when not loading AND buildings are empty
+    LaunchedEffect(uiState.buildings, uiState.isLoading) {
+        if (!uiState.isLoading && uiState.buildings.isEmpty()) {
             showNoBuildingsDialog = true
+        } else if (uiState.buildings.isNotEmpty()) {
+            showNoBuildingsDialog = false
         }
     }
 
-    val buildingOptions = if (ownedBuildings.isNotEmpty()) {
-        listOf("" to "All") + ownedBuildings.map { it.id to it.name }
-    } else {
-        listOf("" to "No buildings available")
+    val buildingOptions = remember(uiState.buildings) {
+        if (uiState.buildings.isNotEmpty()) {
+            listOf("" to "All") + uiState.buildings.map { it.id to it.name }
+        } else {
+            listOf("" to "No buildings available")
+        }
+    }
+
+    val selectedOption by remember(uiState.selectedBuildingId, buildingOptions) {
+        derivedStateOf {
+            buildingOptions.find { it.first == uiState.selectedBuildingId }?.second
+                ?: buildingOptions.firstOrNull()?.second
+        }
     }
 
     if (showNoBuildingsDialog) {
@@ -183,11 +151,30 @@ private fun ContractListContent(
         )
     }
 
+    val pagerState = rememberPagerState(
+        initialPage = uiState.selectedTab.ordinal,
+        pageCount = { ContractTab.entries.size }
+    )
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
+        if (!pagerState.isScrollInProgress && pagerState.currentPage != uiState.selectedTab.ordinal) {
+            onTabSelected(pagerState.currentPage)
+        }
+    }
+
+    val onTabClicked: (Int) -> Unit = { index ->
+        coroutineScope.launch {
+            pagerState.animateScrollToPage(index)
+        }
+        onTabSelected(index)
+    }
+
     Scaffold(
         topBar = {
             Tabs(
-                selectedTabIndex = selectedTabIndex,
-                onTabSelected = onTabSelected,
+                selectedTabIndex = pagerState.currentPage,
+                onTabSelected = onTabClicked,
                 tabData = tabData
             )
         }
@@ -197,83 +184,50 @@ private fun ContractListContent(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Search bar with animation
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
-                    animationSpec = tween(300),
-                    initialOffsetY = { -it }
-                ),
-                exit = fadeOut(animationSpec = tween(300)) + slideOutVertically(
-                    animationSpec = tween(300),
-                    targetOffsetY = { -it }
-                )
-            ) {
-                CompactSearchBar(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 8.dp),
-                    value = searchQuery,
-                    onValueChange = viewModel::setSearchQuery,
-                    placeholderText = "Search contracts..."
-                )
-            }
-
-            // Building filter dropdown with animation
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(animationSpec = tween(300, delayMillis = 100)) + slideInVertically(
-                    animationSpec = tween(300, delayMillis = 100),
-                    initialOffsetY = { -it / 2 }
-                ),
-                exit = fadeOut(animationSpec = tween(300)) + slideOutVertically(
-                    animationSpec = tween(300),
-                    targetOffsetY = { -it / 2 }
-                )
-            ) {
-                DropdownSelectField(
-                    label = "Filter by Building",
-                    options = buildingOptions.map { it.second },
-                    selectedOption = buildingOptions.find { it.first == selectedBuildingId }?.second
-                        ?: buildingOptions.firstOrNull()?.second,
-                    onOptionSelected = { name ->
-                        val newBuildingId = buildingOptions.find { it.second == name }?.first
-                        viewModel.setSelectedBuildingId(newBuildingId)
+            CompactSearchBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .semantics {
+                        contentDescription = "Search contracts by contract number or room details"
                     },
-                    enabled = ownedBuildings.isNotEmpty(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
+                value = uiState.searchQuery,
+                onValueChange = viewModel::setSearchQuery,
+                placeholderText = "Search contracts..."
+            )
 
-            Box(modifier = Modifier.weight(1f)) {
-                HorizontalPager(
-                    state = pagerState,
-                    key = { page -> tabData[page].first }
-                ) { page ->
-                    if (page == selectedTabIndex) {
-                        ContractListPage(
-                            viewModel = viewModel,
-                            contracts = if (ownedBuildings.isEmpty()) emptyList() else filteredContracts,
-                            emptyMessage = if (ownedBuildings.isEmpty()) {
-                                "No buildings found. Please add a building first."
-                            } else {
-                                "No ${tabData[page].first.lowercase()} contracts found."
-                            },
-                            animatedItemIds = animatedItemIds,
-                            onContractClick = onContractClick,
-                            loading = viewModel.loading.collectAsState().value
-                        )
+            DropdownSelectField(
+                label = "Filter by Building",
+                options = buildingOptions.map { it.second },
+                selectedOption = selectedOption,
+                onOptionSelected = { name ->
+                    val newBuildingId = buildingOptions.find { it.second == name }?.first
+                    viewModel.setSelectedBuildingId(newBuildingId)
+                },
+                enabled = uiState.buildings.isNotEmpty(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .semantics {
+                        contentDescription = "Filter contracts by building. Currently selected: ${selectedOption ?: "All"}"
+                    }
+            )
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f)
+            ) { page ->
+                val tab = ContractTab.entries[page]
+                ContractListPage(
+                    contracts = if (uiState.buildings.isEmpty()) emptyList() else uiState.contracts,
+                    emptyMessage = if (uiState.buildings.isEmpty()) {
+                        "No buildings found. Please add a building first."
                     } else {
-                        Box(modifier = Modifier.fillMaxSize())
-                    }
-                }
-                if (error != null) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "Error: $error")
-                    }
-                }
+                        "No ${tab.name.lowercase()} contracts found."
+                    },
+                    onContractClick = onContractClick,
+                    loading = uiState.isLoading
+                )
             }
         }
     }
@@ -281,99 +235,75 @@ private fun ContractListContent(
 
 @Composable
 private fun ContractListPage(
-    viewModel: ContractListVM,
     contracts: List<ContractWithRoom>,
     emptyMessage: String,
-    animatedItemIds: MutableSet<String>,
     onContractClick: (String) -> Unit,
     loading: Boolean = false
 ) {
-    if (loading) {
-        ContractListSkeleton(itemCount = 5)
-    } else {
-        var emptyStateVisible by remember { mutableStateOf(false) }
-
-        if (contracts.isEmpty()) {
-            LaunchedEffect(Unit) {
-                Log.d("ContractList", "Empty state animation")
-                delay(50)
-                emptyStateVisible = true
-            }
-
-            AnimatedVisibility(
-                visible = emptyStateVisible,
-                enter = fadeIn(animationSpec = tween(400)),
-                exit = fadeOut(animationSpec = tween(200))
-            ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = emptyMessage)
-                }
+    val loadingState by remember(loading, contracts) {
+        derivedStateOf {
+            when {
+                loading -> LoadingState.LOADING
+                contracts.isNotEmpty() -> LoadingState.CONTENT
+                else -> LoadingState.EMPTY
             }
         }
-        else {
-            val paginated by viewModel.paginatedContracts.collectAsState()
-            val currentPage by viewModel.currentPage.collectAsState()
-            val totalPages by viewModel.totalPages.collectAsState()
-            val hasNext by viewModel.hasNextPage.collectAsState()
-            val hasPrev by viewModel.hasPreviousPage.collectAsState()
+    }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(
-                    items = paginated,
-                    key = { _, item -> item.contract.id }
-                ) { index, contractWithRoom ->
-                    val itemId = contractWithRoom.contract.id
-                    var visible by remember(itemId) {
-                        mutableStateOf(animatedItemIds.contains(itemId))
-                    }
-
-                    LaunchedEffect(itemId) {
-                        if (!visible) {
-                            delay(50L * index.coerceAtMost(10))
-                            visible = true
-                            animatedItemIds.add(itemId)
+    Crossfade(
+        targetState = loadingState,
+        animationSpec = tween(durationMillis = 300),
+        label = "Contract list state crossfade"
+    ) { state ->
+        when (state) {
+            LoadingState.LOADING -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .semantics { contentDescription = "Loading contracts" }
+                ) {
+                    ContractListSkeleton(itemCount = 5)
+                }
+            }
+            LoadingState.EMPTY -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .semantics { contentDescription = emptyMessage },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = emptyMessage,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            LoadingState.CONTENT -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .semantics { contentDescription = "Contracts list" },
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        count = contracts.size,
+                        key = { index -> contracts[index].contract.id }
+                    ) { index ->
+                        val contractWithRoom = contracts[index]
+                        val itemId = contractWithRoom.contract.id
+                        val onItemClick = remember(itemId) {
+                            {
+                                if (itemId.isNotBlank()) {
+                                    onContractClick(itemId)
+                                }
+                            }
                         }
-                    }
 
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        ) + slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
-                            initialOffsetY = { it / 3 }
-                        )
-                    ) {
                         ContractListItem(
                             contractWithRoom = contractWithRoom,
-                            onClick = {
-                                Log.d("NavigationCheck", "Navigating with contractId: '${contractWithRoom.contract.id}'")
-                                onContractClick(contractWithRoom.contract.id)
-                            }
-                        )
-                    }
-                }
-
-                if (totalPages > 1) {
-                    item {
-                        PaginationControls(
-                            currentPage = currentPage,
-                            totalPages = totalPages,
-                            hasNextPage = hasNext,
-                            hasPreviousPage = hasPrev,
-                            onNextPage = viewModel::nextPage,
-                            onPreviousPage = viewModel::previousPage,
-                            onPageClick = viewModel::goToPage
+                            onClick = onItemClick
                         )
                     }
                 }
@@ -388,24 +318,148 @@ private fun ContractListItem(
     onClick: () -> Unit
 ) {
     val contract = contractWithRoom.contract
+    val semanticsDescription = remember(contract, contractWithRoom) {
+        buildString {
+            append("Contract ${contract.contractNumber}, ")
+            append("Room ${contractWithRoom.roomNumber}, ")
+            append("From ${contract.startDate} to ${contract.endDate}")
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .semantics { contentDescription = semanticsDescription },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Contract number: ${contract.contractNumber}",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "Room: ${contractWithRoom.roomNumber}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = "Start: ${contract.startDate} - End: ${contract.endDate}",
-                style = MaterialTheme.typography.bodyMedium
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = contract.contractNumber,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    StatusChip(status = contract.status)
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Room location",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Room ${contractWithRoom.roomNumber}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = "Contract dates",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${contract.startDate} – ${contract.endDate}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "View details",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
+
+@Composable
+private fun StatusChip(status: Status) {
+    val backgroundColor: Color
+    val textColor: Color
+    val label: String
+    val icon: ImageVector
+
+    when (status) {
+        Status.ACTIVE -> {
+            backgroundColor = MaterialTheme.colorScheme.primaryContainer
+            textColor = MaterialTheme.colorScheme.onPrimaryContainer
+            label = "Active"
+            icon = Icons.Default.CheckCircle
+        }
+        Status.PENDING -> {
+            backgroundColor = MaterialTheme.colorScheme.secondaryContainer
+            textColor = MaterialTheme.colorScheme.onSecondaryContainer
+            label = "Pending"
+            icon = Icons.Default.Schedule
+        }
+        Status.OVERDUE -> {
+            backgroundColor = MaterialTheme.colorScheme.errorContainer
+            textColor = MaterialTheme.colorScheme.onErrorContainer
+            label = "Overdue"
+            icon = Icons.Default.CalendarToday
+        }
+        Status.ENDED -> {
+            backgroundColor = MaterialTheme.colorScheme.surfaceVariant
+            textColor = MaterialTheme.colorScheme.onSurfaceVariant
+            label = "Ended"
+            icon = Icons.Default.CheckCircle
+        }
+    }
+
+    Surface(
+        modifier = Modifier.semantics {
+            contentDescription = "Contract status: $label"
+        },
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = textColor
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = textColor,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+

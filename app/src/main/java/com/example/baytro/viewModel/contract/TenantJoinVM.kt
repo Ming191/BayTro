@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
+import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.service.TenantJoinEventBus
 import com.example.baytro.view.screens.UiState
@@ -24,11 +25,13 @@ import kotlinx.coroutines.tasks.await
 class TenantJoinVM(
     private val functions: FirebaseFunctions,
     private val qrSessionRepository: QrSessionRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val contractRepository: ContractRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<UiState<String>>(UiState.Idle)
     val uiState : StateFlow<UiState<String>> = _uiState
     private var eventJob: Job? = null
+    private var approvalListenerJob: Job? = null
 
     init {
         Log.d("TenantJoinVM", "ViewModel initialized, starting pending session check")
@@ -50,13 +53,22 @@ class TenantJoinVM(
                 Log.d("TenantJoinVM", "Current user: ${currentUser?.uid}")
 
                 if (currentUser != null) {
+                    // First check if tenant already has an active contract
+                    val activeContract = contractRepository.getActiveContract(currentUser.uid)
+                    if (activeContract != null) {
+                        Log.d("TenantJoinVM", "Tenant already has active contract: ${activeContract.id}")
+                        _uiState.value = UiState.Success("Contract already exists")
+                        return@launch
+                    }
+
                     Log.d("TenantJoinVM", "Checking for pending session for user: ${currentUser.uid}")
                     val hasPendingSession = qrSessionRepository.hasScannedSession(currentUser.uid)
                     Log.d("TenantJoinVM", "Has pending session: $hasPendingSession")
 
                     if (hasPendingSession) {
-                        Log.d("TenantJoinVM", "Setting state to Waiting")
+                        Log.d("TenantJoinVM", "Setting state to Waiting and starting approval listener")
                         _uiState.value = UiState.Waiting
+                        startListeningForApproval(currentUser.uid)
                     } else {
                         Log.d("TenantJoinVM", "Setting state to Idle")
                         _uiState.value = UiState.Idle
@@ -68,6 +80,19 @@ class TenantJoinVM(
             } catch (e: Exception) {
                 Log.e("TenantJoinVM", "Error checking pending session: ${e.message}", e)
                 _uiState.value = UiState.Idle
+            }
+        }
+    }
+
+    private fun startListeningForApproval(tenantId: String) {
+        Log.d("TenantJoinVM", "Starting to listen for session approval for tenant: $tenantId")
+        approvalListenerJob?.cancel()
+        approvalListenerJob = viewModelScope.launch {
+            qrSessionRepository.listenForSessionApproval(tenantId).collect { contractId ->
+                if (contractId != null) {
+                    Log.d("TenantJoinVM", "Session approved! Contract ID: $contractId")
+                    _uiState.value = UiState.Success(contractId)
+                }
             }
         }
     }
@@ -102,6 +127,12 @@ class TenantJoinVM(
                 if (response?.get("status") == "success") {
                     Log.d("TenantJoinVM", "QR scan successful, setting state to Waiting")
                     _uiState.value = UiState.Waiting
+
+                    // Start listening for approval immediately
+                    val currentUser = authRepository.getCurrentUser()
+                    if (currentUser != null) {
+                        startListeningForApproval(currentUser.uid)
+                    }
                 } else {
                     Log.w("TenantJoinVM", "Invalid response - status is not 'success'. Full response: $response")
                     _uiState.value = UiState.Error("Invalid response from server")
@@ -141,12 +172,14 @@ class TenantJoinVM(
 
     fun clearState() {
         Log.d("TenantJoinVM", "clearState() called, setting state to Idle")
+        approvalListenerJob?.cancel()
         _uiState.value = UiState.Idle
     }
 
     override fun onCleared() {
         super.onCleared()
         eventJob?.cancel()
-        Log.d("TenantJoinVM", "ViewModel cleared, event listener canceled")
+        approvalListenerJob?.cancel()
+        Log.d("TenantJoinVM", "ViewModel cleared, event listeners canceled")
     }
 }
