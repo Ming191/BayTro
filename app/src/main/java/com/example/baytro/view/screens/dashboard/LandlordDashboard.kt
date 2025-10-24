@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material3.Button
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.Notifications
@@ -64,6 +65,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,7 +89,8 @@ fun LandlordDashboard(
     onNavigateToTenantList: () -> Unit = {},
     onNavigateToBills: () -> Unit = {},
     onNavigateToBuildings: () -> Unit = {},
-    onNavigateToMaintenance: () -> Unit = {}
+    onNavigateToMaintenance: () -> Unit = {},
+    onNavigateToImportBuildingRoom: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -110,9 +114,10 @@ fun LandlordDashboard(
             uiState = uiState,
             onNavigateToPendingReadings = onNavigateToPendingReadings,
             onNavigateToTenantList = onNavigateToTenantList,
-            onNavigateToBills = onNavigateToBills,
             onNavigateToBuildings = onNavigateToBuildings,
-            onNavigateToMaintenance = onNavigateToMaintenance
+            onNavigateToBills = onNavigateToBills,
+            onNavigateToMaintenance = onNavigateToMaintenance,
+            onNavigateToImportBuildingRoom = onNavigateToImportBuildingRoom
         )
     }
 }
@@ -129,7 +134,18 @@ fun QuickActionsSection(
     onNavigateToBuildings: () -> Unit,
     onNavigateToMaintenance: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val onPendingReadingsClick = remember { onNavigateToPendingReadings }
+    val onTenantListClick = remember { onNavigateToTenantList }
+    val onBillsClick = remember { onNavigateToBills }
+    val onBuildingsClick = remember { onNavigateToBuildings }
+    val onMaintenanceClick = remember { onNavigateToMaintenance }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.semantics(mergeDescendants = false) {
+            contentDescription = "Quick Actions Section"
+        }
+    ) {
         Text(
             text = "Quick Actions",
             style = MaterialTheme.typography.titleMedium,
@@ -137,7 +153,6 @@ fun QuickActionsSection(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        // Priority Actions (things that need attention)
         if (pendingReadingsCount > 0 || newJoinRequestsCount > 0 || overdueBillsCount > 0) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (pendingReadingsCount > 0) {
@@ -148,7 +163,7 @@ fun QuickActionsSection(
                         description = "Review and approve readings",
                         color = MaterialTheme.colorScheme.error,
                         containerColor = MaterialTheme.colorScheme.errorContainer,
-                        onClick = onNavigateToPendingReadings
+                        onClick = onPendingReadingsClick
                     )
                 }
 
@@ -160,7 +175,7 @@ fun QuickActionsSection(
                         description = "Review tenant applications",
                         color = MaterialTheme.colorScheme.error,
                         containerColor = MaterialTheme.colorScheme.errorContainer,
-                        onClick = onNavigateToTenantList
+                        onClick = onTenantListClick
                     )
                 }
 
@@ -172,13 +187,12 @@ fun QuickActionsSection(
                         description = "Follow up on payments",
                         color = MaterialTheme.colorScheme.error,
                         containerColor = MaterialTheme.colorScheme.errorContainer,
-                        onClick = onNavigateToBills
+                        onClick = onBillsClick
                     )
                 }
             }
         }
 
-        // Regular Actions (common tasks)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -187,19 +201,19 @@ fun QuickActionsSection(
                 icon = Icons.Default.Home,
                 label = "Buildings",
                 count = totalRooms,
-                onClick = onNavigateToBuildings,
+                onClick = onBuildingsClick,
                 modifier = Modifier.weight(1f)
             )
             QuickActionButton(
                 icon = Icons.Default.People,
                 label = "Tenants",
-                onClick = onNavigateToTenantList,
+                onClick = onTenantListClick,
                 modifier = Modifier.weight(1f)
             )
             QuickActionButton(
                 icon = Icons.Default.Build,
                 label = "Maintenance",
-                onClick = onNavigateToMaintenance,
+                onClick = onMaintenanceClick,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -216,10 +230,15 @@ fun ActionCard(
     containerColor: Color,
     onClick: () -> Unit
 ) {
+    val semanticDescription = "$title: $count pending, $description"
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                contentDescription = semanticDescription
+            },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = containerColor
@@ -245,7 +264,7 @@ fun ActionCard(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = icon,
-                            contentDescription = null,
+                            contentDescription = title,
                             tint = color,
                             modifier = Modifier.size(24.dp)
                         )
@@ -293,10 +312,19 @@ fun QuickActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val semanticDescription = if (count != null && count > 0) {
+        "$label: $count items"
+    } else {
+        label
+    }
+
     Card(
         modifier = modifier
             .height(90.dp)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                contentDescription = semanticDescription
+            },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -311,7 +339,7 @@ fun QuickActionButton(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = label,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(28.dp)
             )
@@ -343,8 +371,16 @@ fun LandlordDashboardContent(
     onNavigateToTenantList: () -> Unit = {},
     onNavigateToBills: () -> Unit = {},
     onNavigateToBuildings: () -> Unit = {},
-    onNavigateToMaintenance: () -> Unit = {}
+    onNavigateToMaintenance: () -> Unit = {},
+    onNavigateToImportBuildingRoom: () -> Unit = {}
 ) {
+    val onPendingReadingsClick = remember { onNavigateToPendingReadings }
+    val onTenantListClick = remember { onNavigateToTenantList }
+    val onBillsClick = remember { onNavigateToBills }
+    val onBuildingsClick = remember { onNavigateToBuildings }
+    val onMaintenanceClick = remember { onNavigateToMaintenance }
+    val onImportClick = remember { onNavigateToImportBuildingRoom }
+
     var isVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -355,8 +391,7 @@ fun LandlordDashboardContent(
         modifier = modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Header
-        item {
+        item(key = "header") {
             AnimatedVisibility(
                 visible = isVisible,
                 enter = fadeIn(tween(600)) + slideInVertically(
@@ -368,8 +403,7 @@ fun LandlordDashboardContent(
             }
         }
 
-        // Quick Stats Row - 3 small cards
-        item {
+        item(key = "quick_stats") {
             AnimatedVisibility(
                 visible = isVisible,
                 enter = fadeIn(tween(600, delayMillis = 50)) +
@@ -407,10 +441,71 @@ fun LandlordDashboardContent(
             }
         }
 
-        // Quick Actions Section - Actionable cards that need landlord attention
+        if (uiState.totalRooms == 0) {
+            item(key = "empty_state") {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(tween(600, delayMillis = 100)) +
+                            slideInVertically(
+                                initialOffsetY = { 40 },
+                                animationSpec = tween(600, easing = FastOutSlowInEasing)
+                            )
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "No Buildings Yet",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "Get started by importing your buildings and rooms from an Excel file",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Button(
+                                onClick = onImportClick,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.padding(4.dp))
+                                Text("Import Buildings & Rooms")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         if (uiState.pendingReadingsCount > 0 || uiState.newJoinRequestsCount > 0 ||
             uiState.overdueBillsCount > 0 || uiState.totalRooms > 0) {
-            item {
+            item(key = "quick_actions") {
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = fadeIn(tween(600, delayMillis = 100)) +
@@ -424,19 +519,18 @@ fun LandlordDashboardContent(
                         newJoinRequestsCount = uiState.newJoinRequestsCount,
                         overdueBillsCount = uiState.overdueBillsCount,
                         totalRooms = uiState.totalRooms,
-                        onNavigateToPendingReadings = onNavigateToPendingReadings,
-                        onNavigateToTenantList = onNavigateToTenantList,
-                        onNavigateToBills = onNavigateToBills,
-                        onNavigateToBuildings = onNavigateToBuildings,
-                        onNavigateToMaintenance = onNavigateToMaintenance
+                        onNavigateToPendingReadings = onPendingReadingsClick,
+                        onNavigateToTenantList = onTenantListClick,
+                        onNavigateToBills = onBillsClick,
+                        onNavigateToBuildings = onBuildingsClick,
+                        onNavigateToMaintenance = onMaintenanceClick
                     )
                 }
             }
         }
 
-        // Bento Grid Row 2: Revenue Chart (full width, larger)
         if (uiState.revenueHistory.isNotEmpty()) {
-            item {
+            item(key = "revenue_chart") {
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = fadeIn(tween(600, delayMillis = 150)) +
@@ -450,9 +544,8 @@ fun LandlordDashboardContent(
             }
         }
 
-        // Bento Grid Row 3: Financial cards (2 medium cards side by side)
         if (uiState.monthlyRevenue > 0 || uiState.unpaidBalance > 0) {
-            item {
+            item(key = "financial_cards") {
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = fadeIn(tween(600, delayMillis = 200)) +
@@ -472,7 +565,7 @@ fun LandlordDashboardContent(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             iconColor = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f),
-                            onClick = onNavigateToBills
+                            onClick = onBillsClick
                         )
                         BentoFinancialCard(
                             icon = Icons.Default.AccountBalanceWallet,
@@ -488,9 +581,8 @@ fun LandlordDashboardContent(
             }
         }
 
-        // Bento Grid Row 4: Average Rent & Growth (2 cards side by side)
         if ((uiState.totalRooms > 0 && uiState.occupiedRooms > 0) || uiState.revenueHistory.size >= 2) {
-            item {
+            item(key = "rent_growth_cards") {
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = fadeIn(tween(600, delayMillis = 250)) +
@@ -521,9 +613,8 @@ fun LandlordDashboardContent(
             }
         }
 
-        // Bento Grid Row 5: Payment Status (full width)
         if (uiState.monthlyRevenue > 0 || uiState.unpaidBalance > 0) {
-            item {
+            item(key = "payment_status") {
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = fadeIn(tween(600, delayMillis = 300)) +
@@ -552,10 +643,15 @@ fun CompactStatCard(
     color: Color,
     modifier: Modifier = Modifier
 ) {
+    val semanticDescription = "$label: $value"
+
     Card(
         modifier = modifier
             .height(100.dp)
-            .shadow(2.dp, RoundedCornerShape(16.dp)),
+            .shadow(2.dp, RoundedCornerShape(16.dp))
+            .semantics(mergeDescendants = true) {
+                contentDescription = semanticDescription
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -569,7 +665,7 @@ fun CompactStatCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = label,
                 tint = color,
                 modifier = Modifier.size(24.dp)
             )
@@ -623,11 +719,18 @@ fun BentoFinancialCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
+    val formattedValue = remember(value) { Utils.formatCurrency(value.toString()) }
+    val semanticDescription = "$label: $formattedValue"
+    val onClickMemoized = remember { onClick }
+
     Card(
         modifier = modifier
             .height(120.dp)
             .shadow(2.dp, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClickMemoized)
+            .semantics(mergeDescendants = true) {
+                contentDescription = semanticDescription
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
         containerColor = containerColor
@@ -641,13 +744,13 @@ fun BentoFinancialCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = label,
                 tint = iconColor,
                 modifier = Modifier.size(28.dp)
             )
             Column {
                 Text(
-                    text = Utils.formatCurrency(value.toString()),
+                    text = formattedValue,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -669,12 +772,19 @@ fun BentoAverageRentCard(
     occupiedRooms: Int,
     modifier: Modifier = Modifier
 ) {
-    val averageRent = if (occupiedRooms > 0) monthlyRevenue / occupiedRooms else 0.0
+    val averageRent = remember(monthlyRevenue, occupiedRooms) {
+        if (occupiedRooms > 0) monthlyRevenue / occupiedRooms else 0.0
+    }
+    val formattedRent = remember(averageRent) { Utils.formatCurrency(averageRent.toString()) }
+    val semanticDescription = "Average rent: $formattedRent per room per month, $occupiedRooms occupied rooms"
 
     Card(
         modifier = modifier
             .height(180.dp)
-            .shadow(2.dp, RoundedCornerShape(16.dp)),
+            .shadow(2.dp, RoundedCornerShape(16.dp))
+            .semantics(mergeDescendants = true) {
+                contentDescription = semanticDescription
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -699,7 +809,7 @@ fun BentoAverageRentCard(
                 )
                 Icon(
                     imageVector = Icons.Default.Home,
-                    contentDescription = null,
+                    contentDescription = "Average rent",
                     tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(24.dp)
                 )
@@ -710,7 +820,7 @@ fun BentoAverageRentCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = Utils.formatCurrency(averageRent.toString()),
+                    text = formattedRent,
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary
@@ -749,18 +859,27 @@ fun BentoGrowthCard(
     revenueHistory: List<UiRevenueDataPoint>,
     modifier: Modifier = Modifier
 ) {
-    val growthPercentage = if (revenueHistory.size >= 2) {
-        val latest = revenueHistory.last().revenue.toDouble()
-        val previous = revenueHistory[revenueHistory.size - 2].revenue.toDouble()
-        if (previous > 0) ((latest - previous) / previous) * 100 else 0.0
-    } else 0.0
+    val growthPercentage = remember(revenueHistory) {
+        if (revenueHistory.size >= 2) {
+            val latest = revenueHistory.last().revenue.toDouble()
+            val previous = revenueHistory[revenueHistory.size - 2].revenue.toDouble()
+            if (previous > 0) ((latest - previous) / previous) * 100 else 0.0
+        } else 0.0
+    }
 
     val isPositive = growthPercentage >= 0
+    val formattedGrowth = remember(growthPercentage, isPositive) {
+        "${if (isPositive) "+" else ""}${String.format("%.1f", growthPercentage)}%"
+    }
+    val semanticDescription = "Revenue growth: $formattedGrowth compared to last month"
 
     Card(
         modifier = modifier
             .height(180.dp)
-            .shadow(2.dp, RoundedCornerShape(16.dp)),
+            .shadow(2.dp, RoundedCornerShape(16.dp))
+            .semantics(mergeDescendants = true) {
+                contentDescription = semanticDescription
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isPositive)
@@ -788,7 +907,7 @@ fun BentoGrowthCard(
             ) {
                 Icon(
                     imageVector = if (isPositive) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
-                    contentDescription = null,
+                    contentDescription = if (isPositive) "Growth trending up" else "Growth trending down",
                     tint = if (isPositive)
                         MaterialTheme.colorScheme.tertiary
                     else
@@ -797,7 +916,7 @@ fun BentoGrowthCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "${if (isPositive) "+" else ""}${String.format("%.1f", growthPercentage)}%",
+                    text = formattedGrowth,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (isPositive)
@@ -822,13 +941,23 @@ fun BentoPaymentStatus(
     monthlyRevenue: Double,
     unpaidBalance: Double
 ) {
-    val paidAmount = monthlyRevenue - unpaidBalance
-    val paidPercentage = if (monthlyRevenue > 0) paidAmount / monthlyRevenue else 0.0
+    val paidAmount = remember(monthlyRevenue, unpaidBalance) {
+        monthlyRevenue - unpaidBalance
+    }
+    val paidPercentage = remember(monthlyRevenue, paidAmount) {
+        if (monthlyRevenue > 0) paidAmount / monthlyRevenue else 0.0
+    }
+    val formattedPaid = remember(paidAmount) { Utils.formatCurrency(paidAmount.toString()) }
+    val formattedUnpaid = remember(unpaidBalance) { Utils.formatCurrency(unpaidBalance.toString()) }
+    val semanticDescription = "Payment status: $formattedPaid paid, $formattedUnpaid unpaid out of ${Utils.formatCurrency(monthlyRevenue.toString())} total"
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(16.dp)),
+            .shadow(2.dp, RoundedCornerShape(16.dp))
+            .semantics(mergeDescendants = true) {
+                contentDescription = semanticDescription
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -843,7 +972,6 @@ fun BentoPaymentStatus(
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Progress bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -879,7 +1007,7 @@ fun BentoPaymentStatus(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = Utils.formatCurrency(paidAmount.toString()),
+                        text = formattedPaid,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -892,7 +1020,7 @@ fun BentoPaymentStatus(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = Utils.formatCurrency(unpaidBalance.toString()),
+                        text = formattedUnpaid,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error
@@ -942,20 +1070,32 @@ fun BentoRevenueChart(revenueHistory: List<UiRevenueDataPoint>) {
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            EnhancedLineChart(revenueHistory = revenueHistory)
+            LineChart(revenueHistory = revenueHistory)
         }
     }
 }
 
 @Composable
-fun EnhancedLineChart(revenueHistory: List<UiRevenueDataPoint>) {
-    val maxRevenue = revenueHistory.maxOfOrNull { it.revenue.toDouble() } ?: 1.0
-    val minRevenue = revenueHistory.minOfOrNull { it.revenue.toDouble() } ?: 0.0
+fun LineChart(revenueHistory: List<UiRevenueDataPoint>) {
+    val maxRevenue = remember(revenueHistory) {
+        revenueHistory.maxOfOrNull { it.revenue.toDouble() } ?: 1.0
+    }
+    val minRevenue = remember(revenueHistory) {
+        revenueHistory.minOfOrNull { it.revenue.toDouble() } ?: 0.0
+    }
     val primaryColor = MaterialTheme.colorScheme.primary
 
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
-    Column {
+    val semanticDescription = remember(revenueHistory) {
+        "Revenue trend chart showing ${revenueHistory.size} months of data"
+    }
+
+    Column(
+        modifier = Modifier.semantics {
+            contentDescription = semanticDescription
+        }
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -969,7 +1109,6 @@ fun EnhancedLineChart(revenueHistory: List<UiRevenueDataPoint>) {
                 val startX = 20.dp.toPx()
                 val startY = 10.dp.toPx()
 
-                // Grid lines
                 for (i in 0..4) {
                     val y = startY + (chartHeight * i / 4)
                     drawLine(
@@ -988,7 +1127,6 @@ fun EnhancedLineChart(revenueHistory: List<UiRevenueDataPoint>) {
                     Offset(x, y)
                 }
 
-                // Smooth curve path
                 val path = Path().apply {
                     if (points.isNotEmpty()) {
                         moveTo(points[0].x, points[0].y)
@@ -1004,7 +1142,6 @@ fun EnhancedLineChart(revenueHistory: List<UiRevenueDataPoint>) {
                     }
                 }
 
-                // Fill gradient
                 val fillPath = Path().apply {
                     addPath(path)
                     if (points.isNotEmpty()) {
@@ -1025,7 +1162,6 @@ fun EnhancedLineChart(revenueHistory: List<UiRevenueDataPoint>) {
                     )
                 )
 
-                // Main line with gradient
                 drawPath(
                     path = path,
                     brush = Brush.horizontalGradient(
@@ -1038,7 +1174,6 @@ fun EnhancedLineChart(revenueHistory: List<UiRevenueDataPoint>) {
                     style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
                 )
 
-                // Data points
                 points.forEachIndexed { index, point ->
                     val isSelected = selectedIndex == index
                     drawCircle(
@@ -1053,7 +1188,6 @@ fun EnhancedLineChart(revenueHistory: List<UiRevenueDataPoint>) {
                     )
                 }
 
-                // Highlight selected point
                 selectedIndex?.let { index ->
                     if (index in points.indices) {
                         val point = points[index]
@@ -1069,16 +1203,25 @@ fun EnhancedLineChart(revenueHistory: List<UiRevenueDataPoint>) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Month labels and values
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             revenueHistory.forEachIndexed { index, dataPoint ->
+                val formattedRevenue = remember(dataPoint.revenue) {
+                    Utils.formatCurrency(dataPoint.revenue.toString())
+                }
+                val onClick = remember(index) {
+                    { selectedIndex = if (selectedIndex == index) null else index }
+                }
+
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { selectedIndex = if (selectedIndex == index) null else index },
+                        .clickable(onClick = onClick)
+                        .semantics {
+                            contentDescription = "${dataPoint.monthLabel}: $formattedRevenue"
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -1092,7 +1235,7 @@ fun EnhancedLineChart(revenueHistory: List<UiRevenueDataPoint>) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = Utils.formatCurrency(dataPoint.revenue.toString()),
+                        text = formattedRevenue,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                         color = if (selectedIndex == index)
                             MaterialTheme.colorScheme.primary

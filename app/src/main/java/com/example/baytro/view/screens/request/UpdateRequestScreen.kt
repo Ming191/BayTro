@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.request
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -44,6 +45,7 @@ import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateRequestScreen(
@@ -82,13 +84,15 @@ fun UpdateRequestScreen(
         if (!formState.isLoading) {
             delay(50)
             titleVisible = true
-            buttonsVisible = true
             delay(80)
             descriptionVisible = true
             delay(80)
             dateVisible = true
             delay(80)
             photosVisible = true
+            delay(80)
+            buttonsVisible = true
+
         }
     }
 
@@ -98,50 +102,10 @@ fun UpdateRequestScreen(
                 CircularProgressIndicator()
             }
         } else {
-            Scaffold(
-                bottomBar = {
-                    BottomAppBar {
-                        AnimatedVisibility(
-                            visible = buttonsVisible,
-                            enter = fadeIn(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                )
-                            ) + slideInVertically(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                ),
-                                initialOffsetY = { -it / 4 }
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                            ) {
-                                SubmitButton(
-                                    text = "Update Request",
-                                    isLoading = uiState is UiState.Loading,
-                                    onClick = {
-                                        viewModel.updateRequest(
-                                            context = context,
-                                        )
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(50.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            ) { innerPadding ->
+            Scaffold {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
                         .padding(16.dp)
                 ) {
                     item {
@@ -296,6 +260,42 @@ fun UpdateRequestScreen(
                                 existingImageUrls = formState.existingImageUrls,
                                 onExistingImagesChanged = { urls -> viewModel.updateExistingImageUrls(urls) }
                             )
+                        }
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(32.dp))
+                        AnimatedVisibility(
+                            visible = buttonsVisible,
+                            enter = fadeIn(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            ) + slideInVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                ),
+                                initialOffsetY = { -it / 4 }
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            ) {
+                                SubmitButton(
+                                    text = "Update Request",
+                                    isLoading = uiState is UiState.Loading,
+                                    onClick = {
+                                        viewModel.updateRequest(
+                                            context = context,
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(50.dp)
+                                )
+                            }
                         }
                     }
                 }

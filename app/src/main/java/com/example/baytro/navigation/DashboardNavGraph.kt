@@ -57,6 +57,11 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
                     }
                     launchSingleTop = true
                 }
+            },
+            onNavigateToImportBuildingRoom = {
+                navController.navigate(Screens.ImportBuildingsRooms.route) {
+                    launchSingleTop = true
+                }
             }
         )
     }

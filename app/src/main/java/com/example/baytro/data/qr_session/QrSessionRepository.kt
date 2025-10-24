@@ -21,7 +21,7 @@ data class PendingQrSession(
 
 
 class QrSessionRepository(
-    private val db: FirebaseFirestore,
+    db: FirebaseFirestore,
     private val userRepository: com.example.baytro.data.user.UserRepository
 ) : Repository<QrSession> {
     private val collection = db.collection("qr_sessions")
@@ -129,6 +129,49 @@ class QrSessionRepository(
             .catch { e ->
                 Log.e("QrSessionRepository", "Error in listenForScannedSessions flow", e)
                 emit(emptyList())
+            }
+    }
+
+    fun listenForSessionApproval(tenantId: String): Flow<String?> {
+        if (tenantId.isBlank()) {
+            Log.w("QrSessionRepository", "Tenant ID is blank, returning empty flow")
+            return flowOf(null)
+        }
+
+        val query = collection.where {
+            all(
+                "scannedByTenantId" equalTo tenantId,
+                "status" equalTo QrSessionStatus.SCANNED
+            )
+        }
+
+        return query.snapshots
+            .map { querySnapshot ->
+                Log.d("QrSessionRepository", "Session snapshot received for tenant $tenantId, docs: ${querySnapshot.documents.size}")
+                // If there are no more SCANNED sessions for this tenant, it means it was approved or rejected
+                if (querySnapshot.documents.isEmpty()) {
+                    // Check if there's an APPROVED session
+                    val approvedSnapshot = collection.where {
+                        all(
+                            "scannedByTenantId" equalTo tenantId,
+                            "status" equalTo QrSessionStatus.APPROVED
+                        )
+                    }.get()
+
+                    if (approvedSnapshot.documents.isNotEmpty()) {
+                        val session = approvedSnapshot.documents.first().data<QrSession>()
+                        Log.d("QrSessionRepository", "Session approved! Contract ID: ${session.contractId}")
+                        session.contractId
+                    } else {
+                        null
+                    }
+                } else {
+                    null
+                }
+            }
+            .catch { e ->
+                Log.e("QrSessionRepository", "Error listening for session approval", e)
+                emit(null)
             }
     }
 }

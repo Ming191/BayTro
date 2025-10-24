@@ -1,6 +1,5 @@
 package com.example.baytro.data.request
 
-import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.serialization.Serializable
 
 enum class RequestStatus {
@@ -17,16 +16,16 @@ data class Request(
     val roomId: String = "",
     val landlordId: String = "",
     val status: RequestStatus,
-    val createdAt: Timestamp,
-    val scheduledDate: String,
-    val imageUrls: List<String>,
-    val description: String,
-    val title: String,
+    val createdAt: String = "",
+    val scheduledDate: String = "",
+    val imageUrls: List<String> = emptyList(),
+    val description: String = "",
+    val title: String = "",
 
-    val assigneeName: String?,
-    val completionDate: String?,
-    val acceptedDate: String?,
-    val assigneePhoneNumber: String?,
+    val assigneeName: String? = null,
+    val completionDate: String? = null,
+    val acceptedDate: String? = null,
+    val assigneePhoneNumber: String? = null,
 )
 
 data class FullRequestInfo(
