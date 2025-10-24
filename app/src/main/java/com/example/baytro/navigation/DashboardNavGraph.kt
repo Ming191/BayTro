@@ -4,21 +4,65 @@ import android.util.Log
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
-import com.example.baytro.view.screens.DashboardScreen
-import com.example.baytro.view.screens.tenant.TenantListScreen
+import com.example.baytro.view.SettingsScreen
 import com.example.baytro.view.screens.billing.LandlordBillsScreen
-
-import com.example.baytro.view.screens.dashboard.TenantDashboard
 import com.example.baytro.view.screens.contract.TenantEmptyContractView
-import com.example.baytro.view.screens.request.RequestListScreen
+import com.example.baytro.view.screens.dashboard.LandlordDashboard
+import com.example.baytro.view.screens.dashboard.MeterReadingHistoryScreen
 import com.example.baytro.view.screens.dashboard.MeterReadingScreen
 import com.example.baytro.view.screens.dashboard.PendingMeterReadingsScreen
-import com.example.baytro.view.screens.dashboard.MeterReadingHistoryScreen
-import com.google.firebase.auth.FirebaseAuth
+import com.example.baytro.view.screens.dashboard.TenantDashboard
+import com.example.baytro.view.screens.request.RequestListScreen
+import com.example.baytro.view.screens.tenant.TenantListScreen
 
 fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     composable(Screens.Dashboard.route) {
-        DashboardScreen()
+        LandlordDashboard(
+            onNavigateToPendingReadings = {
+                navController.navigate(Screens.PendingMeterReadings.route) {
+                    popUpTo(Screens.Dashboard.route) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            },
+            onNavigateToTenantList = {
+                navController.navigate(Screens.TenantList.route) {
+                    popUpTo(Screens.Dashboard.route) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            },
+            onNavigateToBills = {
+                navController.navigate(Screens.BillList.route) {
+                    popUpTo(Screens.Dashboard.route) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            },
+            onNavigateToBuildings = {
+                navController.navigate(Screens.BuildingList.route) {
+                    popUpTo(Screens.Dashboard.route) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            },
+            onNavigateToMaintenance = {
+                navController.navigate(Screens.MaintenanceRequestList.route) {
+                    popUpTo(Screens.Dashboard.route) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            }
+        )
+    }
+
+    composable(Screens.Settings.route) {
+        SettingsScreen()
     }
 
     composable(Screens.TenantDashboard.route) {
@@ -51,6 +95,11 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
                 val route = Screens.MeterReadingHistory.createRoute(contractId)
                 Log.d("DashboardNavGraph", "Navigating to route: $route")
                 navController.navigate(route) {
+                    launchSingleTop = true
+                }
+            },
+            onNavigateToPayment = {
+                navController.navigate(Screens.TenantBillScreen.route) {
                     launchSingleTop = true
                 }
             }

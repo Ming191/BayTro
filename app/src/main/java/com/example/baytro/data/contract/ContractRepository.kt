@@ -202,6 +202,18 @@ class ContractRepository(
         }
     }
 
+    suspend fun getActiveContractForTenant(tenantId: String): Contract? {
+        val snapshot = collection
+            .where { "status" equalTo "ACTIVE" }
+            .where { "tenantIds" contains tenantId }
+            .limit(1)
+            .get()
+
+        return snapshot.documents.firstOrNull()?.let { doc ->
+            doc.data<Contract>().copy(id = doc.id)
+        }
+    }
+
     suspend fun getContractsByLandlordId(landlordId: String): List<Contract> {
         if (landlordId.isBlank()) {
             Log.d("ContractRepository", "Query skipped: landlordId is blank")

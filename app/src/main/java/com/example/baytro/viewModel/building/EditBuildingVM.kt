@@ -1,4 +1,4 @@
-package com.example.baytro.viewModel
+package com.example.baytro.viewModel.building
 
 import android.content.Context
 import android.net.Uri
@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-data class BuildingFormState(
+data class EditBuildingFormState(
     val name: String = "",
     val floor: String = "",
     val address: String = "",
@@ -53,20 +53,20 @@ class EditBuildingVM(
     private val _editUIState = MutableStateFlow<UiState<Building>>(UiState.Loading)
     val editUIState: StateFlow<UiState<Building>> = _editUIState
 
-    private val _formState = MutableStateFlow(BuildingFormState())
-    val formState: StateFlow<BuildingFormState> = _formState.asStateFlow()
+    private val _formState = MutableStateFlow(EditBuildingFormState())
+    val formState: StateFlow<EditBuildingFormState> = _formState.asStateFlow()
 
     private val _formErrors = MutableStateFlow(BuildingFormErrors())
     val formErrors: StateFlow<BuildingFormErrors> = _formErrors.asStateFlow()
 
-    private var originalFormState: BuildingFormState? = null
+    private var originalFormState: EditBuildingFormState? = null
 
     fun load(id: String) {
         viewModelScope.launch {
             try {
                 val b = buildingRepository.getById(id)
                 _building.value = b
-                val initialFormState = BuildingFormState(
+                val initialFormState = EditBuildingFormState(
                     name = b?.name ?: "",
                     floor = b?.floor.toString(),
                     address = b?.address ?: "",

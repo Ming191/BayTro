@@ -11,26 +11,26 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.example.baytro.R
 
 @Composable
-fun PoliciesAndTermsScreen(
-    onNavigateBack: () -> Unit
-) {
+fun PoliciesAndTermsScreen() {
     val context = LocalContext.current
 
-    // Read HTML from res/raw/policies_terms.html
     val htmlContent = remember {
-        context.resources.openRawResource(R.raw.policies_terms).bufferedReader().use { it.readText() }
-    }
-
-    val webView = remember {
-        WebView(context).apply {
-            settings.javaScriptEnabled = false
-            webViewClient = WebViewClient()
-            loadDataWithBaseURL(null, htmlContent, "text/html", "utf-8", null)
-        }
+        context.resources.openRawResource(R.raw.policies_terms)
+            .bufferedReader()
+            .use { it.readText() }
     }
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
-        factory = { webView }
+        factory = {
+            WebView(it).apply {
+                settings.javaScriptEnabled = false
+                webViewClient = WebViewClient()
+                loadDataWithBaseURL(null, htmlContent, "text/html", "utf-8", null)
+                isVerticalScrollBarEnabled = true
+                overScrollMode = WebView.OVER_SCROLL_IF_CONTENT_SCROLLS
+            }
+        },
+        update = { /* no-op */ }
     )
 }

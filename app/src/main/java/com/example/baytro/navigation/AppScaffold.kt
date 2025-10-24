@@ -1,5 +1,7 @@
 package com.example.baytro.navigation
 
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,7 +39,6 @@ fun AppScaffold (
     navHostController: NavHostController,
     onDrawerClicked: () -> Unit
 ) {
-    val authState = LocalAuthState.current
     Row(
         modifier = Modifier
             .fillMaxSize(),
@@ -53,7 +54,6 @@ fun AppScaffold (
                     Screens.ContractList.route,
                     Screens.MaintenanceRequestList.route,
                     Screens.ServiceList.route,
-                    Screens.PendingMeterReadings.route,
                     Screens.LandlordBills.route,
                 )
                 val isTopLevel = currentRoute in topLevelRoutes

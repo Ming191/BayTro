@@ -1,132 +1,187 @@
 package com.example.baytro.view.screens.billing
 
-import android.content.ClipData
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.baytro.data.billing.Bill
 import com.example.baytro.data.billing.BillLineItem
 import com.example.baytro.navigation.Screens
 import com.example.baytro.utils.Utils
+import com.example.baytro.view.components.BillDetailsCardSkeleton
+import com.example.baytro.view.components.BillSummaryCardSkeleton
+import com.example.baytro.viewModel.billing.DataState
 import com.example.baytro.viewModel.billing.TenantBillViewModel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
-import java.text.SimpleDateFormat
-import java.util.*
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TenantBillScreen(
     navController: NavController,
-    tenantId: String,
     viewModel: TenantBillViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-    LaunchedEffect(tenantId) {
-        viewModel.loadCurrentBill(tenantId)
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("My Bill") },
-                actions = {
-                    IconButton(onClick = {
-                        navController.navigate(Screens.BillingHistory.createRoute(tenantId))
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "Billing History"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { event ->
+            event.getContentIfNotHandled()?.let {
+                snackbarHostState.showSnackbar(message = it)
+            }
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+    }
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) {
+        val showOverallSkeleton = uiState.isContractLoading || uiState.currentBillState is DataState.Loading
+        Crossfade(targetState = showOverallSkeleton, animationSpec = tween(300)) { isSkeletonVisible ->
+            if (isSkeletonVisible) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    BillDetailsCardSkeleton()
                 }
-                uiState.error != null -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "⚠️ Error",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = uiState.error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    item(key = "current_bill_section") {
+                        AnimatedSection {
+                            when (val state = uiState.currentBillState) {
+                                is DataState.Success -> {
+                                    if (state.data != null) {
+                                        BillDetailsCard(
+                                            bill = state.data,
+                                            onClick = { navController.navigate(Screens.BillDetails.createRoute(state.data.id)) }
+                                        )
+                                    } else {
+                                        AllCaughtUpCard()
+                                    }
+                                }
+                                is DataState.Error -> {
+                                    ErrorCard(message = state.message)
+                                }
+                                is DataState.Loading -> { }
+                            }
+                        }
                     }
-                }
-                uiState.currentBill == null -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "📋",
-                            style = MaterialTheme.typography.displayLarge
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Your next bill is not yet available",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Check back soon or view your billing history",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+
+                    item(key = "past_bills_header") {
+                        AnimatedSection{
+                            Column {
+                                HorizontalDivider()
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Past Bills", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                    MonthSelector(
+                                        selectedDate = uiState.selectedHistoryDate,
+                                        onPrevious = { viewModel.goToPreviousMonth() },
+                                        onNext = { viewModel.goToNextMonth() }
+                                    )
+                                }
+                            }
+                        }
                     }
-                }
-                else -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
-                    ) {
-                        BillDetailsCard(bill = uiState.currentBill!!)
+
+                    when (val historyState = uiState.historicalBillsState) {
+                        is DataState.Loading -> {
+                            items(3, key = { index -> "past_bill_skeleton_$index" }) {
+                                BillSummaryCardSkeleton()
+                            }
+                        }
+                        is DataState.Success -> {
+                            if (historyState.data.isEmpty()) {
+                                item(key = "no_past_bills") {
+                                    Text(
+                                        "No past bills found for this month.",
+                                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                itemsIndexed(items = historyState.data, key = { _, bill -> "past_bill_${bill.id}" }) { index, billSummary ->
+                                    AnimatedSection {
+                                        TenantBillSummaryCard(
+                                            bill = billSummary,
+                                            onClick = { navController.navigate(Screens.BillDetails.createRoute(billSummary.id)) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        is DataState.Error -> {
+                            item(key = "past_bills_error") {
+                                ErrorCard(message = historyState.message)
+                            }
+                        }
                     }
                 }
             }
@@ -135,125 +190,187 @@ fun TenantBillScreen(
 }
 
 @Composable
-fun BillDetailsCard(bill: Bill) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+private fun AnimatedSection(
+    delayMillis: Int = 0,
+    content: @Composable () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(delayMillis.toLong())
+        visible = true
+    }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(
+            animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing)
+        ) + slideInVertically(
+            animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+            initialOffsetY = { it / 4 }
+        ),
+        exit = fadeOut()
     ) {
-        // Header Section
-        BillHeader(bill = bill)
-
-        // Line Items Section
-        BillLineItemsSection(lineItems = bill.lineItems)
-
-        // Payment Info Section
-        PaymentInfoSection(paymentInfo = bill.paymentInfo)
+        content()
     }
 }
 
 @Composable
-fun BillHeader(bill: Bill) {
+fun BillDetailsCard(
+    bill: Bill,
+    onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        modifier = Modifier.fillMaxWidth()
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+        onClick = onClick,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Total Amount",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = Utils.formatCurrency(bill.totalAmount.toString()),
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            StatusChip(status = bill.status)
+        Column(modifier = Modifier.padding(vertical = 16.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    "Total Amount Due",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                val targetAmount = bill.totalAmount.toFloat()
+                val animatedAmount by animateFloatAsState(
+                    targetValue = targetAmount,
+                    animationSpec = tween(durationMillis = 800, easing = EaseOutCubic),
+                    label = "amount"
+                )
+
+                Text(
+                    Utils.formatCurrency(animatedAmount.toLong().toString()),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                StatusChip(status = bill.status)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
-
-            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
-                    Text(
-                        text = "Room",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = bill.roomName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                Column(
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Text(
-                        text = "Due Date",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = formatDate(bill.paymentDueDate),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
+                InfoColumn(label = "Billed for", value = "${bill.roomName}, ${bill.buildingName}")
+                InfoColumn(label = "Due Date", value = Utils.formatTimestamp(bill.paymentDueDate), alignEnd = true)
             }
-        }
-    }
-}
 
-@Composable
-fun BillLineItemsSection(lineItems: List<BillLineItem>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Bill Details",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            Spacer(modifier = Modifier.height(20.dp))
+
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (lineItems.isEmpty()) {
-                Text(
-                    text = "No charges yet",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                lineItems.forEachIndexed { index, item ->
-                    if (index > 0) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 12.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant
+            Column(modifier = Modifier.padding(horizontal = 0.dp)) {
+                Text("Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    bill.lineItems.forEachIndexed { index, item ->
+                        var visible by remember { mutableStateOf(false) }
+                        LaunchedEffect(Unit) {
+                            visible = true
+                        }
+
+                        val alpha by animateFloatAsState(
+                            targetValue = if (visible) 1f else 0f,
+                            animationSpec = tween(300),
+                            label = "lineItemAlpha"
+                        )
+
+                        Box(modifier = Modifier.alpha(alpha)) {
+                            LineItemRow(item = item)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(modifier = Modifier.padding(horizontal = 0.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CreditCard,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        "Manual Payment Info",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (bill.paymentDetails != null) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            PaymentDetailRow(
+                                icon = Icons.Default.AccountBalance,
+                                label = "Bank Code",
+                                value = bill.paymentDetails.bankCode,
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            PaymentDetailRow(
+                                icon = Icons.Default.CreditCard,
+                                label = "Account Number",
+                                value = bill.paymentDetails.accountNumber,
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            PaymentDetailRow(
+                                icon = Icons.Default.Person,
+                                label = "Account Holder",
+                                value = bill.paymentDetails.accountHolderName,
+                            )
+                        }
+                    }
+                } else {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ) {
+                        Text(
+                            "No payment details available.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                            textAlign = TextAlign.Center
                         )
                     }
-                    BillLineItemRow(item = item)
                 }
             }
         }
@@ -261,116 +378,190 @@ fun BillLineItemsSection(lineItems: List<BillLineItem>) {
 }
 
 @Composable
-fun BillLineItemRow(item: BillLineItem) {
-    Column {
+private fun PaymentDetailRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Column {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TenantBillSummaryCard(bill: com.example.baytro.data.billing.BillSummary, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+            .animateContentSize(),
+        onClick = onClick,
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.description,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    text = "${bill.roomName}, ${bill.buildingName}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
-                if (item.quantity != null && item.pricePerUnit != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${item.quantity} × ${Utils.formatCurrency(item.pricePerUnit.toString())}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Due: ${Utils.formatTimestamp(bill.paymentDueDate)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = Utils.formatCurrency(bill.totalAmount.toString()),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                StatusChip(status = bill.status)
+            }
+        }
+    }
+}
+
+@Composable
+fun LineItemRow(item: BillLineItem) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = item.description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = Utils.formatCurrency(item.totalCost.toString()),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+fun InfoColumn(label: String, value: String, alignEnd: Boolean = false) {
+    Column(horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+fun AllCaughtUpCard() {
+    val scale by rememberInfiniteTransition(label = "scale").animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = EaseInOutCubic),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "iconScale"
+    )
+
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(vertical = 32.dp, horizontal = 16.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.DoneAll,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp).graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                },
+                tint = MaterialTheme.colorScheme.primary
+            )
             Text(
-                text = Utils.formatCurrency(item.totalCost.toString()),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
+                text = "You're All Set!",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "There are no outstanding bills at the moment. Your next bill will appear here once it's issued.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
         }
     }
 }
 
 @Composable
-fun PaymentInfoSection(paymentInfo: String) {
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
-    var showCopiedSnackbar by remember { mutableStateOf(false) }
-
-    Card(
+fun ErrorCard(message: String) {
+    OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+        )
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Payment Information",
+                text = "Error",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = MaterialTheme.colorScheme.error
             )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (paymentInfo.isNotBlank()) {
-                Text(
-                    text = paymentInfo,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
-                        scope.launch {
-                            clipboard.setClipEntry(ClipEntry(ClipData("Payment Info", arrayOf("text/plain"), ClipData.Item(AnnotatedString(paymentInfo).toString()))))
-                            showCopiedSnackbar = true
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copy",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Copy Payment Details")
-                }
-            } else {
-                Text(
-                    text = "Payment information will be available soon.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                )
-            }
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
         }
     }
-
-    if (showCopiedSnackbar) {
-        LaunchedEffect(Unit) {
-            kotlinx.coroutines.delay(2000)
-            showCopiedSnackbar = false
-        }
-        Snackbar(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text("Payment details copied to clipboard")
-        }
-    }
-}
-
-private fun formatDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-    return sdf.format(Date(timestamp))
 }

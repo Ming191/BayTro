@@ -279,7 +279,7 @@ fun PendingReadingCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = dateFormat.format(Date(reading.createdAt)),
+                            text = reading.createdAt?.let { dateFormat.format(Date(it.seconds * 1000)) } ?: "N/A",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

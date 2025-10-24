@@ -1,426 +1,354 @@
 package com.example.baytro.view.screens.building
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.baytro.navigation.Screens
+import com.example.baytro.utils.Utils
 import com.example.baytro.view.components.BuildingCard
 import com.example.baytro.view.components.BuildingListSkeleton
 import com.example.baytro.view.components.CompactSearchBar
 import com.example.baytro.view.components.EmptyBuildingState
-import com.example.baytro.view.components.PaginationControls
-import com.example.baytro.viewModel.BuildingListVM
-import kotlinx.coroutines.launch
+import com.example.baytro.viewModel.building.BuildingListVM
+import com.example.baytro.viewModel.building.BuildingStatusFilter
 import org.koin.compose.viewmodel.koinViewModel
-import kotlin.text.clear
 
-@OptIn(ExperimentalMaterial3Api::class)
+private enum class LoadingState {
+    LOADING, CONTENT, EMPTY
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun BuildingListScreen(
-    navController: NavHostController? = null,
+    navController: NavHostController,
     viewModel: BuildingListVM = koinViewModel()
 ) {
-    val controller = navController ?: rememberNavController()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val hasLoadedOnce by viewModel.hasLoadedOnce.collectAsState()
-    val buildings by viewModel.buildings.collectAsState()
-    val scope = rememberCoroutineScope()
-
-    var showLoading by remember { mutableStateOf(true) }
-    var showContent by remember { mutableStateOf(false) }
-    var showEmptyState by remember { mutableStateOf(false) }
-    var isRefreshing by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        Log.d("BuildingListScreen", "Screen launched - Checking if need to load")
-        if (!hasLoadedOnce) {
-            Log.d("BuildingListScreen", "First time loading buildings")
-            showLoading = true
-            showContent = false
-            showEmptyState = false
-            viewModel.loadBuildings()
-        } else {
-            viewModel.refreshBuildings()
-            showLoading = false
-            if (buildings.isEmpty()) {
-                showEmptyState = true
-                showContent = false
-            } else {
-                showEmptyState = false
-                showContent = true
-            }
-        }
-    }
-
-    LaunchedEffect(isLoading, hasLoadedOnce) {
-        Log.d("BuildingListScreen", "State changed: isLoading=$isLoading, hasLoadedOnce=$hasLoadedOnce, buildings.size=${buildings.size}")
-        if (!isLoading && hasLoadedOnce) {
-            Log.d("BuildingListScreen", "Loading complete, transitioning to content")
-
-            isRefreshing = false
-            showLoading = false
-            kotlinx.coroutines.delay(300)
-
-            if (buildings.isEmpty()) {
-                Log.d("BuildingListScreen", "No buildings, showing empty state")
-                showEmptyState = true
-                showContent = false
-            } else {
-                Log.d("BuildingListScreen", "Buildings found (${buildings.size}), showing content")
-                showEmptyState = false
-                showContent = true
+        viewModel.errorEvent.collect { event ->
+            event.getContentIfNotHandled()?.let { errorMessage ->
+                snackbarHostState.showSnackbar(message = errorMessage)
             }
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AnimatedVisibility(
-            visible = showLoading,
-            exit = fadeOut(animationSpec = tween(300))
-        ) {
-            Log.d("BuildingListScreen", "Rendering skeleton")
-            Surface(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    BuildingListSkeleton(itemCount = 2)
-                }
-            }
-        }
-
-        //Empty state
-        AnimatedVisibility(
-            visible = showEmptyState,
-            enter = fadeIn(animationSpec = tween(300))
-        ) {
-            Log.d("BuildingListScreen", "Rendering empty state")
-            Box(modifier = Modifier.fillMaxSize()) {
-                EmptyBuildingState(
-                    onAddBuilding = { controller.navigate(Screens.BuildingAdd.route) }
-                )
-
-                var fabMenuExpanded by remember { mutableStateOf(false) }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                ) {
-                    FloatingActionButton(
-                        onClick = { fabMenuExpanded = true },
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add building")
-                    }
-                    DropdownMenu(
-                        expanded = fabMenuExpanded,
-                        onDismissRequest = { fabMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Add manually") },
-                            onClick = {
-                                fabMenuExpanded = false
-                                controller.navigate(Screens.BuildingAdd.route)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Import from Excel") },
-                            onClick = {
-                                fabMenuExpanded = false
-                                controller.navigate(Screens.ImportBuildingsRooms.route)
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        // Main content with buildings (wrapped in PullToRefresh)
-        AnimatedVisibility(
-            visible = showContent,
-            enter = fadeIn(animationSpec = tween(300)),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Log.d("BuildingListScreen", "Rendering content (buildings.size=${buildings.size})")
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    scope.launch {
-                        Log.d("BuildingListScreen", "Pull to refresh triggered")
-                        isRefreshing = true
-                        viewModel.refreshBuildings()
-                    }
-                }
-            ) {
-                BuildingListContent(
-                    navController = controller,
-                    viewModel = viewModel
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BuildingListContent(
-    navController: NavHostController,
-    viewModel: BuildingListVM
-) {
-    val filteredBuildings by viewModel.filteredBuildings.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val statusFilter by viewModel.statusFilter.collectAsState()
-    val paginatedBuildings by viewModel.paginatedBuildings.collectAsState()
-    val currentPage by viewModel.currentPage.collectAsState()
-    val totalPages by viewModel.totalPages.collectAsState()
-    val hasNextPage by viewModel.hasNextPage.collectAsState()
-    val hasPreviousPage by viewModel.hasPreviousPage.collectAsState()
-
-    var showStatusMenu by remember { mutableStateOf(false) }
-    val animatedItemIds = remember { mutableSetOf<String>() }
-
-    LaunchedEffect(currentPage) {
-        animatedItemIds.clear()
-    }
-
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(150)
-        visible = true
-    }
-
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-
-        topBar = {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
                 CompactSearchBar(
-                    modifier = Modifier.padding(16.dp),
-                    value = searchQuery,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    value = uiState.searchQuery,
                     onValueChange = { viewModel.setSearchQuery(it) },
                     placeholderText = "Search buildings...",
                     trailingIcon = {
-                        Box {
-                            IconButton(onClick = { showStatusMenu = true }) {
-                                Icon(
-                                    Icons.Default.FilterList,
-                                    contentDescription = "Filter by status",
-                                    tint = if (statusFilter != BuildingListVM.BuildingStatusFilter.ALL) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                )
+                        FilterMenu(
+                            selectedFilter = uiState.statusFilter,
+                            onFilterSelected = { viewModel.setStatusFilter(it) },
+                            hasActiveFilter = uiState.statusFilter != BuildingStatusFilter.ALL
+                        )
+                    }
+                )
+
+                AnimatedVisibility(
+                    visible = uiState.statusFilter != BuildingStatusFilter.ALL,
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut()
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.FilterList,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = "Filter: ${uiState.statusFilter.name.lowercase().replaceFirstChar { it.uppercase() }}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                Crossfade(
+                    targetState = when {
+                        uiState.isLoading -> LoadingState.LOADING
+                        uiState.buildings.isNotEmpty() -> LoadingState.CONTENT
+                        else -> LoadingState.EMPTY
+                    },
+                    label = "buildingListCrossfade",
+                    animationSpec = tween(durationMillis = 300)
+                ) { state ->
+                    when (state) {
+                        LoadingState.LOADING -> {
+                            Box(modifier = Modifier.padding(16.dp)) {
+                                BuildingListSkeleton()
                             }
-                            DropdownMenu(
-                                expanded = showStatusMenu,
-                                onDismissRequest = { showStatusMenu = false }
+                        }
+                        LoadingState.CONTENT -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 8.dp,
+                                    bottom = 100.dp
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                BuildingListVM.BuildingStatusFilter.entries.forEach { filter ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = filter.name.lowercase()
-                                                    .replaceFirstChar { it.uppercase() },
-                                                color = if (filter == statusFilter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                items(
+                                    items = uiState.buildings,
+                                    key = { it.building.id }
+                                ) { buildingWithStats ->
+                                    BuildingCard(
+                                        name = buildingWithStats.building.name,
+                                        address = buildingWithStats.building.address,
+                                        imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
+                                        roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
+                                        revenue = Utils.formatCurrency(buildingWithStats.revenue.toString()),
+                                        onViewClick = {
+                                            navController.navigate(
+                                                Screens.RoomList.createRoute(buildingWithStats.building.id)
                                             )
                                         },
-                                        onClick = {
-                                            viewModel.setStatusFilter(filter)
-                                            showStatusMenu = false
+                                        onEditClick = {
+                                            navController.navigate(
+                                                Screens.BuildingEdit.createRoute(buildingWithStats.building.id)
+                                            )
                                         },
-                                        leadingIcon = if (filter == statusFilter) {
-                                            {
-                                                Icon(
-                                                    Icons.Default.Check,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        } else null
+                                        onDeleteClick = {
+                                            viewModel.archiveBuilding(buildingWithStats.building.id)
+                                        }
                                     )
                                 }
                             }
                         }
-                    }
-                )
-            }
-        },
-        floatingActionButton = {
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
-            ) {
-                var fabMenuExpanded by remember { mutableStateOf(false) }
-                Box {
-                    FloatingActionButton(
-                        onClick = { fabMenuExpanded = true },
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add building")
-                    }
-                    DropdownMenu(
-                        expanded = fabMenuExpanded,
-                        onDismissRequest = { fabMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Add manually") },
-                            onClick = {
-                                fabMenuExpanded = false
-                                navController.navigate(Screens.BuildingAdd.route)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Import from Excel") },
-                            onClick = {
-                                fabMenuExpanded = false
-                                navController.navigate(Screens.ImportBuildingsRooms.route)
-                            }
-                        )
+                        LoadingState.EMPTY -> {
+                            EmptyBuildingState(
+                                onAddBuilding = { navController.navigate(Screens.BuildingAdd.route) }
+                            )
+                        }
                     }
                 }
             }
         }
-    ) { innerPadding ->
-        var isInitialLoad by remember { mutableStateOf(true) }
-        if (filteredBuildings.isNotEmpty()) {
-            Log.d("BuildingListContent", "Rendering LazyColumn with ${paginatedBuildings.size} paginated items (page $currentPage of $totalPages)")
 
-            LazyColumn(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(
-                    top = 16.dp,
-                    bottom = 96.dp,
-                    start = 0.dp,
-                    end = 0.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 24.dp, end = 20.dp),
+            contentAlignment = Alignment.BottomEnd
+        ) {
+            FloatingActionButton(
+                onClick = {
+                    navController.navigate(Screens.BuildingAdd.route)
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 12.dp
+                )
             ) {
-                itemsIndexed(
-                    items = paginatedBuildings,
-                    key = { _, item -> item.building.id }
-                ) { index, buildingWithStats ->
-                    val itemId = buildingWithStats.building.id
-                    var visible by remember(itemId) {
-                        mutableStateOf(animatedItemIds.contains(itemId))
-                    }
-                    LaunchedEffect(itemId) {
-                        if (!visible) {
-                            // Chỉ delay cho lần đầu load, không delay khi scroll
-                            if (isInitialLoad) {
-                                kotlinx.coroutines.delay(index * 50L)
-                            }
-                            visible = true
-                            animatedItemIds.add(itemId)
-                        }
-                    }
-                    LaunchedEffect(Unit) {
-                        if (isInitialLoad && index >= 2) {
-                            isInitialLoad = false
-                        }
-                    }
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialAlpha = 0f) +
-                                slideInVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialOffsetY = { it / 3 })
-                    ) {
-                        var showDeleteConfirm by remember(itemId) { mutableStateOf(false) }
-                        if (showDeleteConfirm) {
-                            AlertDialog(
-                                onDismissRequest = { showDeleteConfirm = false },
-                                title = { Text("Delete building") },
-                                text = { Text("Are you sure you want to delete this building? This action cannot be undone.") },
-                                confirmButton = {
-                                    TextButton(onClick = {
-                                        showDeleteConfirm = false
-                                        viewModel.deleteBuilding(itemId)
-                                    }) { Text("Delete") }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
-                                }
-                            )
-                        }
-                        BuildingCard(
-                            name = buildingWithStats.building.name,
-                            address = buildingWithStats.building.address,
-                            imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
-                            roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
-                            revenue = "$0",
-                            onViewClick = { navController.navigate(Screens.RoomList.createRoute(buildingWithStats.building.id)) },
-                            onEditClick = { navController.navigate(Screens.BuildingEdit.createRoute(buildingWithStats.building.id)) },
-                            onDeleteClick = { showDeleteConfirm = true }
-                        )
-                    }
-                }
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
 
-                if (totalPages > 1) {
-                    item {
-                        PaginationControls(
-                            currentPage = currentPage,
-                            totalPages = totalPages,
-                            hasNextPage = hasNextPage,
-                            hasPreviousPage = hasPreviousPage,
-                            onNextPage = viewModel::nextPage,
-                            onPreviousPage = viewModel::previousPage,
-                            onPageClick = viewModel::goToPage,
-                            modifier = Modifier.padding(vertical = 8.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 16.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            SnackbarHost(snackbarHostState)
+        }
+    }
+}
+
+@Composable
+private fun FilterMenu(
+    selectedFilter: BuildingStatusFilter,
+    onFilterSelected: (BuildingStatusFilter) -> Unit,
+    hasActiveFilter: Boolean
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    val rotation by animateFloatAsState(
+        targetValue = if (showMenu) 180f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "filterRotation"
+    )
+
+    Box {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (hasActiveFilter)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            tonalElevation = if (hasActiveFilter) 2.dp else 0.dp
+        ) {
+            BadgedBox(
+                badge = {
+                    if (hasActiveFilter) {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(8.dp)
                         )
                     }
                 }
+            ) {
+                IconButton(
+                    onClick = { showMenu = true },
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(
+                        Icons.Default.FilterList,
+                        contentDescription = "Filter by status",
+                        tint = if (hasActiveFilter)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .rotate(rotation)
+                    )
+                }
+            }
+        }
+
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.padding(4.dp)
+        ) {
+            Text(
+                text = "Filter Buildings",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            BuildingStatusFilter.entries.forEach { filter ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = filter.name.lowercase().replaceFirstChar { it.uppercase() },
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (filter == selectedFilter) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (filter == selectedFilter)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    onClick = {
+                        onFilterSelected(filter)
+                        showMenu = false
+                    },
+                    leadingIcon = if (filter == selectedFilter) {
+                        {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        { Spacer(modifier = Modifier.size(32.dp)) }
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
             }
         }
     }

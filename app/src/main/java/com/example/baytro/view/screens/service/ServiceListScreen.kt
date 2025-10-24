@@ -231,21 +231,14 @@ fun ServiceListContent (
                                 service = service,
                                 onEdit = {
                                     Log.d("ServiceListContent", "Edit clicked for service: ${service.name}")
-                                    onEdit(it)
+                                    navController.navigate(Screens.EditService.createRoute(formState.selectedBuilding?.id.toString(), service.id))
                                 },
                                 onDelete = {
-                                    if (service.name != "Water" && service.name != "Electrics") {
-                                        Log.d(
-                                            "ServiceListContent",
-                                            "Delete clicked for service: ${service.name}"
-                                        )
-                                        onDelete(it)
-                                    } else {
-                                        Log.d(
-                                            "ServiceListContent",
-                                            "Delete clicked unable for service: ${service.name}"
-                                        )
-                                    }
+                                    Log.d(
+                                        "ServiceListContent",
+                                        "Delete clicked unable for service: ${service.name}"
+                                    )
+                                    onDelete(it)
                                 }
                             )
                         }
@@ -256,7 +249,7 @@ fun ServiceListContent (
         FloatingActionButton(
             onClick = {
                 Log.d("ServiceListContent", "FAB clicked - navigating to AddService")
-                navController.navigate(Screens.AddService.route)
+                navController.navigate(Screens.AddService.createRoute("", "",false))
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)

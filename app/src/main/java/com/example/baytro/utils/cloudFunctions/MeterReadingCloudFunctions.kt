@@ -1,9 +1,10 @@
-package com.example.baytro.service
+package com.example.baytro.utils.cloudFunctions
 
 import android.util.Log
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import kotlinx.coroutines.tasks.await
+import kotlin.collections.get
 
 class MeterReadingCloudFunctions(
     private val functions: FirebaseFunctions

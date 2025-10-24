@@ -1,32 +1,48 @@
 package com.example.baytro.data.billing
 
-import com.google.firebase.firestore.DocumentId
+import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.serialization.Serializable
 
-// Represents the full, detailed bill document.
+@Serializable
+enum class PaymentMethod {
+    BANK_TRANSFER_MANUAL,
+    CASH,
+    BANK_TRANSFER_AUTO
+}
+
 @Serializable
 data class Bill(
-    @kotlinx.serialization.Transient
-    @DocumentId
     val id: String = "",
     val contractId: String = "",
-    val roomName: String = "", // Denormalized for easy display
-    val tenantName: String = "", // Denormalized for easy display
-    val totalAmount: Double = 0.0,
-    val status: BillStatus = BillStatus.NOT_ISSUED_YET,
-    val issuedDate: Long = 0L, // Timestamp
-    val paymentDueDate: Long = 0L, // Timestamp
-    val lineItems: List<BillLineItem> = emptyList(),
-    val paymentInfo: String = "", // Landlord's bank info, QR code URL, etc.
     val landlordId: String = "",
-    val tenantId: String = "",
     val buildingId: String = "",
     val roomId: String = "",
-    val month: Int = 0, // 1-12
-    val year: Int = 0 // e.g., 2025
+    val tenantIds: List<String> = emptyList(),
+
+    val roomName: String = "",
+    val buildingName: String = "",
+    val tenantName: String = "",
+
+    val totalAmount: Double = 0.0,
+    val lineItems: List<BillLineItem> = emptyList(),
+
+    val status: BillStatus = BillStatus.NOT_ISSUED_YET,
+    val month: Int = 0,
+    val year: Int = 0,
+    val issuedDate: Timestamp,
+    val paymentDueDate: Timestamp,
+
+    val paymentCode: String? = null,
+    val paymentDetails: PaymentDetails? = null,
+
+    val paymentDate: Timestamp? = null,
+    val paidAmount: Double? = null,
+    val sepayTransactionId: Long? = null,
+    val paidBy_BankHolderName: String? = null,
+
+    val paymentMethod: PaymentMethod? = null,
 )
 
-// A summarized version for list views.
 @Serializable
 data class BillSummary(
     val id: String = "",
@@ -36,13 +52,14 @@ data class BillSummary(
     val status: BillStatus = BillStatus.NOT_ISSUED_YET,
     val month: Int = 0,
     val year: Int = 0,
-    val paymentDueDate: Long = 0L // Thêm trường này rất hữu ích
+    val paymentDueDate: Timestamp
 )
 
-fun Bill.toSummary(): BillSummary {
+fun Bill.toSummary(buildingNameOverride: String? = null): BillSummary {
     return BillSummary(
         id = this.id,
         roomName = this.roomName,
+        buildingName = buildingNameOverride ?: this.buildingName,
         totalAmount = this.totalAmount,
         status = this.status,
         month = this.month,
@@ -51,3 +68,9 @@ fun Bill.toSummary(): BillSummary {
     )
 }
 
+@Serializable
+data class PaymentDetails(
+    val accountNumber: String,
+    val bankCode: String,
+    val accountHolderName: String
+)

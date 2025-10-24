@@ -1,5 +1,6 @@
 package com.example.baytro.viewModel.Room
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -32,6 +33,7 @@ class EditRoomVM (
     var existingRooms = emptyList<Room>()
 
     init {
+        Log.d("EditRoomVM", "roomId: {$roomId}")
         viewModelScope.launch {
             existingRooms = roomRepository.getRoomsByBuildingId(room.value?.buildingId ?: "")
         }
@@ -41,6 +43,7 @@ class EditRoomVM (
         viewModelScope.launch {
             try {
                 val room = roomRepository.getById(roomId)
+                Log.d("EditRoomVM", "room: {$room}")
                 _room.value = room
                 val building = room?.buildingId?.let { buildingRepository.getById(it) }
                 room?.let { // formstate copy default value of current room to display

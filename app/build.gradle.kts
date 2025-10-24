@@ -138,6 +138,8 @@ dependencies {
     //zxing barcode scanner
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
-    // Excel (XLSX) parsing - lightweight Apache POI for Android
-    implementation("org.apache.poi:poi-ooxml:5.2.3")
+    implementation("org.apache.poi:poi-ooxml:5.4.1")
+
+    // https://mvnrepository.com/artifact/com.google.code.gson/gson
+    implementation("com.google.code.gson:gson:2.13.2")
 }
