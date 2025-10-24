@@ -33,6 +33,7 @@ data class AddBuildingFormState(
     val paymentStart: String = "",
     val paymentDue: String = "",
     val selectedImages: List<Uri> = emptyList(),
+    val buildingServices: List<Service> = emptyList(),
 
     val nameError: Boolean = false,
     val floorError: Boolean = false,
@@ -64,6 +65,10 @@ class AddBuildingVM(
 
     private val _buildingServices = MutableStateFlow<List<Service>>(emptyList())
     val buildingServices: StateFlow<List<Service>> = _buildingServices
+
+    init {
+        createDefaultServices()
+    }
     // Form field update methods
     fun updateName(value: String) {
         val validation = BuildingValidator.validateName(value)
@@ -121,6 +126,14 @@ class AddBuildingVM(
             dueError = validation.isError,
             dueErrorMsg = validation.message
         )
+    }
+
+    fun onBuildingServicesChange(service: Service) {
+        Log.d("AddBuildingVM", "onBuildingServicesChange: $service")
+        val updateBuildingServices = _buildingServices.value.toMutableList()
+        updateBuildingServices.add(service)
+        _buildingServices.value = updateBuildingServices
+        _formState.value = _formState.value.copy(buildingServices = updateBuildingServices)
     }
 
     fun updateSelectedImages(images: List<Uri>) {
@@ -196,8 +209,8 @@ class AddBuildingVM(
         }
     }
 
-    private fun createDefaultServices(): List<Service> {
-        return listOf(
+    private fun createDefaultServices() {
+        val services =  listOf(
             Service(
                 name = "Water",
                 price = "18000",
@@ -211,7 +224,7 @@ class AddBuildingVM(
                 status = Status.ACTIVE
             )
         )
-        _addBuildingFormState.value = _addBuildingFormState.value.copy(
+        _formState.value = _formState.value.copy(
             buildingServices = services
         )
         _buildingServices.value = services
@@ -220,11 +233,11 @@ class AddBuildingVM(
     fun addBuilding(building: Building) {
         viewModelScope.launch {
             _addBuildingUIState.value = AuthUIState.Loading
-            _addBuildingFormState.value = _addBuildingFormState.value.copy(
+            _formState.value = _formState.value.copy(
                 name = building.name,
                 floor = building.floor.toString(),
                 address = building.address,
-                status = BuildingStatus.ACTIVE.toString(),
+                status = BuildingStatus.ACTIVE,
                 billingDate = building.billingDate.toString(),
                 paymentStart = building.paymentStart.toString(),
                 paymentDue = building.paymentDue.toString(),

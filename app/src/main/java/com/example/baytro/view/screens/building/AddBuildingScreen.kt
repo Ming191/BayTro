@@ -65,7 +65,6 @@ import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.viewModel.building.AddBuildingVM
 import kotlinx.coroutines.delay
 import com.example.baytro.view.components.ServiceCard
-import com.example.baytro.viewModel.AddBuildingVM
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -78,13 +77,13 @@ fun AddBuildingScreen(
     val uiState by viewModel.addBuildingUIState.collectAsState()
     val formState by viewModel.formState.collectAsState()
     val context = LocalContext.current
-    val name: (String) -> Unit = viewModel::onNameChange
-    val floor: (String) -> Unit = viewModel::onFloorChange
-    val address: (String) -> Unit = viewModel::onAddressChange
-    val status: (String) -> Unit = viewModel::onStatusChange
-    val billingDate: (String) -> Unit = viewModel::onBillingDateChange
-    val paymentStart: (String) -> Unit = viewModel::onPaymentStartChange
-    val paymentDue: (String) -> Unit = viewModel::onPaymentDueChange
+//    val name: (String) -> Unit = viewModel::onNameChange
+//    val floor: (String) -> Unit = viewModel::onFloorChange
+//    val address: (String) -> Unit = viewModel::onAddressChange
+//    val status: (String) -> Unit = viewModel::onStatusChange
+//    val billingDate: (String) -> Unit = viewModel::onBillingDateChange
+//    val paymentStart: (String) -> Unit = viewModel::onPaymentStartChange
+//    val paymentDue: (String) -> Unit = viewModel::onPaymentDueChange
 
     val buildingServices by viewModel.buildingServices.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -532,6 +531,7 @@ fun AddBuildingScreen(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 8.dp)
                                 .clickable {
+                                    navController?.navigate(Screens.AddService.createRoute("","",true))
                                     //onAddServiceClick(null.toString(),building?.id.toString())
                                 }
                         )
