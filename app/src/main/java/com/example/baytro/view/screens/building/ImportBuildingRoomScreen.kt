@@ -23,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.importExcel.ImportBuildingRoomVM
 import com.example.baytro.viewModel.importExcel.ImportResult
@@ -31,7 +30,6 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ImportBuildingsRoomsScreen(
-    navController: NavHostController? = null,
     viewModel: ImportBuildingRoomVM = koinViewModel()
 ) {
     val uiState by viewModel.importState.collectAsState()

@@ -12,6 +12,7 @@ import com.example.baytro.data.user.Gender
 import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.User
 import com.example.baytro.data.user.UserRepository
+import com.example.baytro.data.user.UserRoleState
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
@@ -174,6 +175,9 @@ class NewLandlordUserVM(
                 roleCache.setRoleType(authUser.uid, landlordRole)
                 Log.d("NewLandlordUserVM", "✅ User role cached successfully - future app launches will be faster!")
                 Log.d("NewLandlordUserVM", "=========================")
+
+                UserRoleState.setRole(landlordRole)
+                Log.d("NewLandlordUserVM", "✅ Global UserRoleState updated with Landlord role")
 
                 _newLandlordUserUIState.value = UiState.Success(user)
             } catch (e: Exception) {

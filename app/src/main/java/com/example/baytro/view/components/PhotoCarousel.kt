@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
@@ -58,13 +59,12 @@ enum class CarouselOrientation {
     Horizontal, Vertical
 }
 
-// Image item composable for existing images (URLs)
 @Composable
 private fun ExistingImageItem(
     imageUrl: String,
     imageWidth: Dp,
     imageHeight: Dp,
-    imageShape: androidx.compose.ui.graphics.Shape,
+    imageShape: Shape,
     onImageClick: () -> Unit,
     onDelete: () -> Unit,
     showDeleteButton: Boolean
@@ -116,16 +116,15 @@ private fun ExistingImageItem(
     }
 }
 
-// Image item composable for new images (URIs)
 @Composable
 private fun NewImageItem(
     uri: Uri,
     imageWidth: Dp,
     imageHeight: Dp,
-    imageShape: androidx.compose.ui.graphics.Shape,
+    imageShape: Shape,
     onImageClick: () -> Unit,
     onDelete: () -> Unit,
-    showDeleteButton: Boolean // THAM SỐ MỚI
+    showDeleteButton: Boolean
 ) {
     Box(
         modifier = Modifier.size(imageWidth, imageHeight)
@@ -148,7 +147,6 @@ private fun NewImageItem(
             }
         )
 
-        // Delete button (hiển thị có điều kiện)
         if (showDeleteButton) {
             Surface(
                 modifier = Modifier
@@ -175,12 +173,11 @@ private fun NewImageItem(
     }
 }
 
-// Upload button composable
 @Composable
 private fun UploadButton(
     imageWidth: Dp,
     imageHeight: Dp,
-    imageShape: androidx.compose.ui.graphics.Shape,
+    imageShape: Shape,
     onClick: () -> Unit
 ) {
     Surface(
@@ -211,7 +208,6 @@ private fun UploadButton(
     }
 }
 
-// Photo source selection dialog
 @Composable
 private fun PhotoSourceDialog(
     onDismiss: () -> Unit,
@@ -325,12 +321,10 @@ fun PhotoCarousel(
 
     val totalImageCount = existingImageUrls.size + selectedPhotos.size
 
-    // Combine all images for viewing (URLs as strings, URIs as strings)
     val allImageModels = remember(existingImageUrls, selectedPhotos) {
         existingImageUrls + selectedPhotos.map { it.toString() }
     }
 
-    // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -341,7 +335,6 @@ fun PhotoCarousel(
         }
     }
 
-    // Camera permission launcher
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -367,7 +360,6 @@ fun PhotoCarousel(
         }
     }
 
-    // Crop launcher for camera images
     val cropLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -382,7 +374,6 @@ fun PhotoCarousel(
         pendingCropUri = null
     }
 
-    // Handle cropping for camera images
     LaunchedEffect(pendingCropUri) {
         pendingCropUri?.let { uri ->
             val imagesDir = File(context.cacheDir, "images")
@@ -418,7 +409,6 @@ fun PhotoCarousel(
         )
     }
 
-    // Image detail dialog - shows all images (existing + new)
     if (showImageDetailDialog && selectedImageIndex != -1 && allImageModels.isNotEmpty()) {
         // Use a key to force recreation when the images list changes
         key(allImageModels.joinToString(",")) {
@@ -431,19 +421,15 @@ fun PhotoCarousel(
                 },
                 onDelete = { index ->
                     if (index < existingImageUrls.size) {
-                        // Deleting an existing image
                         val imageUrl = existingImageUrls[index]
                         onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
                     } else {
-                        // Deleting a new image
                         val uriIndex = index - existingImageUrls.size
                         if (uriIndex < selectedPhotos.size) {
                             val uri = selectedPhotos[uriIndex]
                             onPhotosSelected(selectedPhotos.filter { it != uri })
                         }
                     }
-
-                    // Update the selected index or close if last image
                     val totalImages = existingImageUrls.size + selectedPhotos.size - 1
                     if (totalImages <= 0) {
                         showImageDetailDialog = false
@@ -498,7 +484,6 @@ fun PhotoCarousel(
                 )
             }
 
-            // New images from URIs
             itemsIndexed(
                 items = selectedPhotos,
                 key = { _, uri -> "new_$uri" }
@@ -535,7 +520,6 @@ fun PhotoCarousel(
         LazyColumn(
             verticalArrangement = arrangement,
         ) {
-            // Existing images from URLs
             itemsIndexed(
                 items = existingImageUrls,
                 key = { _, imageUrl -> "existing_$imageUrl" }
@@ -556,7 +540,6 @@ fun PhotoCarousel(
                 )
             }
 
-            // New images from URIs
             itemsIndexed(
                 items = selectedPhotos,
                 key = { _, uri -> "new_$uri" }
