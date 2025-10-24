@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.service.Metric
 import com.example.baytro.data.service.Service
@@ -121,7 +122,7 @@ class AddBuildingVM(
                 name = building.name,
                 floor = building.floor.toString(),
                 address = building.address,
-                status = building.status,
+                status = BuildingStatus.ACTIVE.toString(),
                 billingDate = building.billingDate.toString(),
                 paymentStart = building.paymentStart.toString(),
                 paymentDue = building.paymentDue.toString(),

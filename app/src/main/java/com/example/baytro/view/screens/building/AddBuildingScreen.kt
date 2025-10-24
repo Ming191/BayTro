@@ -204,8 +204,8 @@ fun AddBuildingScreen(
                 RequiredTextField(
                     value = addBuildingFormState.address,
                     onValueChange = {
-                        address = it
-                        val res = BuildingValidator.validateAddress(address)
+                        address(it)
+                        val res = BuildingValidator.validateAddress(addBuildingFormState.address)
                         addressError = res.isError; addressErrorMsg = res.message
                     },
                     label = "Address",
@@ -497,7 +497,7 @@ fun AddBuildingScreen(
                                 name = addBuildingFormState.name,
                                 floor = floorInt,
                                 address = addBuildingFormState.address,
-                                status = addBuildingFormState.status,
+                                status = BuildingStatus.ACTIVE,
                                 billingDate = billingDateInt,
                                 paymentStart = paymentStartInt,
                                 paymentDue = paymentDueInt,

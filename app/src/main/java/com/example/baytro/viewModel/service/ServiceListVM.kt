@@ -104,14 +104,9 @@ class ServiceListVM(
         }
     }
 
-    fun onEditService(service: Service, navController: NavHostController) {
-        val building = _serviceListFormState.value.selectedBuilding
-        if (building != null) {
-            _serviceListFormState.value = _serviceListFormState.value.copy(selectedService = service)
-            navController.navigate("edit_service_screen/${building.id}/${service.id}")
-        } else {
-            Log.w(TAG, "No building selected — cannot navigate to edit screen")
-        }
+    fun onEditService(service: Service) {
+        _serviceListFormState.value = _serviceListFormState.value.copy(selectedService = service)
+        // TODO: Navigate to edit screen
     }
 
 
