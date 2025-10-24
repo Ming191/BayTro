@@ -69,7 +69,7 @@ fun MeterReadingHistoryScreen(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 uiState.readings.isEmpty() -> {
-                    EmptyState()
+                    EmptyHistoryState()
                 }
                 else -> {
                     LazyColumn(
@@ -102,7 +102,7 @@ fun MeterReadingHistoryScreen(
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyHistoryState() {
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -143,7 +143,7 @@ fun HistoryReadingCard(reading: MeterReading) {
                 StatusChip(status = reading.status)
             }
             Text(
-                text = dateFormat.format(Date(reading.createdAt)),
+                text = reading.createdAt?.let { dateFormat.format(Date(it.seconds * 1000)) } ?: "N/A",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

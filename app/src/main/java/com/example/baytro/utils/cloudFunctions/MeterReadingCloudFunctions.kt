@@ -1,9 +1,10 @@
-package com.example.baytro.service
+package com.example.baytro.utils.cloudFunctions
 
 import android.util.Log
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import kotlinx.coroutines.tasks.await
+import kotlin.collections.get
 
 class MeterReadingCloudFunctions(
     private val functions: FirebaseFunctions
@@ -91,9 +92,16 @@ class MeterReadingCloudFunctions(
     }
 
     private fun parseFirebaseError(e: FirebaseFunctionsException): String {
+        val actualMessage = e.message
+        if (!actualMessage.isNullOrBlank()) {
+            return actualMessage
+        }
         val details = e.details
         if (details is Map<*, *>) {
-            return details["message"] as? String ?: e.message ?: "An error occurred"
+            val detailMessage = details["message"] as? String
+            if (!detailMessage.isNullOrBlank()) {
+                return detailMessage
+            }
         }
         return when (e.code) {
             FirebaseFunctionsException.Code.UNAUTHENTICATED -> "User not authenticated"
@@ -101,8 +109,7 @@ class MeterReadingCloudFunctions(
             FirebaseFunctionsException.Code.NOT_FOUND -> "Resource not found"
             FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Invalid argument provided"
             FirebaseFunctionsException.Code.FAILED_PRECONDITION -> "Operation failed: invalid state"
-            else -> e.message ?: "An error occurred"
+            else -> "An error occurred"
         }
     }
 }
-

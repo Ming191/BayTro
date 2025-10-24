@@ -1,18 +1,21 @@
 package com.example.baytro.data.meter_reading
 
 import com.example.baytro.data.MeterStatus
+import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class MeterReading(
-    @Transient
+    @kotlinx.serialization.Transient
     @SerialName("id")
     val id: String = "",
     @SerialName("contractId")
     val contractId: String = "",
     @SerialName("roomId")
     val roomId: String = "",
+    @SerialName("buildingId")
+    val buildingId: String = "",
     @SerialName("landlordId")
     val landlordId: String = "",
     @SerialName("tenantId")
@@ -20,11 +23,11 @@ data class MeterReading(
     @SerialName("status")
     val status: MeterStatus = MeterStatus.PENDING,
     @SerialName("createdAt")
-    val createdAt: Long = 0,
+    val createdAt: Timestamp? = null,
     @SerialName("approvedAt")
-    val approvedAt: String? = null,
+    val approvedAt: Timestamp? = null,
     @SerialName("declinedAt")
-    val declinedAt: String? = null,
+    val declinedAt: Timestamp? = null,
     @SerialName("declineReason")
     val declineReason: String? = null,
 
@@ -50,5 +53,8 @@ data class MeterReading(
     val waterCost: Double? = null,
 
     @SerialName("totalCost")
-    val totalCost: Double? = null
+    val totalCost: Double? = null,
+
+    val roomName: String = "Unknown Room",
+    val buildingName: String = "Unknown Building",
 )

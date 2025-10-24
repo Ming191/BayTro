@@ -49,6 +49,7 @@ import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
 import com.example.baytro.data.service.Service
 import com.example.baytro.navigation.Screens
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.utils.BuildingValidator
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.DividerWithSubhead
@@ -203,8 +204,8 @@ fun AddBuildingScreen(
                 RequiredTextField(
                     value = addBuildingFormState.address,
                     onValueChange = {
-                        address(it)
-                        val res = BuildingValidator.validateAddress(addBuildingFormState.address)
+                        address = it
+                        val res = BuildingValidator.validateAddress(address)
                         addressError = res.isError; addressErrorMsg = res.message
                     },
                     label = "Address",

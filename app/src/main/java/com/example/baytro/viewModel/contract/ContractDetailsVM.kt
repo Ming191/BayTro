@@ -103,7 +103,7 @@ class ContractDetailsVM(
     private fun listenForContractUpdates() {
         val id = contractId ?: return
         dataLoadingJob = viewModelScope.launch {
-            contractRepository.getContractFlow(id) // Giả sử bạn cũng đã tạo hàm này cho contract
+            contractRepository.getContractFlow(id)
                 .filterNotNull()
                 .flatMapLatest { contract ->
                     val roomFlow = roomRepository.getRoomFlow(contract.roomId).filterNotNull()
@@ -114,7 +114,6 @@ class ContractDetailsVM(
                     }
 
                     combine(roomFlow, tenantsFlow) { room, tenants ->
-                        // Lấy building là dạng one-time fetch vì nó ít thay đổi
                         val building = buildingRepository.getById(room.buildingId)
                         Triple(contract, room, tenants) to building
                     }

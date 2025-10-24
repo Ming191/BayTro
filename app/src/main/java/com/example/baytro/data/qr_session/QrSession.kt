@@ -7,15 +7,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class QrSessionStatus {
-    @SerialName("pending")
     PENDING,
-    @SerialName("scanned")
     SCANNED,
-    @SerialName("approved")
     APPROVED,
-    @SerialName("rejected")
     REJECTED,
-    @SerialName("expired")
     EXPIRED
 }
 

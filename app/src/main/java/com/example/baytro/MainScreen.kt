@@ -54,55 +54,10 @@ fun MainScreen() {
 
 @Composable
 fun TenantMainScreen() {
-    val scope = rememberCoroutineScope()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val navController = rememberNavController()
-
-    ModalNavigationDrawer(
-        drawerContent = {
-            ModalDrawerSheet {
-                NavigationDrawerView(
-                    currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route,
-                    onDrawerClicked = {
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    },
-                    onMaintenanceClicked = {
-                        navController.navigate(Screens.MaintenanceRequestList.route)
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    },
-                    onDashboardClicked = {
-                        navController.navigate(Screens.TenantDashboard.route) {
-                            popUpTo(Screens.TenantDashboard.route) { inclusive = true }
-                        }
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    },
-                    onBillClicked = {
-                        navController.navigate("bills_screen")
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    },
-                    isTenant = true
-                )
-            }
-        },
-        drawerState = drawerState
-    ) {
-        TenantScaffold(
-            navHostController = navController,
-            onDrawerClicked = {
-                scope.launch {
-                    drawerState.open()
-                }
-            }
-        )
-    }
+    TenantScaffold(
+        navHostController = navController
+    )
 }
 
 @Composable
@@ -191,16 +146,6 @@ fun LandlordMainScreen() {
                             drawerState.close()
                         }
                     },
-                    onMeterReadingsClicked = {
-                        navController.navigate(Screens.PendingMeterReadings.route) {
-                            launchSingleTop = true
-                            restoreState = true
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        }
-                        scope.launch {
-                            drawerState.close()
-                        }
-                    }
                 )
             }
         },

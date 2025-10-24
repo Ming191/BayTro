@@ -28,33 +28,27 @@ class UserRoleCache(private val context: Context) {
      * Returns "Tenant", "Landlord", or null if not cached
      */
     suspend fun getRoleType(userId: String): String? {
-        val preferences = context.dataStore.data.first()
-        val cachedUserId = preferences[USER_ID_KEY]
-        val cachedRoleType = preferences[ROLE_TYPE_KEY]
+        return try {
+            val preferences = context.dataStore.data.first()
+            val cachedUserId = preferences[USER_ID_KEY]
+            val cachedRoleType = preferences[ROLE_TYPE_KEY]
 
-        return if (cachedUserId == userId && cachedRoleType != null) {
-            cachedRoleType
-        } else {
+            if (cachedUserId == userId && cachedRoleType != null) cachedRoleType else null
+        } catch (e: Exception) {
+            Log.e("UserRoleCache", "Failed to read role cache", e)
             null
         }
     }
 
     suspend fun setRoleType(userId: String, role: Role) {
-        Log.d("UserRoleCache", "setRoleType() called for userId: $userId, role: $role")
-
         val roleTypeString = when (role) {
             is Role.Tenant -> "Tenant"
             is Role.Landlord -> "Landlord"
         }
 
-        Log.d("UserRoleCache", "Saving to DataStore - userId: $userId, roleType: $roleTypeString")
-
         context.dataStore.edit { preferences ->
             preferences[USER_ID_KEY] = userId
             preferences[ROLE_TYPE_KEY] = roleTypeString
         }
-
-        Log.d("UserRoleCache", "✅ Role type saved successfully to DataStore")
     }
-
 }

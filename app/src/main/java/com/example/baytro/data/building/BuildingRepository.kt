@@ -1,6 +1,7 @@
 package com.example.baytro.data
 
 import com.example.baytro.data.service.Service
+import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
@@ -75,6 +76,24 @@ class BuildingRepository(
         }
     }
 
+    suspend fun getBuildingSummariesByLandlord(landlordId: String): List<BuildingSummary> {
+        val snapshot = collection
+            .where {
+                all(
+                    "userId" equalTo landlordId,
+                    "status" equalTo "ACTIVE"
+                )
+            }
+            .orderBy("name", Direction.ASCENDING)
+            .get()
+
+        return snapshot.documents.map { doc ->
+            doc.data<Building>().copy(id = doc.id).toSummary()
+        }
+    }
+
+
+    // Get buildings by user ID (landlord)
     suspend fun getBuildingsByUserId(userId: String): List<Building> {
         val snapshot = collection.where { "userId" equalTo userId }.get()
         return snapshot.documents.mapNotNull { doc ->
@@ -87,10 +106,7 @@ class BuildingRepository(
         }
     }
 
-    // ==============================
-    //     SERVICES SUBCOLLECTION
-    // ==============================
-
+    // Listen to real-time updates for building services
     fun listenToBuildingServices(buildingId: String): Flow<List<Service>> {
         return collection.document(buildingId)
             .collection("services")

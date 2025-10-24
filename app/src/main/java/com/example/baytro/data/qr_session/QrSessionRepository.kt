@@ -69,7 +69,7 @@ class QrSessionRepository(
             val snapshot = collection.where {
                 all(
                     "scannedByTenantId" equalTo scannedByTenantId,
-                    "status" equalTo "scanned"
+                    "status" equalTo QrSessionStatus.SCANNED
                 )
             }.get()
             Log.d("QrSessionRepository", "scanned: ${snapshot.documents.size}")
@@ -89,7 +89,7 @@ class QrSessionRepository(
         val query = collection.where {
             all(
                 "contractId" equalTo contractId,
-                "status" equalTo "scanned"
+                "status" equalTo QrSessionStatus.SCANNED
             )
         }
 
@@ -109,7 +109,7 @@ class QrSessionRepository(
                                             sessionId = doc.id,
                                             tenantId = tenantId,
                                             tenantName = it.fullName,
-                                            tenantAvatarUrl = it.profileImgUrl ?: "" // Fix: Handle null profileImgUrl
+                                            tenantAvatarUrl = it.profileImgUrl ?: ""
                                         )
                                     }
                                 } else {

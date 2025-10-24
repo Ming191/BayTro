@@ -6,12 +6,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.baytro.view.screens.auth.ChangePasswordScreen
 import com.example.baytro.view.screens.auth.EditPersonalInformationScreen
-import com.example.baytro.view.screens.auth.PersonalInformationScreen
+import com.example.baytro.view.screens.profile.ProfileScreen
+import com.example.baytro.view.screens.profile.PoliciesAndTermsScreen
+import com.example.baytro.view.screens.profile.ViewPersonalInformationScreen
 import com.google.firebase.auth.FirebaseAuth
 
 fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
     composable(Screens.PersonalInformation.route) {
-        PersonalInformationScreen(
+        ProfileScreen(
             onNavigateBack = {
                 navController.popBackStack()
             },
@@ -23,6 +25,20 @@ fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
                 Log.d("AuthNAvGraph", "User : ${FirebaseAuth.getInstance().currentUser}")
             },
             onNavigateToEditPersonalInformation = {
+                navController.navigate(Screens.ViewPersonalInformation.route)
+            },
+            onNavigateToPoliciesAndTerms = {
+                navController.navigate(Screens.PoliciesAndTerms.route)
+            }
+        )
+    }
+
+    composable(Screens.ViewPersonalInformation.route) {
+        ViewPersonalInformationScreen(
+            onNavigateBack = {
+                navController.popBackStack()
+            },
+            onNavigateToEdit = {
                 navController.navigate(Screens.EditPersonalInformation.route)
             }
         )
@@ -34,6 +50,10 @@ fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
                 navController.popBackStack()
             }
         )
+    }
+
+    composable(Screens.PoliciesAndTerms.route) {
+        PoliciesAndTermsScreen()
     }
 
     composable(Screens.ChangePassword.route) {

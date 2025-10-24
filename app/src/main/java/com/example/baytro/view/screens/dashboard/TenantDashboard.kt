@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Water
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -64,6 +65,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.contract.Status
+import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.utils.Utils
 import com.example.baytro.utils.Utils.formatOrdinal
 import com.example.baytro.view.components.TenantDashboardSkeleton
@@ -80,8 +82,9 @@ fun TenantDashboard(
     onNavigateToEmptyContract: () -> Unit = {},
     onNavigateToContractDetails: (String) -> Unit = {},
     onNavigateToRequestList: () -> Unit = {},
-    onNavigateToMeterReading: (String, String, String) -> Unit = { _, _, _ -> },
-    onNavigateToMeterHistory: (String) -> Unit = {}
+    onNavigateToMeterReading: (String, String, String, String, String, String) -> Unit = { _, _, _, _, _, _ -> },
+    onNavigateToMeterHistory: (String) -> Unit = {},
+    onNavigateToPayment: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -127,12 +130,19 @@ fun TenantDashboard(
                     onNavigateToMeterReading(
                         uiState.contract!!.id,
                         uiState.contract!!.roomId,
-                        uiState.contract!!.landlordId
+                        uiState.contract!!.buildingId,
+                        uiState.contract!!.landlordId,
+                        uiState.room?.roomNumber ?: "N/A",
+                        uiState.building?.name ?: "N/A"
                     )
                 },
                 onMeterHistoryClick = {
                     Log.d("TenantDashboard", "Navigating to meter reading history")
                     onNavigateToMeterHistory(uiState.contract!!.id)
+                },
+                onNavigateToPayment = {
+                    Log.d("TenantDashboard", "Navigating to payment screen")
+                    onNavigateToPayment()
                 }
             )
         }
@@ -147,7 +157,8 @@ fun TenantDashboardContent(
     onViewDetailsClick: (String) -> Unit = {},
     onRequestMaintenanceClick: () -> Unit = {},
     onMeterReadingClick: () -> Unit = {},
-    onMeterHistoryClick: () -> Unit = {}
+    onMeterHistoryClick: () -> Unit = {},
+    onNavigateToPayment: () -> Unit = {}
 ) {
     var isVisible by remember { mutableStateOf(false) }
 
@@ -156,9 +167,8 @@ fun TenantDashboardContent(
     }
 
     LazyColumn(
-        modifier = modifier
-            .padding(start = 16.dp, end = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         item {
             AnimatedVisibility(
@@ -217,9 +227,11 @@ fun TenantDashboardContent(
                         )
             ) {
                 PaymentSection(
-                    billPaymentDeadline = uiState.billPaymentDeadline,
+                    billPaymentDeadline = uiState.building?.paymentDue ?: 5,
                     rentalFee = uiState.contract?.rentalFee ?: 0,
-                    deposit = uiState.contract?.deposit ?: 0
+                    deposit = uiState.contract?.deposit ?: 0,
+                    lastReading = uiState.lastApprovedReading,
+                    building = uiState.building
                 )
             }
         }
@@ -235,12 +247,13 @@ fun TenantDashboardContent(
             ) {
                 ActionButtonsSection(
                     onMeterReadingClick = onMeterReadingClick,
-                    onMeterHistoryClick = onMeterHistoryClick
+                    onMeterHistoryClick = onMeterHistoryClick,
+                    onNavigateToPayment = onNavigateToPayment
                 )
             }
         }
 
-        item { Spacer(modifier = Modifier.height(32.dp)) }
+        item { Spacer(modifier = Modifier.height(16.dp)) }
     }
 }
 
@@ -249,7 +262,7 @@ fun WelcomeHeader(username: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp)
+            .padding(top = 8.dp, bottom = 8.dp)
     ) {
         Text(
             text = "Welcome back,",
@@ -275,13 +288,13 @@ fun ContractStatusCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(24.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -309,9 +322,9 @@ fun ContractStatusCard(
                         Text(
                             text = "Contract Status",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -329,18 +342,18 @@ fun ContractStatusCard(
                                     .replaceFirstChar { it.uppercase() },
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f))
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -350,10 +363,10 @@ fun ContractStatusCard(
                 Column {
                     Text(
                         text = "Duration",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = buildString {
                             if (month > 0) {
@@ -366,17 +379,21 @@ fun ContractStatusCard(
                                 append("$days day${if (days != 1) "s" else ""}")
                             }
                         },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
 
                 FilledTonalButton(
                     onClick = onViewDetailsClick,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
-                    Text("View Details")
+                    Text("View Details", fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -396,24 +413,24 @@ fun QuickActionsSection(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "Quick Actions",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onRequestMaintenanceClick() }
-                    .padding(16.dp),
+                    .padding(20.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -434,21 +451,22 @@ fun QuickActionsSection(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Request Maintenance",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onErrorContainer
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Report issues or request repairs",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onErrorContainer
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -459,54 +477,88 @@ fun QuickActionsSection(
 fun PaymentSection(
     billPaymentDeadline: Int,
     rentalFee: Int,
-    deposit: Int
+    deposit: Int,
+    lastReading: MeterReading? = null,
+    building: com.example.baytro.data.Building? = null
 ) {
+    // Debug logging
+    Log.d("PaymentSection", "Building: $building")
+    Log.d("PaymentSection", "Services: ${building?.services}")
+    Log.d("PaymentSection", "Services size: ${building?.services?.size}")
+
+    // Extract service rates from building
+    val electricityService = building?.services?.find {
+        Log.d("PaymentSection", "Checking service: ${it.name}, metric: ${it.metric}, price: ${it.price}")
+        it.metric == com.example.baytro.data.service.Metric.KWH
+    }
+
+    val waterService = building?.services?.find {
+        it.metric == com.example.baytro.data.service.Metric.M3
+    }
+
+    Log.d("PaymentSection", "Electricity service: $electricityService")
+    Log.d("PaymentSection", "Water service: $waterService")
+
+    val electricityRate = electricityService?.price?.toDoubleOrNull() ?: 0.0
+    val waterRate = waterService?.price?.toDoubleOrNull() ?: 0.0
+
+    Log.d("PaymentSection", "Electricity rate: $electricityRate")
+    Log.d("PaymentSection", "Water rate: $waterRate")
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "Payment Overview",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 // Deadline
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.tertiaryContainer)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Timer,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        modifier = Modifier.size(40.dp),
+                        color = MaterialTheme.colorScheme.tertiary
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Timer,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Payment Deadline",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Every ${formatOrdinal(billPaymentDeadline)} of the month",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                     }
@@ -523,6 +575,7 @@ fun PaymentSection(
                         value = Utils.formatCurrency(rentalFee.toString()),
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        iconBackgroundColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
                     )
                     FeeCard(
@@ -531,6 +584,7 @@ fun PaymentSection(
                         value = Utils.formatCurrency(deposit.toString()),
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        iconBackgroundColor = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -538,30 +592,32 @@ fun PaymentSection(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 // Utilities
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = "Utilities",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     UtilityCard(
                         icon = Icons.Default.ElectricBolt,
                         label = "Electricity",
-                        rate = "4.000 VND/kWH",
-                        usage = "100 kWH",
-                        lastUpdate = "9 Sep 2025",
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        rate = "${Utils.formatCurrency(electricityRate.toString())}/kWh",
+                        usage = "${lastReading?.electricityConsumption ?: 0} kWh",
+                        lastUpdate = lastReading?.createdAt?.let { Utils.formatTimestamp(it) } ?: "N/A",
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        iconColor = MaterialTheme.colorScheme.tertiary
                     )
                     UtilityCard(
                         icon = Icons.Default.Water,
                         label = "Water",
-                        rate = "18.000 VND/m³",
-                        usage = "100 m³",
-                        lastUpdate = "9 Sep 2025",
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        rate = "${Utils.formatCurrency(electricityRate.toString())}/m³",
+                        usage = "${lastReading?.waterConsumption ?: 0} m³",
+                        lastUpdate = lastReading?.createdAt?.let { Utils.formatTimestamp(it) } ?: "N/A",
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        iconColor = MaterialTheme.colorScheme.secondary
                     )
                 }
             }
@@ -576,44 +632,45 @@ fun FeeCard(
     value: String,
     containerColor: Color,
     contentColor: Color,
+    iconBackgroundColor: Color,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = containerColor
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.Start
         ) {
             Surface(
                 shape = CircleShape,
-                modifier = Modifier.size(40.dp),
-                color = contentColor.copy(alpha = 0.12f)
+                modifier = Modifier.size(44.dp),
+                color = iconBackgroundColor
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = contentColor,
-                        modifier = Modifier.size(22.dp)
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
             Column {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = contentColor.copy(alpha = 0.8f)
+                    style = MaterialTheme.typography.labelLarge,
+                    color = contentColor.copy(alpha = 0.7f)
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = contentColor
                 )
@@ -630,57 +687,68 @@ fun UtilityCard(
     usage: String,
     lastUpdate: String,
     containerColor: Color,
-    contentColor: Color
+    contentColor: Color,
+    iconColor: Color
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = containerColor
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = CircleShape,
-                modifier = Modifier.size(40.dp),
-                color = contentColor.copy(alpha = 0.12f)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = contentColor,
-                        modifier = Modifier.size(20.dp)
+                Surface(
+                    shape = CircleShape,
+                    modifier = Modifier.size(40.dp),
+                    color = iconColor
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor
+                    )
+                    Text(
+                        text = rate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor.copy(alpha = 0.7f)
                     )
                 }
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = contentColor
-                )
-                Text(
-                    text = rate,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = contentColor.copy(alpha = 0.7f)
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
                     text = usage,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = contentColor
                 )
                 Text(
                     text = lastUpdate,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodySmall,
                     color = contentColor.copy(alpha = 0.6f)
                 )
             }
@@ -691,7 +759,8 @@ fun UtilityCard(
 @Composable
 fun ActionButtonsSection(
     onMeterReadingClick: () -> Unit = {},
-    onMeterHistoryClick: () -> Unit = {}
+    onMeterHistoryClick: () -> Unit = {},
+    onNavigateToPayment: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -699,18 +768,25 @@ fun ActionButtonsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             FilledTonalButton(
-                onClick = { },
+                onClick = onNavigateToPayment,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(vertical = 18.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                )
             ) {
                 Icon(
                     imageVector = Icons.Default.Receipt,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Payments", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Payments",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall
+                )
             }
             FilledTonalButton(
                 onClick = {
@@ -718,35 +794,45 @@ fun ActionButtonsSection(
                     onMeterHistoryClick()
                 },
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(vertical = 18.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                )
             ) {
                 Icon(
                     imageVector = Icons.Default.History,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("History", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "History",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall
+                )
             }
         }
 
         Button(
             onClick = onMeterReadingClick,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+            shape = RoundedCornerShape(16.dp),
+            contentPadding = PaddingValues(vertical = 18.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
         ) {
             Icon(
                 imageVector = Icons.Default.Upload,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 "Submit Meter Reading",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
         }
     }

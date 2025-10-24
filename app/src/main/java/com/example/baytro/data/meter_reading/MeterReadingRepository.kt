@@ -1,15 +1,20 @@
 package com.example.baytro.data.meter_reading
 
+import android.util.Log
 import com.example.baytro.data.MeterStatus
 import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class MeterReadingRepository(
     private val db: FirebaseFirestore
 ) : Repository<MeterReading> {
+    companion object {
+        private const val TAG = "MeterReadingRepository"
+    }
     private val collection = db.collection("meter_readings")
 
     override suspend fun getAll(): List<MeterReading> {
@@ -49,22 +54,19 @@ class MeterReadingRepository(
         collection.document(id).update(fields)
     }
 
-    // Get readings by contract ID
-    suspend fun getByContractId(contractId: String): List<MeterReading> {
-        val snapshot = collection
-            .where { "contractId" equalTo contractId }
-            .orderBy("createdAt", Direction.DESCENDING)
-            .get()
-        return snapshot.documents.map {
-            it.data<MeterReading>().copy(id = it.id)
-        }
-    }
-
-    // Listen for pending readings for landlord
-    fun listenForPendingReadings(landlordId: String): Flow<List<MeterReading>> {
+    // Listen for pending readings by building (for landlord dashboard with building filter)
+    fun listenForPendingReadingsByBuilding(
+        landlordId: String,
+        buildingId: String
+    ): Flow<List<MeterReading>> {
         return collection
-            .where { "landlordId" equalTo landlordId }
-            .where { "status" equalTo MeterStatus.PENDING }
+            .where {
+                all(
+                    "landlordId" equalTo landlordId,
+                    "buildingId" equalTo buildingId,
+                    "status" equalTo MeterStatus.PENDING
+                )
+            }
             .orderBy("createdAt", Direction.DESCENDING)
             .snapshots
             .map { snapshot ->
@@ -74,10 +76,18 @@ class MeterReadingRepository(
             }
     }
 
-    // Listen for readings by contract
-    fun listenForReadingsByContract(contractId: String): Flow<List<MeterReading>> {
+    // Listen for readings by status (for all buildings)
+    fun listenForReadingsByStatus(
+        landlordId: String,
+        status: MeterStatus
+    ): Flow<List<MeterReading>> {
         return collection
-            .where { "contractId" equalTo contractId }
+            .where {
+                all(
+                    "landlordId" equalTo landlordId,
+                    "status" equalTo status
+                )
+            }
             .orderBy("createdAt", Direction.DESCENDING)
             .snapshots
             .map { snapshot ->
@@ -87,29 +97,40 @@ class MeterReadingRepository(
             }
     }
 
-    // Get readings by tenant
-    suspend fun getByTenantId(tenantId: String): List<MeterReading> {
-        val snapshot = collection
-            .where { "tenantId" equalTo tenantId }
+    // Listen for readings by building and status
+    fun listenForReadingsByBuildingAndStatus(
+        landlordId: String,
+        buildingId: String,
+        status: MeterStatus
+    ): Flow<List<MeterReading>> {
+        return collection
+            .where {
+                all(
+                    "landlordId" equalTo landlordId,
+                    "buildingId" equalTo buildingId,
+                    "status" equalTo status
+                )
+            }
             .orderBy("createdAt", Direction.DESCENDING)
-            .get()
-        return snapshot.documents.map {
-            it.data<MeterReading>().copy(id = it.id)
-        }
+            .snapshots
+            .map { snapshot ->
+                snapshot.documents.map { doc ->
+                    doc.data<MeterReading>().copy(id = doc.id)
+                }
+            }
     }
 
     // Get readings by contract with pagination
     suspend fun getReadingsByContractPaginated(
         contractId: String,
         pageSize: Long,
-        startAfterTimestamp: Long? = null
+        startAfterTimestamp: Timestamp? = null
     ): List<MeterReading> {
         var query = collection
             .where { "contractId" equalTo contractId }
             .orderBy("createdAt", Direction.DESCENDING)
             .limit(pageSize)
 
-        // If we have a timestamp to start after, add it to the query
         startAfterTimestamp?.let {
             query = collection
                 .where { "contractId" equalTo contractId }
@@ -121,6 +142,24 @@ class MeterReadingRepository(
         val snapshot = query.get()
         return snapshot.documents.map {
             it.data<MeterReading>().copy(id = it.id)
+        }
+    }
+
+    suspend fun getLastApprovedReading(contractId: String): Result<MeterReading?> = runCatching {
+        val snapshot = collection
+            .where { "contractId" equalTo contractId }
+            .where { "status" equalTo MeterStatus.APPROVED }
+            .orderBy("createdAt", Direction.DESCENDING)
+            .limit(1)
+            .get()
+
+        snapshot.documents.firstOrNull()?.let { doc ->
+            try {
+                doc.data<MeterReading>()?.copy(id = doc.id)
+            } catch (e: Exception) {
+                Log.e(TAG, "Deserialization failed for doc ${doc.id}", e)
+                null
+            }
         }
     }
 }

@@ -54,7 +54,11 @@ fun AppNavigationController(
         //Profile manager
         profileNavGraph(navHostController)
 
+        // Request management
         requestNavGraph(navHostController)
+
+        // Billing management
+        billingNavGraph(navHostController)
 
         // Main screen
         composable(Screens.MainScreen.route) { MainScreen() }

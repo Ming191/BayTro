@@ -14,6 +14,9 @@ import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.data.user.UserRoleState
 import com.example.baytro.navigation.AppNavigation
 import com.example.baytro.navigation.Screens
+import com.example.baytro.utils.AvatarCache
+import com.example.baytro.utils.LocalAvatarCache
+import androidx.compose.runtime.CompositionLocalProvider
 import com.example.baytro.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.firestore.DocumentReference
@@ -27,6 +30,7 @@ import org.koin.android.ext.android.inject
 class MainActivity : ComponentActivity() {
     private val userRepository: UserRepository by inject()
     private val roleCache: UserRoleCache by inject()
+    private val avatarCache: AvatarCache by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,11 +86,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    AppNavigation(startDestination = startDestination)
+                CompositionLocalProvider(LocalAvatarCache provides avatarCache) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        AppNavigation(startDestination = startDestination)
+                    }
                 }
             }
         }
