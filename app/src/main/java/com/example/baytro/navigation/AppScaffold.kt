@@ -1,7 +1,5 @@
 package com.example.baytro.navigation
 
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.AccountCircle
@@ -19,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -39,6 +39,7 @@ fun AppScaffold (
     navHostController: NavHostController,
     onDrawerClicked: () -> Unit
 ) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Row(
         modifier = Modifier
             .fillMaxSize(),
@@ -80,7 +81,11 @@ fun AppScaffold (
                     else -> "BayTro"
                 }
                 CenterAlignedTopAppBar(
+                    scrollBehavior = scrollBehavior,
                     title = { Text(titleText) },
+                    colors = TopAppBarDefaults.topAppBarColors().copy(
+                        scrolledContainerColor = TopAppBarDefaults.topAppBarColors().containerColor
+                    ),
                     navigationIcon = {
                         if (isTopLevel) {
                             IconButton(onClick = onDrawerClicked) {
@@ -134,6 +139,7 @@ fun AppScaffold (
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
+                        .nestedScroll(scrollBehavior.nestedScrollConnection)
                 ) {
                     AppNavigationController(
                         navHostController = navHostController,

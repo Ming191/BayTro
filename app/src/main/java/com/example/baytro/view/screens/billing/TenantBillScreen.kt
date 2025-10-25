@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
@@ -40,6 +39,7 @@ import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -71,7 +71,6 @@ import com.example.baytro.data.billing.BillLineItem
 import com.example.baytro.navigation.Screens
 import com.example.baytro.utils.Utils
 import com.example.baytro.view.components.BillDetailsCardSkeleton
-import com.example.baytro.view.components.BillSummaryCardSkeleton
 import com.example.baytro.viewModel.billing.DataState
 import com.example.baytro.viewModel.billing.TenantBillViewModel
 import kotlinx.coroutines.delay
@@ -150,36 +149,61 @@ fun TenantBillScreen(
                         }
                     }
 
-                    when (val historyState = uiState.historicalBillsState) {
-                        is DataState.Loading -> {
-                            items(3, key = { index -> "past_bill_skeleton_$index" }) {
-                                BillSummaryCardSkeleton()
-                            }
-                        }
-                        is DataState.Success -> {
-                            if (historyState.data.isEmpty()) {
-                                item(key = "no_past_bills") {
-                                    Text(
-                                        "No past bills found for this month.",
-                                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            } else {
-                                itemsIndexed(items = historyState.data, key = { _, bill -> "past_bill_${bill.id}" }) { index, billSummary ->
-                                    AnimatedSection {
-                                        TenantBillSummaryCard(
-                                            bill = billSummary,
-                                            onClick = { navController.navigate(Screens.BillDetails.createRoute(billSummary.id)) }
-                                        )
+                    item(key = "past_bills_content") {
+                        Crossfade(
+                            targetState = uiState.historicalBillsState,
+                            animationSpec = tween(durationMillis = 300),
+                            label = "pastBillsCrossfade"
+                        ) { historyState ->
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                when (historyState) {
+                                    is DataState.Loading -> {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 48.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator()
+                                        }
+                                    }
+                                    is DataState.Success -> {
+                                        if (historyState.data.isEmpty()) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 32.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    "No past bills found for this month.",
+                                                    modifier = Modifier.padding(horizontal = 32.dp),
+                                                    textAlign = TextAlign.Center,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        } else {
+                                            Column(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                            ) {
+                                                historyState.data.forEachIndexed { index, billSummary ->
+                                                    AnimatedSection(delayMillis = index * 50) {
+                                                        TenantBillSummaryCard(
+                                                            bill = billSummary,
+                                                            onClick = { navController.navigate(Screens.BillDetails.createRoute(billSummary.id)) }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    is DataState.Error -> {
+                                        Box(modifier = Modifier.fillMaxWidth()) {
+                                            ErrorCard(message = historyState.message)
+                                        }
                                     }
                                 }
-                            }
-                        }
-                        is DataState.Error -> {
-                            item(key = "past_bills_error") {
-                                ErrorCard(message = historyState.message)
                             }
                         }
                     }

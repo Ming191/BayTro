@@ -7,13 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.MediaRepository
+import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.request.Request
 import com.example.baytro.data.request.RequestRepository
 import com.example.baytro.data.request.RequestStatus
-import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.view.screens.UiState
+import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,9 +24,6 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class AddRequestVM(
     private val requestRepository: RequestRepository,
@@ -140,15 +138,12 @@ class AddRequestVM(
                 completedSteps++
                 _uploadProgress.value = completedSteps.toFloat() / totalSteps
 
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                val currentDateTime = dateFormat.format(Date())
-
                 val request = Request(
                     tenantId = currentUser.uid,
                     landlordId = activeContract.landlordId,
                     roomId = roomId,
                     status = RequestStatus.PENDING,
-                    createdAt = currentDateTime,
+                    createdAt = Timestamp.now(),
                     scheduledDate = state.scheduledDate,
                     imageUrls = emptyList(),
                     description = state.description,

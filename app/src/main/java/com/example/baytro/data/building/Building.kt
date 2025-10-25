@@ -25,6 +25,7 @@ data class Building(
     val paymentDue: Int,
     val imageUrls: List<String> = emptyList(),
     val userId: String = "",
+    @kotlinx.serialization.Transient
     val services: List<Service> = emptyList(),
 )
 

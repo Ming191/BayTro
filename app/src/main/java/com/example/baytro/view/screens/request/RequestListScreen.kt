@@ -75,10 +75,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.baytro.data.BuildingSummary
 import com.example.baytro.data.request.FullRequestInfo
 import com.example.baytro.data.request.Request
 import com.example.baytro.data.request.RequestStatus
+import com.example.baytro.utils.Utils
 import com.example.baytro.view.components.CarouselOrientation
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
@@ -109,16 +113,22 @@ fun RequestListScreen(
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabData.size })
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val uiState by viewModel.uiState.collectAsState()
 
-    // Lifecycle management - refresh on first composition
-    DisposableEffect(Unit) {
-        viewModel.refresh()
-        onDispose { }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
-    // Handle error events
     LaunchedEffect(Unit) {
         viewModel.errorEvent.collect { event ->
             event.getContentIfNotHandled()?.let { message ->
@@ -303,7 +313,6 @@ private fun RequestListPager(
             else -> emptyList<FullRequestInfo>() to "requests"
         }
 
-        // Always render all pages to persist state, but make visible only selected
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -489,7 +498,7 @@ fun RequestCard(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Created: ${request.createdAt}",
+                            text = "Created: ${request.createdAt?.let { Utils.formatTimestamp(it, "dd/MM/yyyy HH:mm") } ?: "N/A"}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
