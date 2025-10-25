@@ -74,7 +74,7 @@ fun SignInScreen(
     )
     LaunchedEffect(key1 = loginUiState) {
         Log.d("SignInScreen", "LaunchedEffect triggered - State: ${loginUiState::class.simpleName}")
-        viewModel.resetState()
+//        viewModel.resetState()
         when (val state = loginUiState) {
             is SignInUiState.Success -> {
                 Log.d("SignInScreen", "Success state - Navigating to main screen")

@@ -77,9 +77,7 @@ fun EditBuildingScreen(
         }
     }
 
-    // Show skeleton during initial load
-    if (!(uiState is UiState.Loading || buildingState == null)) {
-        // Show error dialog
+    if (buildingState != null) {
         if (uiState is UiState.Error) {
             AlertDialog(
                 onDismissRequest = { viewModel.clearError() },
