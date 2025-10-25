@@ -1,7 +1,6 @@
 package com.example.baytro.view.screens.profile
 
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
@@ -10,13 +9,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import android.widget.Toast
 import com.yalantis.ucrop.UCrop
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,7 +34,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.CachePolicy
@@ -43,25 +41,26 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.request.crossfade
 import com.example.baytro.data.user.User
+import com.example.baytro.data.user.Role
 import com.example.baytro.viewModel.auth.PersonalInformationVM
 import org.koin.compose.viewmodel.koinViewModel
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.combinedClickable
 import android.graphics.Bitmap
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.runtime.mutableIntStateOf
 import com.example.baytro.view.components.PhotoSelectorView
 import com.example.baytro.view.components.ImageDetailDialog
 import com.example.baytro.utils.LocalAvatarCache
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     viewModel: PersonalInformationVM = koinViewModel(),
-    onNavigateBack: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
     onNavigateToSignOut: () -> Unit,
     onNavigateToEditPersonalInformation: () -> Unit,
-    onNavigateToPoliciesAndTerms: () -> Unit
+    onNavigateToPoliciesAndTerms: () -> Unit,
+    onNavigateToPaymentSettings: () -> Unit
 ) {
     val user by viewModel.user.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -83,7 +82,7 @@ fun ProfileScreen(
             CircularProgressIndicator()
         }
     } else {
-        Scaffold { paddingValues ->
+        Scaffold {
             user?.let {
                 var showPhotoSourceDialog by remember { mutableStateOf(false) }
                 var showImagePreview by remember { mutableStateOf(false) }
@@ -136,9 +135,9 @@ fun ProfileScreen(
                     onNavigateToSignOut = onNavigateToSignOut,
                     onNavigateToEditPersonalInformation = onNavigateToEditPersonalInformation,
                     onNavigateToPoliciesAndTerms = onNavigateToPoliciesAndTerms,
+                    onNavigateToPaymentSettings = onNavigateToPaymentSettings,
                     onAvatarClick = { showImagePreview = true },
                     onEditPhoto = { showPhotoSourceDialog = true },
-                    modifier = Modifier.padding(paddingValues)
                 )
 
                 if (showPhotoSourceDialog) {
@@ -330,6 +329,7 @@ fun ProfileContent(
     onNavigateToSignOut: () -> Unit,
     onNavigateToEditPersonalInformation: () -> Unit,
     onNavigateToPoliciesAndTerms: () -> Unit,
+    onNavigateToPaymentSettings: () -> Unit,
     onAvatarClick: () -> Unit,
     onEditPhoto: () -> Unit,
     modifier: Modifier = Modifier
@@ -467,6 +467,14 @@ fun ProfileContent(
                     onClick = onNavigateToPoliciesAndTerms
                 )
 
+                if (user.role is Role.Landlord) {
+                    ActionButton(
+                        icon = Icons.Outlined.Settings,
+                        title = "Payment Settings",
+                        onClick = onNavigateToPaymentSettings
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 var showSignOutDialog by remember { mutableStateOf(false) }
@@ -481,7 +489,7 @@ fun ProfileContent(
                         contentColor = MaterialTheme.colorScheme.onErrorContainer
                     )
                 ) {
-                    Icon(Icons.Outlined.Logout, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Sign Out")
                 }

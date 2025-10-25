@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.BuildingSummary
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.request.FullRequestInfo
-import com.example.baytro.data.request.RequestStatus
 import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.SingleEvent
@@ -14,12 +13,8 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-
-data class CategorizedRequests(
-    val pending: List<FullRequestInfo> = emptyList(),
-    val inProgress: List<FullRequestInfo> = emptyList(),
-    val done: List<FullRequestInfo> = emptyList()
-)
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class RequestListUiState(
     val isLoading: Boolean = true,
@@ -27,8 +22,9 @@ data class RequestListUiState(
     val isLandlord: Boolean = false,
     val buildings: List<BuildingSummary> = emptyList(),
     val selectedBuildingId: String? = null,
-    val categorizedRequests: CategorizedRequests = CategorizedRequests(),
+    val requests: List<FullRequestInfo> = emptyList(),
     val nextCursor: String? = null,
+    val error: SingleEvent<String>? = null
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -36,149 +32,145 @@ class RequestListVM(
     private val requestCloudFunctions: RequestCloudFunctions,
     private val buildingRepository: BuildingRepository,
     private val userRepository: UserRepository,
-    private val auth: FirebaseAuth
+    auth: FirebaseAuth
 ) : ViewModel() {
 
-    private val _selectedBuildingId = MutableStateFlow<String?>(null)
-    private val _refreshTrigger = MutableStateFlow(0)
+    private val _uiState = MutableStateFlow(RequestListUiState())
+    val uiState: StateFlow<RequestListUiState> = _uiState.asStateFlow()
 
-    private val _errorEvent = MutableSharedFlow<SingleEvent<String>>()
-    val errorEvent: SharedFlow<SingleEvent<String>> = _errorEvent.asSharedFlow()
-
-    private var currentRequests: List<FullRequestInfo> = emptyList()
-    private var currentNextCursor: String? = null
     private val currentUserId = auth.currentUser?.uid
+    private val _loadNextMutex = Mutex()
 
-    val uiState: StateFlow<RequestListUiState>
+    private val selectedBuildingFlow = _uiState
+        .map { it.selectedBuildingId }
+        .distinctUntilChanged()
+        .drop(1)
 
     init {
-        uiState = combine(
-            _selectedBuildingId,
-            _refreshTrigger
-        ) { buildingId, _ ->
-            buildingId
-        }.flatMapLatest { buildingId ->
-            flow {
-                emit(RequestListUiState(isLoading = true, selectedBuildingId = buildingId))
-
-                val isLandlord = if (currentUserId != null) {
-                    try {
-                        val user = userRepository.getById(currentUserId)
-                        user?.role is Role.Landlord
-                    } catch (_: Exception) {
-                        _errorEvent.emit(SingleEvent("Failed to load user role."))
-                        false
-                    }
-                } else false
-
-                val buildings = if (isLandlord) {
-                    try {
-                        buildingRepository.getBuildingSummariesByLandlord(currentUserId!!)
-                    } catch (_: Exception) {
-                        _errorEvent.emit(SingleEvent("Failed to load buildings filter."))
-                        emptyList()
-                    }
-                } else emptyList()
-
-                val result = requestCloudFunctions.getRequestList(
-                    buildingIdFilter = buildingId,
-                    limit = 10
-                )
-
-                result.onSuccess { response ->
-                    currentRequests = response.requests
-                    currentNextCursor = response.nextCursor
-
-                    val categorized = categorizeRequests(currentRequests)
-
-                    emit(
-                        RequestListUiState(
-                            isLoading = false,
-                            isLandlord = isLandlord,
-                            buildings = buildings,
-                            selectedBuildingId = buildingId,
-                            categorizedRequests = categorized,
-                            nextCursor = currentNextCursor
-                        )
-                    )
-                }
-
-                result.onFailure { exception ->
-                    _errorEvent.emit(SingleEvent(exception.message ?: "Failed to load requests"))
-                    emit(
-                        RequestListUiState(
-                            isLoading = false,
-                            buildings = buildings,
-                            selectedBuildingId = buildingId
-                        )
-                    )
-                }
-            }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = RequestListUiState()
-        )
-    }
-
-    fun selectBuilding(buildingId: String?) {
-        _selectedBuildingId.value = buildingId
-    }
-
-    fun refresh() {
-        currentNextCursor = null
-        currentRequests = emptyList()
-        _refreshTrigger.value++
-    }
-
-    fun loadNextPage() {
-        val cursor = currentNextCursor ?: return
-        val buildingId = _selectedBuildingId.value
+        loadInitialData()
 
         viewModelScope.launch {
-            val current = uiState.value
-            emitUiState(current.copy(isLoadingMore = true))
+            selectedBuildingFlow.collect { buildingId ->
+                loadRequests(buildingId = buildingId, isRefresh = true)
+            }
+        }
+    }
+
+    private fun loadInitialData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            if (currentUserId == null) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isLandlord = false,
+                        buildings = emptyList(),
+                        requests = emptyList(),
+                        nextCursor = null
+                    )
+                }
+                return@launch
+            }
+
+            val userResult = runCatching {
+                userRepository.getById(currentUserId)
+            }
+
+            val user = userResult.getOrNull()
+            val isLandlord = user?.role is Role.Landlord
+
+            var buildings = emptyList<BuildingSummary>()
+            if (isLandlord) {
+                val buildingsResult = runCatching {
+                    buildingRepository.getBuildingSummariesByLandlord(currentUserId)
+                }
+                buildings = buildingsResult.getOrElse { emptyList() }
+            }
+
+            _uiState.update { it.copy(isLandlord = isLandlord, buildings = buildings) }
+
+            loadRequests(buildingId = _uiState.value.selectedBuildingId, isRefresh = false)
+        }
+    }
+
+    private fun loadRequests(buildingId: String?, isRefresh: Boolean) {
+        viewModelScope.launch {
+            if (isRefresh) {
+                _uiState.update { it.copy(isLoading = true, requests = emptyList(), nextCursor = null, error = null) }
+            }
 
             val result = requestCloudFunctions.getRequestList(
                 buildingIdFilter = buildingId,
-                limit = 10,
-                startAfter = cursor
+                limit = 10
             )
 
             result.onSuccess { response ->
-                val merged = (currentRequests + response.requests)
-                    .distinctBy { it.request.id }
-
-                currentRequests = merged
-                currentNextCursor = response.nextCursor
-
-                emitUiState(
-                    current.copy(
-                        isLoadingMore = false,
-                        categorizedRequests = categorizeRequests(merged),
-                        nextCursor = currentNextCursor
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        requests = response.requests,
+                        nextCursor = response.nextCursor
                     )
-                )
+                }
             }
-
-            result.onFailure { e ->
-                _errorEvent.emit(SingleEvent(e.message ?: "Failed to load next page"))
-                emitUiState(current.copy(isLoadingMore = false))
+            result.onFailure { exception ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        requests = if (isRefresh) emptyList() else it.requests,
+                        nextCursor = if (isRefresh) null else it.nextCursor,
+                        error = SingleEvent(exception.message ?: "Failed to load requests")
+                    )
+                }
             }
         }
     }
 
-    private fun categorizeRequests(requests: List<FullRequestInfo>): CategorizedRequests {
-        return CategorizedRequests(
-            pending = requests.filter { it.request.status == RequestStatus.PENDING },
-            inProgress = requests.filter { it.request.status == RequestStatus.IN_PROGRESS },
-            done = requests.filter { it.request.status == RequestStatus.DONE }
-        )
-    }
-
-    private fun emitUiState(state: RequestListUiState) {
+    fun loadNextPage() {
         viewModelScope.launch {
-            _refreshTrigger.value = _refreshTrigger.value
+            _loadNextMutex.withLock {
+                val currentState = _uiState.value
+                val cursor = currentState.nextCursor ?: return@withLock
+                if (currentState.isLoading || currentState.isLoadingMore) return@withLock
+
+                _uiState.update { it.copy(isLoadingMore = true, error = null) }
+
+                val result = requestCloudFunctions.getRequestList(
+                    buildingIdFilter = currentState.selectedBuildingId,
+                    limit = 10,
+                    startAfter = cursor
+                )
+
+                result.onSuccess { response ->
+                    val mergedRequests = (currentState.requests + response.requests).distinctBy { it.request.id }
+                    _uiState.update {
+                        it.copy(
+                            isLoadingMore = false,
+                            requests = mergedRequests,
+                            nextCursor = response.nextCursor
+                        )
+                    }
+                }
+                result.onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingMore = false,
+                            error = SingleEvent(e.message ?: "Failed to load next page")
+                        )
+                    }
+                }
+            }
         }
+    }
+
+    fun selectBuilding(buildingId: String?) {
+        if (buildingId != _uiState.value.selectedBuildingId) {
+            _uiState.update { it.copy(selectedBuildingId = buildingId) }
+        }
+    }
+
+    fun refresh() {
+        loadInitialData()
     }
 }

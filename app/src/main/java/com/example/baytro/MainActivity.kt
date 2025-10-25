@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRepository
@@ -14,13 +15,10 @@ import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.data.user.UserRoleState
 import com.example.baytro.navigation.AppNavigation
 import com.example.baytro.navigation.Screens
+import com.example.baytro.ui.theme.AppTheme
 import com.example.baytro.utils.AvatarCache
 import com.example.baytro.utils.LocalAvatarCache
-import androidx.compose.runtime.CompositionLocalProvider
-import com.example.baytro.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
-import dev.gitlive.firebase.firestore.DocumentReference
-import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,7 +37,6 @@ class MainActivity : ComponentActivity() {
         val currentUser = FirebaseAuth.getInstance().currentUser
         var startDestination: String
 
-        // Load user role synchronously BEFORE setContent
         if (currentUser != null) {
             runBlocking {
                 val cachedRoleType = roleCache.getRoleType(currentUser.uid)
@@ -52,12 +49,13 @@ class MainActivity : ComponentActivity() {
                     }
                     UserRoleState.setRole(tempRole)
 
-                    // Verify actual user exists and update role; if not, sign out to show SignIn
                     CoroutineScope(Dispatchers.IO).launch {
                         val user = userRepository.getById(currentUser.uid)
                         if (user?.role == null) {
-                            FirebaseAuth.getInstance().signOut()
+                            avatarCache.clearCache()
+                            roleCache.clearCache()
                             UserRoleState.clearRole()
+                            FirebaseAuth.getInstance().signOut()
                         } else {
                             UserRoleState.setRole(user.role)
                         }
@@ -65,15 +63,16 @@ class MainActivity : ComponentActivity() {
                 } else {
                     val user = userRepository.getById(currentUser.uid)
                     if (user?.role == null) {
-                        FirebaseAuth.getInstance().signOut()
+                        avatarCache.clearCache()
+                        roleCache.clearCache()
                         UserRoleState.clearRole()
+                        FirebaseAuth.getInstance().signOut()
                     } else {
                         UserRoleState.setRole(user.role)
                         roleCache.setRoleType(currentUser.uid, user.role)
                     }
                 }
             }
-            // Re-evaluate start based on auth after potential signOut above
             startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
                 Screens.MainScreen.route
             } else {

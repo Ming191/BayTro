@@ -218,15 +218,18 @@ private fun ContractListContent(
                 modifier = Modifier.weight(1f)
             ) { page ->
                 val tab = ContractTab.entries[page]
+                val contractsToShow = uiState.contractsByTab[tab] ?: emptyList()
+                val isLoadingForThisTab = uiState.isLoading && uiState.selectedTab == tab
+
                 ContractListPage(
-                    contracts = if (uiState.buildings.isEmpty()) emptyList() else uiState.contracts,
+                    contracts = contractsToShow,
                     emptyMessage = if (uiState.buildings.isEmpty()) {
                         "No buildings found. Please add a building first."
                     } else {
                         "No ${tab.name.lowercase()} contracts found."
                     },
                     onContractClick = onContractClick,
-                    loading = uiState.isLoading
+                    loading = isLoadingForThisTab
                 )
             }
         }

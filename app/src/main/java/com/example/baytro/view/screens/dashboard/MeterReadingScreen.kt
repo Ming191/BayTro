@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.dashboard
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.widget.Toast
@@ -40,7 +41,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ElectricBolt
@@ -52,11 +52,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -101,6 +99,7 @@ private enum class FormState {
 //                       MAIN SCREEN COMPOSABLE
 // =====================================================================
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeterReadingScreen(
@@ -155,25 +154,24 @@ fun MeterReadingScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("Meter Reading") },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+//                CenterAlignedTopAppBar(
+//                    title = { Text("Meter Reading") },
+//                    navigationIcon = {
+//                        IconButton(onClick = onNavigateBack) {
+//                            Icon(
+//                                Icons.AutoMirrored.Filled.ArrowBack,
+//                                contentDescription = "Back"
+//                            )
+//                        }
+//                    },
+//                    modifier = Modifier.fillMaxWidth()
+//                )
             }
-        ) { paddingValues ->
+        ) {
             MeterReadingContent(
                 uiState = uiState,
                 onAction = viewModel::onAction,
                 viewModel = viewModel,
-                modifier = Modifier.padding(paddingValues)
             )
         }
 

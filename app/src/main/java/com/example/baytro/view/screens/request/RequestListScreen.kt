@@ -54,12 +54,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -68,7 +69,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -90,16 +90,15 @@ import com.example.baytro.view.components.RequestListSkeleton
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.request.RequestListUiState
-import com.example.baytro.viewModel.request.CategorizedRequests
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
-
 
 private val tabData: List<Pair<String, ImageVector>> = listOf(
     "Pending" to Icons.Filled.HourglassEmpty,
     "In Progress" to Icons.Filled.Schedule,
     "Done" to Icons.Filled.CheckCircle
 )
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,7 +108,6 @@ fun RequestListScreen(
     onAssignRequest: (String) -> Unit = {},
     onUpdateRequest: (String) -> Unit = {}
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabData.size })
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -129,57 +127,30 @@ fun RequestListScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.errorEvent.collect { event ->
-            event.getContentIfNotHandled()?.let { message ->
-                snackbarHostState.showSnackbar(message)
-            }
-        }
-    }
-
-    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
-        if (!pagerState.isScrollInProgress) {
-            selectedTabIndex = pagerState.currentPage
+    // Show error from uiState
+    LaunchedEffect(uiState.error) {
+        uiState.error?.getContentIfNotHandled()?.let { message ->
+            snackbarHostState.showSnackbar(message)
         }
     }
 
     val onTabSelected: (Int) -> Unit = { index ->
         scope.launch {
-            selectedTabIndex = index
             pagerState.animateScrollToPage(index)
         }
     }
 
-    if (uiState.isLoading) {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            Scaffold(
-                topBar = {
-                    RequestListTopBar(
-                        selectedTabIndex = selectedTabIndex,
-                        onTabSelected = {},
-                        isTabSelectionEnabled = false
-                    )
-                },
-                snackbarHost = { SnackbarHost(snackbarHostState) }
-            ) { paddingValues ->
-                Box(modifier = Modifier.padding(paddingValues)) {
-                    RequestListSkeleton(itemCount = 5)
-                }
-            }
-        }
-    } else {
-        RequestListContent(
-            viewModel = viewModel,
-            uiState = uiState,
-            selectedTabIndex = selectedTabIndex,
-            pagerState = pagerState,
-            onTabSelected = onTabSelected,
-            onAddRequest = onAddRequest,
-            onAssignRequest = onAssignRequest,
-            onUpdateRequest = onUpdateRequest,
-            snackbarHostState = snackbarHostState
-        )
-    }
+    RequestListContent(
+        viewModel = viewModel,
+        uiState = uiState,
+        selectedTabIndex = pagerState.currentPage,
+        pagerState = pagerState,
+        onTabSelected = onTabSelected,
+        onAddRequest = onAddRequest,
+        onAssignRequest = onAssignRequest,
+        onUpdateRequest = onUpdateRequest,
+        snackbarHostState = snackbarHostState
+    )
 }
 
 @Composable
@@ -214,6 +185,26 @@ private fun RequestListContent(
         )
     }
 
+    val speedDialItems = remember(uiState.isLandlord, uiState.buildings) {
+        if (uiState.isLandlord) {
+            if (uiState.buildings.isNotEmpty()) {
+                listOf(SpeedDialMenuItem(
+                    icon = Icons.Default.FilterList,
+                    label = "Filter"
+                ))
+            } else {
+                emptyList()
+            }
+        } else {
+            listOf(SpeedDialMenuItem(
+                icon = Icons.Default.Add,
+                label = "New Request"
+            ))
+        }
+    }
+
+    val shouldShowFAB = speedDialItems.isNotEmpty()
+
     Scaffold(
         topBar = {
             Tabs(
@@ -224,25 +215,7 @@ private fun RequestListContent(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            val speedDialItems = if (uiState.isLandlord) {
-                listOfNotNull(
-                    if (uiState.buildings.isNotEmpty()) {
-                        SpeedDialMenuItem(
-                            icon = Icons.Default.FilterList,
-                            label = "Filter"
-                        )
-                    } else null
-                )
-            } else {
-                listOf(
-                    SpeedDialMenuItem(
-                        icon = Icons.Default.Add,
-                        label = "New Request"
-                    )
-                )
-            }
-
-            if (speedDialItems.isNotEmpty()) {
+            if (shouldShowFAB) {
                 SpeedDialFab(
                     isMenuOpen = isSpeedDialOpen,
                     onToggleMenu = { isSpeedDialOpen = !isSpeedDialOpen },
@@ -259,42 +232,31 @@ private fun RequestListContent(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            RequestListPager(
-                pagerState = pagerState,
-                categorizedRequests = uiState.categorizedRequests,
-                isLandlord = uiState.isLandlord,
-                selectedTabIndex = selectedTabIndex,
-                onAssignRequest = onAssignRequest,
-                onUpdateRequest = onUpdateRequest,
-                lazyListStates = lazyListStates,
-                snackbarHostState = snackbarHostState,
-                viewModel = viewModel,
-                hasNextPage = uiState.nextCursor != null,
-                isLoadingMore = uiState.isLoadingMore
-            )
+            if(uiState.isLoading) {
+                RequestListSkeleton(itemCount = 5)
+            } else {
+                RequestListPager(
+                    pagerState = pagerState,
+                    requests = uiState.requests,
+                    isLandlord = uiState.isLandlord,
+                    selectedTabIndex = selectedTabIndex,
+                    onAssignRequest = onAssignRequest,
+                    onUpdateRequest = onUpdateRequest,
+                    lazyListStates = lazyListStates,
+                    snackbarHostState = snackbarHostState,
+                    viewModel = viewModel,
+                    hasNextPage = uiState.nextCursor != null,
+                    isLoadingMore = uiState.isLoadingMore
+                )
+            }
         }
-    }
-}
-
-@Composable
-private fun RequestListTopBar(
-    selectedTabIndex: Int,
-    onTabSelected: (Int) -> Unit,
-    isTabSelectionEnabled: Boolean
-) {
-    Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-        Tabs(
-            selectedTabIndex = selectedTabIndex,
-            onTabSelected = { if (isTabSelectionEnabled) onTabSelected(it) },
-            tabData = tabData
-        )
     }
 }
 
 @Composable
 private fun RequestListPager(
     pagerState: PagerState,
-    categorizedRequests: CategorizedRequests,
+    requests: List<FullRequestInfo>,
     isLandlord: Boolean,
     selectedTabIndex: Int,
     onAssignRequest: (String) -> Unit,
@@ -305,21 +267,24 @@ private fun RequestListPager(
     hasNextPage: Boolean,
     isLoadingMore: Boolean
 ) {
-    HorizontalPager(state = pagerState, key = { page -> tabData[page].first }) { page ->
-        val (requestsForPage, statusText) = when (page) {
-            0 -> categorizedRequests.pending to tabData[0].first.lowercase()
-            1 -> categorizedRequests.inProgress to tabData[1].first.lowercase()
-            2 -> categorizedRequests.done to tabData[2].first.lowercase()
-            else -> emptyList<FullRequestInfo>() to "requests"
+    // Pre-calculate categorized requests to avoid filtering on every recomposition
+    val categorizedRequests by remember(requests) {
+        derivedStateOf {
+            mapOf(
+                0 to requests.filter { it.request.status == RequestStatus.PENDING },
+                1 to requests.filter { it.request.status == RequestStatus.IN_PROGRESS },
+                2 to requests.filter { it.request.status == RequestStatus.DONE }
+            )
         }
+    }
+
+    HorizontalPager(state = pagerState, key = { page -> tabData[page].first }) { page ->
+        val requestsForPage = categorizedRequests[page] ?: emptyList()
+        val statusText = tabData[page].first.lowercase()
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(
-                    if (page == selectedTabIndex) Modifier
-                    else Modifier.graphicsLayer(alpha = 0f)
-                )
         ) {
             RequestListPage(
                 requests = requestsForPage,
@@ -355,11 +320,9 @@ private fun RequestListPage(
     isVisible: Boolean
 ) {
     val animatedItemIds = remember(tabIndex) { mutableSetOf<String>() }
-    var emptyStateVisible by remember { mutableStateOf(false) }
+    var emptyStateVisible by remember { mutableStateOf(requests.isEmpty()) }
 
     if (requests.isEmpty()) {
-        LaunchedEffect(Unit) { emptyStateVisible = true }
-
         AnimatedVisibility(
             visible = emptyStateVisible,
             enter = fadeIn(animationSpec = tween(400)),
@@ -383,6 +346,7 @@ private fun RequestListPage(
                     !isLoadingMore &&
                     lastVisibleIndex >= requests.size - 3
                 ) {
+                    // viewModel is stable, so capturing it here is safe
                     viewModel.loadNextPage()
                 }
             }
@@ -665,7 +629,12 @@ private fun DetailRow(
 @Composable
 fun RequestCardImages(imageUrls: List<String>) {
     Column {
-        Text(text = "Attached Images", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
+        Text(
+            text = "Attached Images",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
         PhotoCarousel(
             selectedPhotos = emptyList(),
             onPhotosSelected = {},
@@ -703,7 +672,7 @@ fun RequestCardActions(
                 }
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(
+                TextButton(
                     onClick = {
                         showContactDialog = false
                         if (info.landlordPhoneNumber.isNotBlank()) {
@@ -723,23 +692,29 @@ fun RequestCardActions(
             },
             dismissButton = {
                 request.assigneePhoneNumber?.let { phone ->
-                    androidx.compose.material3.TextButton(
-                        onClick = {
-                            showContactDialog = false
-                            if (phone.isNotBlank()) {
+                    if (phone.isNotBlank()) {
+                        TextButton(
+                            onClick = {
+                                showContactDialog = false
                                 val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
                                     data = "tel:$phone".toUri()
                                 }
                                 context.startActivity(intent)
-                            } else {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Assignee phone number not available")
-                                }
                             }
+                        ) {
+                            Text("Assignee")
                         }
-                    ) {
-                        Text("Assignee")
+                    } else {
+                        TextButton(
+                            onClick = { showContactDialog = false }
+                        ) {
+                            Text("Cancel")
+                        }
                     }
+                } ?: TextButton(
+                    onClick = { showContactDialog = false }
+                ) {
+                    Text("Cancel")
                 }
             }
         )
@@ -846,7 +821,7 @@ private fun FilterDialog(
             }
         },
         confirmButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss) {
                 Text("Close")
             }
         },

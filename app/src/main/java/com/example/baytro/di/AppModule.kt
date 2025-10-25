@@ -109,7 +109,7 @@ val coreModule = module {
 }
 
 val dataModule = module {
-    single<AuthRepository> { FirebaseAuthRepository(get(), get()) }
+    single<AuthRepository> { FirebaseAuthRepository(get(), get(), get(), get()) }
     single<UserRepository> { UserRepository(get()) }
     single<BuildingRepository> { BuildingRepository(get(), get()) }
     single<RoomRepository> { RoomRepository(get()) }
@@ -204,7 +204,7 @@ val dashboardViewModelModule = module {
 
 val tenantViewModelModule = module {
     viewModelOf(::TenantListVM)
-}
+    }
 
 val utilityViewModelModule = module {
     viewModelOf(::ImportBuildingRoomVM)

@@ -438,26 +438,6 @@ fun ContractListSkeleton(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Search bar placeholder
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .shimmerEffect()
-        )
-
-        // Building filter dropdown placeholder
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .shimmerEffect()
-        )
-
         // Contract cards
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

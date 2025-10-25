@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.auth
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,7 +34,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.baytro.auth.SignUpFormState
 import com.example.baytro.utils.ValidationResult
-import com.example.baytro.view.AuthUIState
+import com.example.baytro.view.SignUpUiState
 import com.example.baytro.view.components.PasswordStrengthIndicator
 import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.RequiredTextField
@@ -48,9 +50,21 @@ fun SignUpScreen(
     val uiState by viewModel.signUpUIState.collectAsState()
     val context = LocalContext.current
 
+    Log.d("SignUpScreen", "Composing SignUpScreen - Current state: ${uiState::class.simpleName}")
+
+    // Reset state when leaving the screen
+    DisposableEffect(Unit) {
+        Log.d("SignUpScreen", "DisposableEffect - SignUpScreen entered")
+        onDispose {
+            Log.d("SignUpScreen", "DisposableEffect.onDispose - Resetting state")
+            viewModel.resetState()
+        }
+    }
+
     SignUpContent(
         uiState = uiState,
         onSignUpClicked = {
+            Log.d("SignUpScreen", "SignUp button clicked")
             viewModel.signUp()
         },
         formState = formState,
@@ -61,23 +75,33 @@ fun SignUpScreen(
     )
 
     LaunchedEffect(key1 = uiState) {
+        Log.d("SignUpScreen", "LaunchedEffect triggered - State: ${uiState::class.simpleName}")
         when (val state = uiState) {
-            is AuthUIState.NeedVerification -> {
+            is SignUpUiState.NeedVerification -> {
+                Log.d("SignUpScreen", "NeedVerification state - Showing toast and navigating to SignIn")
                 Toast.makeText(
                     context,
                     "Success sign-up! Check your email for verification",
                     Toast.LENGTH_SHORT)
                     .show()
+                Log.d("SignUpScreen", "Calling onNavigateToSignIn()")
                 onNavigateToSignIn()
+                Log.d("SignUpScreen", "Navigation callback completed")
             }
-            is AuthUIState.Error -> {
+            is SignUpUiState.Error -> {
+                Log.e("SignUpScreen", "Error state: ${state.message}")
                 Toast.makeText(
                     context,
                     state.message,
                     Toast.LENGTH_SHORT)
                     .show()
             }
-            else -> Unit
+            is SignUpUiState.Loading -> {
+                Log.d("SignUpScreen", "Loading state")
+            }
+            is SignUpUiState.Idle -> {
+                Log.d("SignUpScreen", "Idle state")
+            }
         }
     }
 }
@@ -86,7 +110,7 @@ fun SignUpScreen(
 @Composable
 fun SignUpContent(
     formState: SignUpFormState,
-    uiState: AuthUIState,
+    uiState: SignUpUiState,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
@@ -169,12 +193,12 @@ fun SignUpContent(
 
             Button(
                 onClick = onSignUpClicked,
-                enabled = uiState !is AuthUIState.Loading,
+                enabled = uiState !is SignUpUiState.Loading,
                 modifier = Modifier.fillMaxWidth()
                     .requiredHeight(50.dp)
 
             ) {
-                if (uiState is AuthUIState.Loading) {
+                if (uiState is SignUpUiState.Loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.wrapContentHeight().padding(4.dp),
                         color = MaterialTheme.colorScheme.onPrimary
