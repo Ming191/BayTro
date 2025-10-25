@@ -15,8 +15,7 @@ import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import com.example.baytro.utils.AvatarCache
 import com.example.baytro.service.FptAiService
-import com.example.baytro.service.MeterReadingApiService
-import com.example.baytro.service.GraphRAGApiService
+import com.example.baytro.service.BayTroApiService
 import com.example.baytro.data.chatbot.ChatbotRepository
 import com.example.baytro.utils.cloudFunctions.DashboardCloudFunctions
 import com.example.baytro.utils.cloudFunctions.MeterReadingCloudFunctions
@@ -114,8 +113,7 @@ val authModule = module {
     single<MediaRepository> { MediaRepository(get()) }
     single<RoomRepository> { RoomRepository(get()) }
     single<FptAiService> { FptAiService(get(), get()) }
-    single<MeterReadingApiService> { MeterReadingApiService(get()) }
-    single<GraphRAGApiService> { GraphRAGApiService(get()) }
+    single<BayTroApiService> { BayTroApiService(get()) }
     single<ChatbotRepository> { ChatbotRepository(get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }

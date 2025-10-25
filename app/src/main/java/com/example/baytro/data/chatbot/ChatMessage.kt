@@ -15,15 +15,21 @@ data class ChatMessage(
 @Serializable
 data class ChatQueryRequest(
     val question: String,
-    val k: Int = 5,
+    val top_k: Int = 5,
     val expand_depth: Int = 2
+)
+
+@Serializable
+data class ContextNode(
+    val id: String,
+    val content: String,
+    val type: String
 )
 
 @Serializable
 data class ChatQueryResponse(
     val answer: String,
-    val context: String,
-    val question: String
+    val context: List<ContextNode>
 )
 
 @Serializable
@@ -35,14 +41,12 @@ data class SearchRequest(
 @Serializable
 data class SearchResult(
     val id: String,
-    val metadata: Map<String, JsonElement>,
-    val document: String,
-    val score: Double,
+    val content: String,
+    val type: String,
     val distance: Double
 )
 
 @Serializable
 data class SearchResponse(
-    val results: List<SearchResult>,
-    val query: String
+    val results: List<SearchResult>
 )

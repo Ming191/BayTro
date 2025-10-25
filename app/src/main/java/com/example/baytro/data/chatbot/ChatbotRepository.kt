@@ -1,13 +1,13 @@
 package com.example.baytro.data.chatbot
 
 import android.util.Log
-import com.example.baytro.service.GraphRAGApiService
+import com.example.baytro.service.BayTroApiService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class ChatbotRepository(
-    private val graphRAGApiService: GraphRAGApiService
+    private val bayTroApiService: BayTroApiService
 ) {
     companion object {
         private const val TAG = "ChatbotRepository"
@@ -25,7 +25,7 @@ class ChatbotRepository(
     suspend fun checkConnection(): Result<Boolean> {
         return try {
             Log.d(TAG, "Attempting to connect to GraphRAG server...")
-            val result = graphRAGApiService.healthCheck()
+            val result = bayTroApiService.chatbotHealth()
             _isConnected.value = result.isSuccess
             if (result.isSuccess) {
                 Log.d(TAG, "Successfully connected to GraphRAG server")
@@ -54,15 +54,18 @@ class ChatbotRepository(
 
             // Query the API
             val request = ChatQueryRequest(question = question)
-            val response = graphRAGApiService.queryLaw(request)
+            val response = bayTroApiService.queryChatbot(request)
 
             if (response.isSuccess) {
                 val queryResponse = response.getOrThrow()
+                val contextText = queryResponse.context.joinToString(separator = "\n\n") { node ->
+                    "[${node.type}] ${node.content}"
+                }
                 val botMessage = ChatMessage(
                     id = generateId(),
                     content = queryResponse.answer,
                     isFromUser = false,
-                    context = queryResponse.context
+                    context = contextText
                 )
                 addMessage(botMessage)
                 Result.success(botMessage)
@@ -92,7 +95,7 @@ class ChatbotRepository(
     suspend fun semanticSearch(query: String, topK: Int = 5): Result<SearchResponse> {
         return try {
             val request = SearchRequest(query = query, top_k = topK)
-            graphRAGApiService.semanticSearch(request)
+            bayTroApiService.searchChatbot(request)
         } catch (e: Exception) {
             Log.e(TAG, "Semantic search failed", e)
             Result.failure(e)

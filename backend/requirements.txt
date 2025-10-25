@@ -1,8 +1,20 @@
+# FastAPI
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+
 openai>=1.30.0
 chromadb==0.4.22
 networkx==3.2.1
+
+# Meter Reading (YOLO)
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Utilities
 numpy==1.24.3
 python-dotenv==1.0.0
-pydantic==2.5.0
