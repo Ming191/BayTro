@@ -16,6 +16,8 @@ import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import com.example.baytro.utils.AvatarCache
 import com.example.baytro.service.FptAiService
 import com.example.baytro.service.MeterReadingApiService
+import com.example.baytro.service.GraphRAGApiService
+import com.example.baytro.data.chatbot.ChatbotRepository
 import com.example.baytro.utils.cloudFunctions.DashboardCloudFunctions
 import com.example.baytro.utils.cloudFunctions.MeterReadingCloudFunctions
 import com.example.baytro.viewModel.building.AddBuildingVM
@@ -54,6 +56,7 @@ import com.example.baytro.viewModel.service.ServiceListVM
 import com.example.baytro.viewModel.SettingsVM
 import com.example.baytro.viewModel.billing.BillDetailsViewModel
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
+import com.example.baytro.viewModel.chatbot.ChatbotViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
 import com.example.baytro.viewModel.splash.SplashScreenVM
@@ -91,6 +94,10 @@ val appModule = module {
             install(Logging) {
                 level = LogLevel.ALL
             }
+            engine {
+                connectTimeout = 30_000
+                socketTimeout = 30_000
+            }
         }
     }
     single { Gson() }
@@ -108,6 +115,8 @@ val authModule = module {
     single<RoomRepository> { RoomRepository(get()) }
     single<FptAiService> { FptAiService(get(), get()) }
     single<MeterReadingApiService> { MeterReadingApiService(get()) }
+    single<GraphRAGApiService> { GraphRAGApiService(get()) }
+    single<ChatbotRepository> { ChatbotRepository(get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(),get()) }
     single<RequestRepository> { RequestRepository(get()) }
@@ -159,4 +168,5 @@ val serviceModule = module {
     viewModelOf(::PersonalInformationVM)
     viewModelOf(::EditPersonalInformationVM)
     viewModelOf(::ChangePasswordVM)
+    viewModelOf(::ChatbotViewModel)
 }
