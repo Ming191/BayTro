@@ -62,20 +62,30 @@ class ContractListVM(
             val debouncedQuery = flows[2] as String
             val buildingId = flows[3] as String?
             val buildings = flows[4] as List<BuildingSummary>
-            SearchFilters(tab, immediateQuery, debouncedQuery, buildingId, buildings)
+            val refreshTrigger = flows[5] as Int
+            SearchFilters(tab, immediateQuery, debouncedQuery, buildingId, buildings, refreshTrigger)
         }.flatMapLatest { filters ->
             flow {
                 val currentState = uiState.value
-                val cachedContractsForTab = currentState.contractsByTab[filters.selectedTab]
+
+                // Clear cache if refresh was triggered
+                val currentCache = if (filters.refreshTrigger > 0) {
+                    emptyMap()
+                } else {
+                    currentState.contractsByTab
+                }
+
+                val cachedContractsForTab = currentCache[filters.selectedTab]
 
                 if (cachedContractsForTab != null) {
                     emit(currentState.copy(
                         isLoading = false,
                         selectedBuildingId = filters.selectedBuildingId,
                         searchQuery = filters.immediateSearchQuery,
-                        selectedTab = filters.selectedTab
+                        selectedTab = filters.selectedTab,
+                        contractsByTab = currentCache
                     ))
-                    return@flow // Kết thúc flow ở đây
+                    return@flow
                 }
                 emit(ContractListUiState(
                     isLoading = true,
@@ -83,7 +93,7 @@ class ContractListVM(
                     selectedBuildingId = filters.selectedBuildingId,
                     searchQuery = filters.immediateSearchQuery,
                     selectedTab = filters.selectedTab,
-                    contractsByTab = currentState.contractsByTab
+                    contractsByTab = currentCache
                 ))
 
                 val result = contractCloudFunctions.getContractList(
@@ -93,14 +103,14 @@ class ContractListVM(
                 )
 
                 result.onSuccess { response ->
-                    val newCache = uiState.value.contractsByTab + (filters.selectedTab to response.contracts)
+                    val newCache = currentCache + (filters.selectedTab to response.contracts)
                     emit(ContractListUiState(
                         isLoading = false,
                         buildings = filters.buildings,
                         selectedBuildingId = filters.selectedBuildingId,
                         searchQuery = filters.immediateSearchQuery,
                         selectedTab = filters.selectedTab,
-                        contractsByTab = newCache // Cập nhật cache với dữ liệu mới
+                        contractsByTab = newCache
                     ))
                 }
                 result.onFailure { exception ->
@@ -111,7 +121,7 @@ class ContractListVM(
                         selectedBuildingId = filters.selectedBuildingId,
                         searchQuery = filters.immediateSearchQuery,
                         selectedTab = filters.selectedTab,
-                        contractsByTab = uiState.value.contractsByTab
+                        contractsByTab = currentCache
                     ))
                 }
             }
@@ -127,7 +137,8 @@ class ContractListVM(
         val immediateSearchQuery: String,
         val debouncedSearchQuery: String,
         val selectedBuildingId: String?,
-        val buildings: List<BuildingSummary>
+        val buildings: List<BuildingSummary>,
+        val refreshTrigger: Int
     )
 
     private fun loadBuildings() {
@@ -144,7 +155,10 @@ class ContractListVM(
 
     fun selectTab(tab: ContractTab) { _selectedTab.value = tab }
     fun setSearchQuery(query: String) { _searchQuery.value = query }
-    fun setSelectedBuildingId(buildingId: String?) { _selectedBuildingId.value = buildingId }
+    fun setSelectedBuildingId(buildingId: String?) {
+        _selectedBuildingId.value = buildingId
+        _refreshTrigger.value += 1
+    }
 
     fun refresh() {
         val currentState = uiState.value

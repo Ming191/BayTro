@@ -508,8 +508,8 @@ fun PaymentSection(
     Log.d("PaymentSection", "Electricity service: $electricityService")
     Log.d("PaymentSection", "Water service: $waterService")
 
-    val electricityRate = electricityService?.price?.toDoubleOrNull() ?: 0.0
-    val waterRate = waterService?.price?.toDoubleOrNull() ?: 0.0
+    val electricityRate = electricityService?.price?: 0
+    val waterRate = waterService?.price?: 0
 
     Log.d("PaymentSection", "Electricity rate: $electricityRate")
     Log.d("PaymentSection", "Water rate: $waterRate")
@@ -633,7 +633,7 @@ fun PaymentSection(
                         FixedServiceCard(
                             icon = Icons.Default.Build,
                             label = service.name,
-                            rate = Utils.formatCurrency(service.price),
+                            rate = Utils.formatCurrency(service.price.toString()),
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             iconColor = MaterialTheme.colorScheme.primary

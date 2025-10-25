@@ -1,13 +1,8 @@
 package com.example.baytro.view.screens.building
 
+import android.annotation.SuppressLint
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,19 +15,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -53,18 +49,19 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.service.Service
-import com.example.baytro.navigation.Screens
 import com.example.baytro.view.AuthUIState
+import com.example.baytro.view.components.AnimatedItem
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.ServiceCard
+import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.building.AddBuildingVM
-import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddBuildingScreen(
@@ -75,15 +72,24 @@ fun AddBuildingScreen(
     val formState by viewModel.formState.collectAsState()
     val context = LocalContext.current
 
+    // Bottom sheet for adding services
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val showBottomSheetState = remember { mutableStateOf(false) }
+
+    // Delete confirmation dialog
+    val showDeleteDialogState = remember { mutableStateOf(false) }
+    val serviceToDeleteState = remember { mutableStateOf<Service?>(null) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val buildingServices by viewModel.buildingServices.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+
     LaunchedEffect(navController) {
         val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
         savedStateHandle?.getLiveData<String>("newService")?.observe(lifecycleOwner) { json ->
             val service = Json.decodeFromString<Service>(json)
             Log.d("ServiceListScreen", "Received new service: $service")
-            // xử lý thêm service vào danh sách hoặc cập nhật UI
             viewModel.onBuildingServicesChange(service)
             savedStateHandle.remove<String>("newService")
         }
@@ -96,45 +102,12 @@ fun AddBuildingScreen(
     val startFocus = remember { FocusRequester() }
     val dueFocus = remember { FocusRequester() }
 
-    var sectionTitleVisible by remember { mutableStateOf(false) }
-    var nameFieldVisible by remember { mutableStateOf(false) }
-    var floorFieldVisible by remember { mutableStateOf(false) }
-    var addressFieldVisible by remember { mutableStateOf(false) }
-    var statusFieldVisible by remember { mutableStateOf(false) }
-    var paymentTitleVisible by remember { mutableStateOf(false) }
-    var billingFieldVisible by remember { mutableStateOf(false) }
-    var paymentFieldsVisible by remember { mutableStateOf(false) }
-    var imagesTitleVisible by remember { mutableStateOf(false) }
-    var imagesFieldVisible by remember { mutableStateOf(false) }
-    var buttonVisible by remember { mutableStateOf(false) }
+    var visible by remember { mutableStateOf(false) }
 
-    // Trigger staggered animations on screen load
     LaunchedEffect(Unit) {
-        delay(50)
-        sectionTitleVisible = true
-        delay(80)
-        nameFieldVisible = true
-        delay(80)
-        floorFieldVisible = true
-        delay(80)
-        addressFieldVisible = true
-        delay(80)
-        statusFieldVisible = true
-        delay(100)
-        paymentTitleVisible = true
-        delay(80)
-        billingFieldVisible = true
-        delay(80)
-        paymentFieldsVisible = true
-        delay(100)
-        imagesTitleVisible = true
-        delay(80)
-        imagesFieldVisible = true
-        delay(80)
-        buttonVisible = true
+        visible = true
     }
 
-    // Handle UI state changes
     LaunchedEffect(key1 = uiState) {
         when (val state = uiState) {
             is AuthUIState.Success -> {
@@ -157,29 +130,20 @@ fun AddBuildingScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) {
+        Box(modifier = Modifier
+            .fillMaxSize()
         ) {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
             item {
-                AnimatedVisibility(
-                    visible = sectionTitleVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
+                AnimatedItem(visible) {
                     DividerWithSubhead(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -190,21 +154,7 @@ fun AddBuildingScreen(
             }
             
             item {
-                AnimatedVisibility(
-                    visible = nameFieldVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
+                AnimatedItem(visible) {
                     RequiredTextField(
                         value = formState.name,
                         onValueChange = { viewModel.updateName(it) },
@@ -221,27 +171,13 @@ fun AddBuildingScreen(
             }
 
             item {
-                AnimatedVisibility(
-                    visible = floorFieldVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
-                    OutlinedTextField(
+                AnimatedItem(visible) {
+                    RequiredTextField(
                         value = formState.floor,
                         onValueChange = { viewModel.updateFloor(it) },
-                        label = { Text("Floor") },
-                        singleLine = true,
+                        label = "Floor",
                         isError = formState.floorError,
+                        errorMessage = formState.floorErrorMsg,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number,
                             imeAction = ImeAction.Next
@@ -249,33 +185,13 @@ fun AddBuildingScreen(
                         keyboardActions = KeyboardActions(
                             onNext = { addressFocus.requestFocus() }
                         ),
-                        supportingText = {
-                            if (formState.floorError) Text(
-                                text = formState.floorErrorMsg ?: "",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        },
                         modifier = Modifier.fillMaxWidth().focusRequester(floorFocus)
                     )
                 }
             }
 
             item {
-                AnimatedVisibility(
-                    visible = addressFieldVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
+                AnimatedItem(visible) {
                     RequiredTextField(
                         value = formState.address,
                         onValueChange = { viewModel.updateAddress(it) },
@@ -292,21 +208,7 @@ fun AddBuildingScreen(
             }
 
             item {
-                AnimatedVisibility(
-                    visible = statusFieldVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
+                AnimatedItem(visible) {
                     Column {
                         DropdownSelectField(
                             label = "Status",
@@ -324,21 +226,7 @@ fun AddBuildingScreen(
             }
 
             item {
-                AnimatedVisibility(
-                    visible = paymentTitleVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
+                AnimatedItem(visible) {
                     DividerWithSubhead(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -349,27 +237,13 @@ fun AddBuildingScreen(
             }
 
             item {
-                AnimatedVisibility(
-                    visible = billingFieldVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
-                    OutlinedTextField(
+                AnimatedItem(visible) {
+                    RequiredTextField(
                         value = formState.billingDate,
                         onValueChange = { viewModel.updateBillingDate(it) },
-                        label = { Text("Billing date") },
-                        singleLine = true,
+                        label = "Billing date",
                         isError = formState.billingError,
+                        errorMessage = formState.billingErrorMsg,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number,
                             imeAction = ImeAction.Next
@@ -377,44 +251,24 @@ fun AddBuildingScreen(
                         keyboardActions = KeyboardActions(
                             onNext = { startFocus.requestFocus() }
                         ),
-                        supportingText = {
-                            if (formState.billingError) Text(
-                                text = formState.billingErrorMsg ?: "",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        },
                         modifier = Modifier.fillMaxWidth().focusRequester(billingFocus)
                     )
                 }
             }
 
             item {
-                AnimatedVisibility(
-                    visible = paymentFieldsVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
+                AnimatedItem(visible) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            OutlinedTextField(
+                            RequiredTextField(
                                 value = formState.paymentStart,
                                 onValueChange = { viewModel.updatePaymentStart(it) },
-                                label = { Text("Payment start") },
-                                singleLine = true,
+                                label = "Payment start",
                                 isError = formState.startError,
+                                errorMessage = formState.startErrorMsg,
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Number,
                                     imeAction = ImeAction.Next
@@ -422,22 +276,16 @@ fun AddBuildingScreen(
                                 keyboardActions = KeyboardActions(
                                     onNext = { dueFocus.requestFocus() }
                                 ),
-                                supportingText = {
-                                    if (formState.startError) Text(
-                                        text = formState.startErrorMsg ?: "",
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                },
                                 modifier = Modifier.fillMaxWidth().focusRequester(startFocus)
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            OutlinedTextField(
+                            RequiredTextField(
                                 value = formState.paymentDue,
                                 onValueChange = { viewModel.updatePaymentDue(it) },
-                                label = { Text("Payment due") },
-                                singleLine = true,
+                                label = "Payment due",
                                 isError = formState.dueError,
+                                errorMessage = formState.dueErrorMsg,
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Number,
                                     imeAction = ImeAction.Done
@@ -445,12 +293,6 @@ fun AddBuildingScreen(
                                 keyboardActions = KeyboardActions(
                                     onDone = { dueFocus.freeFocus() }
                                 ),
-                                supportingText = {
-                                    if (formState.dueError) Text(
-                                        text = formState.dueErrorMsg ?: "",
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                },
                                 modifier = Modifier.fillMaxWidth().focusRequester(dueFocus)
                             )
                         }
@@ -459,81 +301,67 @@ fun AddBuildingScreen(
             }
 
             item {
-                DividerWithSubhead(subhead = "Services")
-                if (buildingServices.isNotEmpty()) {
-                    Column(
+                AnimatedItem(visible) {
+                    DividerWithSubhead(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(bottom = 8.dp, top = 4.dp),
+                        subhead = "Services"
+                    )
+                }
+            }
+
+            item {
+                AnimatedItem(visible) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        buildingServices.forEach { service ->
-                            ServiceCard(
-                                service = service,
-                                onEdit = null,
-                                onDelete = null
-                            )
+                        if (buildingServices.isNotEmpty()) {
+                            buildingServices.forEach { service ->
+                                ServiceCard(
+                                    service = service,
+                                    onEdit = {
+                                        viewModel.editTempService(it)
+                                        showBottomSheetState.value = true
+                                    },
+                                    onDelete = {
+                                        serviceToDeleteState.value = it
+                                        showDeleteDialogState.value = true
+                                    }
+                                )
+                            }
                         }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+
+                        // Add Service Button
+                        Button(
+                            onClick = {
+                                showBottomSheetState.value = true
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         ) {
                             Icon(
                                 Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .size(50.dp)
-                                    .clickable {
-                                        navController?.navigate(Screens.AddService.createRoute("","",true))
-                                        //onAddServiceClick("",building?.id.toString())
-                                    }
+                                contentDescription = "Add service",
+                                modifier = Modifier.size(20.dp)
                             )
-                            Text("Add service here")
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(
+                                text = if (buildingServices.isEmpty()) "Add Service" else "Add Another Service",
+                                style = MaterialTheme.typography.labelLarge
+                            )
                         }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
-                                .clickable {
-                                    navController?.navigate(Screens.AddService.createRoute("","",true))
-                                    //onAddServiceClick(null.toString(),building?.id.toString())
-                                }
-                        )
-                        Text("Add service here")
                     }
                 }
             }
 
 
             item {
-                AnimatedVisibility(
-                    visible = imagesTitleVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
+                AnimatedItem(visible) {
                     DividerWithSubhead(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -544,21 +372,7 @@ fun AddBuildingScreen(
             }
             
             item {
-                AnimatedVisibility(
-                    visible = imagesFieldVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
+                AnimatedItem(visible) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         // Header with image count
                         Row(
@@ -590,54 +404,31 @@ fun AddBuildingScreen(
             }
 
             item {
-                AnimatedVisibility(
-                    visible = buttonVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
-                ) {
-                    Button(
-                        onClick = {
-                            if (uiState is AuthUIState.Loading) return@Button
-                            viewModel.validateAndSubmit()
-                        },
+                AnimatedItem(visible) {
+                    SubmitButton(
+                        text = "Add Building",
+                        isLoading = uiState is AuthUIState.Loading,
+                        onClick = { viewModel.validateAndSubmit() },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .requiredHeight(50.dp),
-                        enabled = uiState !is AuthUIState.Loading
-                    ) {
-                        if (uiState is AuthUIState.Loading) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = "Add building info",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        } else {
-                            Text("Confirm")
-                        }
-                    }
+                            .requiredHeight(50.dp)
+                    )
                 }
             }
         }
     }
-}
+    }
 
+    // Service management (add/edit/delete) with bottom sheet and dialogs
+    BuildingServiceManager(
+        viewModel = viewModel,
+        sheetState = sheetState,
+        showBottomSheet = showBottomSheetState,
+        showDeleteDialog = showDeleteDialogState,
+        serviceToDelete = serviceToDeleteState,
+        snackbarHostState = snackbarHostState
+    )
+}
 
 @Preview
 @Composable

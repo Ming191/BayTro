@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.service
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -28,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,6 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
 import com.example.baytro.data.service.Service
@@ -50,6 +55,7 @@ import com.example.baytro.viewModel.service.ServiceListVM
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun ServiceListScreen(
     navController: NavHostController,
@@ -57,25 +63,40 @@ fun ServiceListScreen(
 ) {
     val uiState by viewModel.serviceListUiState.collectAsState()
     val formState by viewModel.serviceListFormState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Logic được đơn giản hóa:
-    // 1. Chỉ hiển thị skeleton khi đang tải lần đầu (khi chưa có dữ liệu dịch vụ nào).
-    //    Điều này đảm bảo khi đổi building, skeleton không hiện lại vì `formState` vẫn giữ dữ liệu cũ.
     val showSkeleton = uiState is UiState.Loading && formState.availableServices.isEmpty()
-
-    // 2. Hiển thị nội dung chính trong tất cả các trường hợp còn lại (kể cả khi đang tải lại).
     val showContent = !showSkeleton
 
-    Log.d("ServiceListScreen", "Recomposing - uiState: ${uiState::class.simpleName}, " +
-            "showSkeleton: $showSkeleton, showContent: $showContent")
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                Log.d("ServiceListScreen", "ON_RESUME - refreshing buildings")
+                viewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
-    Scaffold { paddingValues ->
+    Scaffold (
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    Log.d("ServiceListContent", "FAB clicked - navigating to AddService")
+                    navController.navigate(Screens.AddService.createRoute("", "",false))
+                },
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add service")
+            }
+        }
+    ) {
         Box(
             Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
         ) {
-            // Skeleton chỉ hiển thị cho lần tải đầu tiên.
             AnimatedVisibility(
                 visible = showSkeleton,
                 exit = fadeOut(animationSpec = tween(300))
@@ -86,7 +107,6 @@ fun ServiceListScreen(
                 }
             }
 
-            // Nội dung hiển thị sau lần tải đầu và luôn hiển thị (kể cả khi đổi building).
             AnimatedVisibility(
                 visible = showContent,
                 enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 100))
@@ -94,11 +114,10 @@ fun ServiceListScreen(
                 Log.d("ServiceListScreen", "Rendering content")
                 ServiceListContent(
                     formState = formState,
-                    onBuildingSelected = viewModel::onBuildingChange, // Sử dụng method reference cho gọn
+                    onBuildingSelected = viewModel::onBuildingChange,
                     onEdit = viewModel::onEditService,
                     onDelete = viewModel::onDeleteService,
                     navController = navController,
-                    // Vô hiệu hóa dropdown khi đang tải dữ liệu cho building mới
                     isLoading = uiState is UiState.Loading
                 )
             }
@@ -155,7 +174,6 @@ fun ServiceListContent (
                             onBuildingSelected(building)
                         },
                         optionToString = { it.name },
-                        // Dropdown sẽ bị vô hiệu hóa khi đang tải dữ liệu mới
                         enabled = formState.availableBuildings.isNotEmpty() && !isLoading
                     )
                 }
@@ -203,7 +221,6 @@ fun ServiceListContent (
                         LaunchedEffect(service, formState.selectedBuilding?.id) {
                             Log.d("ServiceListContent", "Service card [$index] animation started - ${service.name} for building ${formState.selectedBuilding?.name}")
                             visible = false
-                            // Staggered delay based on index
                             val delayTime = index * 50L
                             Log.d("ServiceListContent", "Service card [$index] waiting ${delayTime}ms before appearing")
                             delay(delayTime)
@@ -245,17 +262,6 @@ fun ServiceListContent (
                     }
                 }
             }
-        }
-        FloatingActionButton(
-            onClick = {
-                Log.d("ServiceListContent", "FAB clicked - navigating to AddService")
-                navController.navigate(Screens.AddService.createRoute("", "",false))
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(32.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Add service")
         }
     }
 }
