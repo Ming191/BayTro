@@ -47,6 +47,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
@@ -463,8 +464,6 @@ fun AddBuildingScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp)
-                            .verticalScroll(rememberScrollState()) // Scroll độc lập
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -480,13 +479,15 @@ fun AddBuildingScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            horizontalArrangement = Arrangement.Center
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 Icons.Default.Add,
                                 contentDescription = null,
-                                modifier = Modifier.
-                                padding(end = 8.dp)
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .size(50.dp)
                                     .clickable {
                                         navController?.navigate(Screens.AddService.createRoute("","",true))
                                         //onAddServiceClick("",building?.id.toString())
@@ -635,4 +636,11 @@ fun AddBuildingScreen(
             }
         }
     }
+}
+
+
+@Preview
+@Composable
+fun AddBuildingScreenPreview() {
+    AddBuildingScreen()
 }

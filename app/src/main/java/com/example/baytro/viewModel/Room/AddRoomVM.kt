@@ -91,7 +91,7 @@ class AddRoomVM(
         val updatedServices = _extraServices.value.toMutableList()
         updatedServices.add(service)
         _extraServices.value = updatedServices
-        _addRoomFormState.value = _addRoomFormState.value.copy(_extraService = updatedServices)
+        _addRoomFormState.value = _addRoomFormState.value.copy(extraService = updatedServices)
     }
 
     fun onInteriorChange(interior: Furniture) {

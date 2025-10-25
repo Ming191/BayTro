@@ -187,8 +187,6 @@ fun AddRoomScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .verticalScroll(rememberScrollState()) // Scroll độc lập
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally

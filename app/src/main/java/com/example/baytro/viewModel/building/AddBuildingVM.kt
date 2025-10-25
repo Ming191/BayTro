@@ -247,8 +247,7 @@ class AddBuildingVM(
                     ?: throw IllegalStateException("No logged in user found")
                 
                 val buildingWithDefaults = building.copy(
-                    userId = currentUser.uid,
-                    services = _buildingServices.value
+                    userId = currentUser.uid
                 )
                 val newId = buildingRepository.add(buildingWithDefaults)
                 buildingServices.value.forEach { services ->

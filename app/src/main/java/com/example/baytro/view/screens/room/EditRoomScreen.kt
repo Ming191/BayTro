@@ -9,6 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,8 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.example.baytro.data.room.Furniture
+import com.example.baytro.data.service.Service
 import com.example.baytro.view.components.ChoiceSelection
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.RequiredTextField
@@ -34,12 +42,14 @@ import org.koin.compose.viewmodel.koinViewModel
 fun EditRoomScreen(
     onBackClick: () -> Unit,
     onEditExtraServiceClick: (String, String) -> Unit,
-    onDeleteServiceClick: () -> Unit,
+    onAddServiceClick: (String, String) -> Unit,
+    getNewExtraService: (LifecycleOwner, (Service) -> Unit) -> Unit,
     viewModel: EditRoomVM = koinViewModel(),
 ) {
     val room by viewModel.room.collectAsState()
     val uiState by viewModel.editRoomUIState.collectAsState()
     val formState by viewModel.editRoomFormState.collectAsState()
+    val extraServices by viewModel.extraServices.collectAsState()
     val context : Context = LocalContext.current
     Log.d("EditRoomScreen", "roomInterior: ${room?.interior}")
     // --- State for each TextField ---
@@ -50,15 +60,25 @@ fun EditRoomScreen(
     val defaultRentalFee: (String) -> Unit = viewModel::onRentalFeeChange
     val interior: (Furniture) -> Unit = viewModel::onInteriorChange
 
-    LaunchedEffect(uiState) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(Unit) { // chỉ chạy 1 lần khi composable được tạo
         viewModel.loadRoom()
+        viewModel.loadService()
+        getNewExtraService(lifecycleOwner) { service ->
+            viewModel.onExtraServiceChange(service)
+            Log.d("EditRoomScreen", "Received new service: $service")
+            Log.d("EditRoomScreen", "extraServices: $extraServices")
+        }
+    }
+
+    LaunchedEffect(uiState) {
         if (uiState is UiState.Success) {
             Toast.makeText(
                 context,
                 "Room edited successfully!",
                 Toast.LENGTH_SHORT
             ).show()
-            onBackClick
+            onBackClick()
         }
     }
 
@@ -97,7 +117,7 @@ fun EditRoomScreen(
 
         item {
             RequiredTextField(
-                value = formState.floor.toString(),
+                value = formState.floor,
                 onValueChange = floor,
                 label = "Floor",
                 isError = formState.floorError != null,
@@ -110,7 +130,7 @@ fun EditRoomScreen(
 
         item {
             RequiredTextField(
-                value = formState.size.toString(),
+                value = formState.size,
                 onValueChange = size,
                 label = "Size",
                 isError = formState.sizeError != null,
@@ -146,31 +166,42 @@ fun EditRoomScreen(
         }
 
         item {
-            DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Services")
-            val services = room?.extraService ?: emptyList()
-            if (services.isNotEmpty()) {
+            DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Extra services")
+            if (extraServices.isNotEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(start = 16.dp, end = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    services.forEach { service ->
+                    extraServices.forEach { service ->
                         ServiceCard(
                             service = service,
-                            onEdit = { onEditExtraServiceClick(room?.id.toString(), service.id) },
-                            onDelete = { onDeleteServiceClick() }
+                            onEdit = { onEditExtraServiceClick(service.id, room?.id.toString()) },
+                            onDelete = { viewModel.deleteService(service) }
                         )
+                    }
+                    OutlinedButton(onClick = {onAddServiceClick(room?.id.toString(), room?.buildingId.toString())}) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text("Add service here")
                     }
                 }
             } else {
-                Text(
-                    text = "No services available",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
+                Button(onClick = {onAddServiceClick(room?.id.toString(), room?.buildingId.toString())}) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text(
+                        text = "Add service here",
+                    )
+                }
             }
         }
         item {

@@ -5,6 +5,7 @@ import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import dev.gitlive.firebase.firestore.where
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -108,7 +109,7 @@ class BuildingRepository(
 
     fun listenToBuildingServices(buildingId: String): Flow<List<Service>> {
         return collection.document(buildingId)
-            .collection("services")
+            .collection("services").where { "status" equalTo "ACTIVE" }
             .snapshots
             .map { querySnapshot ->
                 querySnapshot.documents.mapNotNull { doc ->
@@ -171,6 +172,6 @@ class BuildingRepository(
        collection.document(buildingId)
             .collection("services")
             .document(serviceId)
-            .delete()
+            .update("status" to "DELETE")
     }
 }

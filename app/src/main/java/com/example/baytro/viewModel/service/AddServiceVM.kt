@@ -193,7 +193,7 @@ class AddServiceVM(
 
                 val allRoomsSelected = state.selectedRooms.size == state.availableRooms.size && state.availableRooms.isNotEmpty()
 
-                if (state.selectedRooms.isEmpty() || allRoomsSelected) {
+                if (state.selectedRooms.isEmpty() || allRoomsSelected && roomId == null) {
                     val serviceId = buildingRepo.addServiceToBuilding(building?.id.toString(), newService)
                     //updatedServices.add(newService)
                     Log.d(TAG, "Service added to building ${building?.name} in subcollection with id=$serviceId")

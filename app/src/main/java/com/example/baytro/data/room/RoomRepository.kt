@@ -125,6 +125,7 @@ class RoomRepository(
         return try {
             val snapshot = collection.document(roomId)
                 .collection("extraServices")
+                .where { "status" equalTo "ACTIVE" }
                 .get()
             snapshot.documents.mapNotNull { doc ->
                 try {
@@ -143,6 +144,7 @@ class RoomRepository(
     fun listenToRoomExtraServices(roomId: String): Flow<List<Service>> {
         return collection.document(roomId)
             .collection("extraServices")
+            .where { "status" equalTo "ACTIVE" }
             .snapshots
             .map { querySnapshot ->
                 querySnapshot.documents.mapNotNull { doc ->
@@ -186,7 +188,7 @@ class RoomRepository(
         collection.document(roomId)
             .collection("extraServices")
             .document(serviceId)
-            .delete()
+            .update("status" to "DELETE")
     }
 
     suspend fun hasExtraService(roomId: String, serviceId: String): Boolean {

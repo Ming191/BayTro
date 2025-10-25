@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.baytro.data.service.Service
 import com.example.baytro.utils.Utils.formatCurrency
 import com.example.baytro.view.components.ButtonComponent
@@ -174,7 +178,7 @@ fun RoomDetailsScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center
                                 )
-                                Button(onClick = {onAddContractClick(room?.id.toString())}) {
+                                OutlinedButton(onClick = {onAddContractClick(room?.id.toString())}) {
                                     Icon(
                                         Icons.Default.Add,
                                         contentDescription = null,
@@ -193,16 +197,14 @@ fun RoomDetailsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 180.dp)
-                            .verticalScroll(rememberScrollState())
-                            .padding(bottom = 16.dp),// Scroll độc lập
+                            .padding(bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         buildingServices.forEach { service ->
                             ServiceCard(
                                 service = service,
-                                onEdit = { onEditServiceClick(service.id, room?.buildingId.toString()) },
+                                onEdit = null,
                                 onDelete = null
                             )
                         }
@@ -215,9 +217,7 @@ fun RoomDetailsScreen(
                 if (extraServices.isNotEmpty()) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 180.dp)
-                            .verticalScroll(rememberScrollState()),// Scroll độc lập
+                            .fillMaxWidth() ,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -228,47 +228,21 @@ fun RoomDetailsScreen(
                                 onDelete = { viewModel.deleteService(service) }
                             )
                         }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .clickable {
-                                        onAddServiceClick(
-                                            room?.id.toString(),
-                                            room?.buildingId.toString(),
-                                        )
-                                    }
-                            )
-                            Text("Add service here")
-                        }
                     }
                 } else {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Box(
                             modifier = Modifier
-                                .padding(end = 8.dp)
-                                .clickable {
-                                    onAddServiceClick(
-                                        room?.id.toString(),
-                                        room?.buildingId.toString()
-                                    )
-                                }
-                        )
-                        Text("Add service here")
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "There are no services in this room.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }

@@ -37,8 +37,7 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
                 navController.popBackStack()
             },
             onAddServiceClick = { roomId, buildingId ->
-                navController.navigate(Screens.AddService.createRoute(roomId,buildingId,true)) {
-                }
+                navController.navigate(Screens.AddService.createRoute(roomId,buildingId,true))
             }
         )
     }
@@ -51,8 +50,16 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
             onEditExtraServiceClick = { roomId, serviceId ->
                 navController.navigate(Screens.EditService.createRouteFromRoom(roomId, serviceId))
             },
-            onDeleteServiceClick = {
-                navController.navigate(Screens.ServiceList.route)
+            onAddServiceClick = { roomId, buildingId ->
+                navController.navigate(Screens.AddService.createRoute(roomId, buildingId, true))
+            },
+            getNewExtraService = { lifecycleOwner, onServiceReceived ->
+                val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+                savedStateHandle?.getLiveData<String>("newService")?.observe(lifecycleOwner) { json ->
+                    val service = Json.decodeFromString<Service>(json)
+                    onServiceReceived(service)
+                    savedStateHandle.remove<String>("newService")
+                }
             },
             onBackClick = {
                 navController.popBackStack()
