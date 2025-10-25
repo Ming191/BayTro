@@ -32,6 +32,12 @@ class BuildingListVM(
     private val _errorEvent = MutableSharedFlow<SingleEvent<String>>()
     val errorEvent: SharedFlow<SingleEvent<String>> = _errorEvent.asSharedFlow()
 
+    private val _successEvent = MutableSharedFlow<SingleEvent<String>>()
+    val successEvent: SharedFlow<SingleEvent<String>> = _successEvent.asSharedFlow()
+
+    private val _isDeletingBuilding = MutableStateFlow(false)
+    val isDeletingBuilding: StateFlow<Boolean> = _isDeletingBuilding.asStateFlow()
+
     private val _buildingsData: StateFlow<Pair<Boolean, List<BuildingWithStats>>> = combine(
         _searchQuery.debounce(300),
         _statusFilter,
@@ -92,13 +98,16 @@ class BuildingListVM(
 
     fun archiveBuilding(buildingId: String) {
         viewModelScope.launch {
+            _isDeletingBuilding.value = true
             val result = buildingCloudFunctions.archiveBuilding(buildingId)
             result.onSuccess {
+                _successEvent.emit(SingleEvent("Building deleted successfully"))
                 refresh()
             }
             result.onFailure { exception ->
-                _errorEvent.emit(SingleEvent(exception.message ?: "Failed to archive building"))
+                _errorEvent.emit(SingleEvent(exception.message ?: "Failed to delete building"))
             }
+            _isDeletingBuilding.value = false
         }
     }
 }
