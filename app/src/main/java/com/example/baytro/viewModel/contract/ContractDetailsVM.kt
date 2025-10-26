@@ -10,6 +10,8 @@ import com.example.baytro.data.qr_session.PendingQrSession
 import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.UserRepository
+import com.example.baytro.utils.cloudFunctions.ContractCloudFunctions
+import com.example.baytro.utils.cloudFunctions.EndContractResponse
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
@@ -35,6 +37,14 @@ sealed interface QrGenerationState {
     data class Error(val message: String) : QrGenerationState
 }
 
+sealed interface EndContractState {
+    object Idle : EndContractState
+    object Loading : EndContractState
+    data class Warning(val response: EndContractResponse) : EndContractState
+    data class Success(val response: EndContractResponse) : EndContractState
+    data class Error(val message: String) : EndContractState
+}
+
 class ContractDetailsVM(
     private val functions: FirebaseFunctions,
     private val contractRepository: ContractRepository,
@@ -42,6 +52,7 @@ class ContractDetailsVM(
     private val buildingRepository: BuildingRepository,
     private val userRepository: UserRepository,
     private val qrSessionRepository: QrSessionRepository,
+    private val contractCloudFunctions: ContractCloudFunctions
 ) : ViewModel() {
 
     private var contractId: String? = null
@@ -54,6 +65,9 @@ class ContractDetailsVM(
 
     private val _qrState = MutableStateFlow<QrGenerationState>(QrGenerationState.Idle)
     val qrState: StateFlow<QrGenerationState> = _qrState.asStateFlow()
+
+    private val _endContractState = MutableStateFlow<EndContractState>(EndContractState.Idle)
+    val endContractState: StateFlow<EndContractState> = _endContractState.asStateFlow()
 
     private val _pendingSessions = MutableStateFlow<List<PendingQrSession>>(emptyList())
     val pendingSessions: StateFlow<List<PendingQrSession>> = _pendingSessions.asStateFlow()
@@ -151,7 +165,6 @@ class ContractDetailsVM(
                 }
                 .collect { sessions ->
                     _pendingSessions.value = sessions
-                    // Nếu có session đang chờ và QR đang hiển thị, ẩn QR đi
                     if (sessions.isNotEmpty() && _qrState.value is QrGenerationState.Success) {
                         _qrState.value = QrGenerationState.Idle
                     }
@@ -175,7 +188,6 @@ class ContractDetailsVM(
                     throw Exception("Invalid response format from server")
                 }
 
-                // The response has a nested structure: { data: { sessionId: "..." }, status: "success" }
                 val data = responseData["data"] as? Map<*, *>
                 val sessionId = data?.get("sessionId") as? String
 
@@ -220,17 +232,17 @@ class ContractDetailsVM(
         }
     }
 
-    fun endContract(onNavigateBack: () -> Unit = {}) {
-        val id = contractId ?: return
-        viewModelScope.launch {
-            try {
-                contractRepository.updateFields(id, mapOf("status" to Status.ENDED))
-                onNavigateBack()
-            } catch (e: Exception) {
-                _actionError.value = e.message ?: "Failed to end contract."
-            }
-        }
-    }
+//    fun endContract(onNavigateBack: () -> Unit = {}) {
+//        val id = contractId ?: return
+//        viewModelScope.launch {
+//            try {
+//                contractRepository.updateFields(id, mapOf("status" to Status.ENDED))
+//                onNavigateBack()
+//            } catch (e: Exception) {
+//                _actionError.value = e.message ?: "Failed to end contract."
+//            }
+//        }
+//    }
 
     private fun parseFirebaseError(e: Exception): String {
         if (e is FirebaseFunctionsException) {
@@ -249,6 +261,51 @@ class ContractDetailsVM(
 
     fun clearActionError() {
         _actionError.value = null
+    }
+
+    fun endContract(forceEnd: Boolean = false) {
+        val currentContractId = contractId ?: run {
+            _endContractState.value = EndContractState.Error("Contract ID is not set")
+            return
+        }
+
+        viewModelScope.launch {
+            _endContractState.value = EndContractState.Loading
+            try {
+                val result = contractCloudFunctions.endContract(currentContractId, forceEnd)
+
+                result.fold(
+                    onSuccess = { response ->
+                        when (response.status) {
+                            "warning" -> {
+                                _endContractState.value = EndContractState.Warning(response)
+                            }
+                            "success" -> {
+                                _endContractState.value = EndContractState.Success(response)
+                            }
+                            else -> {
+                                _endContractState.value = EndContractState.Error(response.message)
+                            }
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.e("ContractDetailsVM", "Error ending contract: ${error.message}", error)
+                        _endContractState.value = EndContractState.Error(
+                            error.message ?: "Failed to end contract"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("ContractDetailsVM", "Unexpected error ending contract: ${e.message}", e)
+                _endContractState.value = EndContractState.Error(
+                    e.message ?: "An unexpected error occurred"
+                )
+            }
+        }
+    }
+
+    fun resetEndContractState() {
+        _endContractState.value = EndContractState.Idle
     }
 
     override fun onCleared() {

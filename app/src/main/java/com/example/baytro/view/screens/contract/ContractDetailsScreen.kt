@@ -27,7 +27,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -38,6 +40,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.baytro.data.qr_session.PendingQrSession
+import com.example.baytro.utils.Utils
 import com.example.baytro.view.components.AddFirstTenantPrompt
 import com.example.baytro.view.components.ContractCard
 import com.example.baytro.view.components.ContractDetailsSkeleton
@@ -63,7 +67,7 @@ import com.example.baytro.view.components.QrCodeDialog
 import com.example.baytro.view.components.TenantsSection
 import com.example.baytro.viewModel.contract.ContractDetailsFormState
 import com.example.baytro.viewModel.contract.ContractDetailsVM
-import kotlinx.coroutines.delay
+import com.example.baytro.viewModel.contract.EndContractState
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -80,6 +84,7 @@ fun ContractDetailsScreen(
 
     val formState by viewModel.formState.collectAsState()
     val qrState by viewModel.qrState.collectAsState()
+    val endContractState by viewModel.endContractState.collectAsState()
     val pendingSessions by viewModel.pendingSessions.collectAsState()
     val confirmingIds by viewModel.confirmingSessionIds.collectAsState()
     val decliningIds by viewModel.decliningSessionIds.collectAsState()
@@ -88,6 +93,7 @@ fun ContractDetailsScreen(
     val isLandlord by viewModel.isLandlord.collectAsState()
 
     var hasLoadedOnce by remember { mutableStateOf(false) }
+    var showEndContractDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -101,10 +107,92 @@ fun ContractDetailsScreen(
         }
     }
 
+    LaunchedEffect(endContractState) {
+        when (val state = endContractState) {
+            is EndContractState.Warning -> {
+                showEndContractDialog = true
+            }
+            is EndContractState.Success -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = state.response.message +
+                            (state.response.warnings?.let { "\n${it.joinToString("\n")}" } ?: "")
+                    )
+                    viewModel.resetEndContractState()
+                    navigateBack()
+                }
+            }
+            is EndContractState.Error -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar(message = state.message)
+                    viewModel.resetEndContractState()
+                }
+            }
+            else -> {}
+        }
+    }
+
     LaunchedEffect(loading) {
         if (!loading && !hasLoadedOnce) {
-            delay(300)
             hasLoadedOnce = true
+        }
+    }
+
+    if (showEndContractDialog) {
+        when (val state = endContractState) {
+            is EndContractState.Warning -> {
+                AlertDialog(
+                    onDismissRequest = {
+                        showEndContractDialog = false
+                        viewModel.resetEndContractState()
+                    },
+                    title = { Text("Unpaid Bills Warning") },
+                    text = {
+                        Column {
+                            Text(state.response.message)
+                            state.response.unpaidBillsCount?.let { count ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Unpaid bills: $count")
+                            }
+                            state.response.totalUnpaidAmount?.let { amount ->
+                                Text("Total unpaid: ${Utils.formatCurrency(amount.toString())}")
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Do you want to force end this contract anyway?",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showEndContractDialog = false
+                                viewModel.endContract(forceEnd = true)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Force End")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showEndContractDialog = false
+                                viewModel.resetEndContractState()
+                            }
+                        ) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+            else -> {
+                showEndContractDialog = false
+            }
         }
     }
 
@@ -132,7 +220,7 @@ fun ContractDetailsScreen(
                 onConfirmTenant = viewModel::confirmTenant,
                 onDeclineTenant = viewModel::declineTenant,
                 onEditContract = { onEditContract(contractId) },
-                onEndContract = { viewModel.endContract(navigateBack) }
+                onEndContract = { viewModel.endContract() }
             )
         }
     }
@@ -156,7 +244,6 @@ fun ContractDetailsContent(
     var visible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        delay(100)
         visible = true
     }
 
@@ -222,7 +309,7 @@ fun ContractDetailsContent(
                     AnimatedVisibility(
                         visible = formState.shouldShowAddFirstTenantPrompt(
                             pendingSessions, confirmingIds, decliningIds, isLandlord
-                        ),
+                        ) && formState.isActiveContract,
                         enter = fadeIn() + slideInVertically(),
                         exit = fadeOut() + slideOutVertically()
                     ) {
@@ -237,7 +324,7 @@ fun ContractDetailsContent(
                         TenantsSection(
                             tenants = formState.tenantList,
                             onAddTenantClick = onAddTenant,
-                            showAddButton = isLandlord
+                            showAddButton = isLandlord && formState.isActiveContract
                         )
                     }
                 }

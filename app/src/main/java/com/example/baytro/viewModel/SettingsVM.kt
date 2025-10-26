@@ -87,7 +87,7 @@ class SettingsVM(
                     it.copy(
                         isLoading = false,
                         prefix = template?.prefix ?: "",
-                        suffixLength = template?.suffixLength?.toString() ?: "6",
+                        suffixLength = template?.suffixLength?.toString() ?: "",
                         originalPrefix = template?.prefix
                     )
                 }

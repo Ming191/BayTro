@@ -21,6 +21,15 @@ data class ContractListResponse(
     val contracts: List<ContractWithRoom> = emptyList()
 )
 
+@Stable
+data class EndContractResponse(
+    val status: String,
+    val message: String,
+    val unpaidBillsCount: Int? = null,
+    val totalUnpaidAmount: Double? = null,
+    val warnings: List<String>? = null
+)
+
 class ContractCloudFunctions(
     private val functions: FirebaseFunctions,
     private val gson: Gson
@@ -48,6 +57,38 @@ class ContractCloudFunctions(
 
             val json = gson.toJson(dataMap)
             val response: ContractListResponse = gson.fromJson(json, object : TypeToken<ContractListResponse>() {}.type)
+
+            Result.success(response)
+
+        } catch (e: FirebaseFunctionsException) {
+            val errorMessage = parseFirebaseError(e)
+            Result.failure(Exception(errorMessage))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun endContract(
+        contractId: String,
+        forceEnd: Boolean = false
+    ): Result<EndContractResponse> {
+        return try {
+            val data = hashMapOf(
+                "contractId" to contractId,
+                "forceEnd" to forceEnd
+            )
+
+            val result = functions.getHttpsCallable("endContract")
+                .call(data)
+                .await()
+
+            val dataMap = result.data as? Map<*, *>
+            if (dataMap == null) {
+                return Result.failure(Exception("Response data is null or not a Map."))
+            }
+
+            val json = gson.toJson(dataMap)
+            val response: EndContractResponse = gson.fromJson(json, object : TypeToken<EndContractResponse>() {}.type)
 
             Result.success(response)
 
