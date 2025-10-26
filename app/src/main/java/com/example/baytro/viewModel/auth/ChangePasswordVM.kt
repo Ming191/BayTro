@@ -8,6 +8,7 @@ import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
 import com.example.baytro.view.AuthUIState
+import com.google.firebase.auth.EmailAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -43,45 +44,63 @@ class ChangePasswordVM (
 
     fun changePassword() {
         val current = _changePasswordFormState.value
+        val user = authRepository.getCurrentUser()
 
-        val passwordValidation = Validator.validatePassword(current.password)
-        val newPasswordValidation = Validator.validatePassword(current.newPassword)
-        val newPasswordStrengthValidation = Validator.validatePasswordStrength(current.newPassword)
-        val confirmPasswordValidation = Validator.validateConfirmPassword(current.password, current.newPassword)
-        val confirmNewPasswordValidation = Validator.validateConfirmPassword(current.newPassword, current.confirmNewPassword)
+        if (user == null) {
+            _changePasswordUIState.value = AuthUIState.Error("User not logged in")
+            return
+        }
 
-        val updatedState = current.copy(
-            passwordError = passwordValidation,
-            newPasswordError = newPasswordValidation,
-            newPasswordStrengthError = newPasswordStrengthValidation,
-            confirmNewPasswordError = confirmNewPasswordValidation
-        )
-        _changePasswordFormState.value = updatedState
+        val userEmail = user.email ?: return
 
-        val hasError = listOf(
-            passwordValidation,
-            newPasswordValidation,
-            newPasswordStrengthValidation,
-            confirmNewPasswordValidation
-        ).any { it is ValidationResult.Error }
-        if (hasError) return
-        if (confirmPasswordValidation != ValidationResult.Success) return
+        // Xác thực lại (reauthenticate) để kiểm tra password hiện tại
+        val credential = EmailAuthProvider.getCredential(userEmail, current.password)
 
         viewModelScope.launch {
             _changePasswordUIState.value = AuthUIState.Loading
-            try {
-                val user = authRepository.getCurrentUser()
-                user!!.updatePassword(current.newPassword)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            _changePasswordUIState.value = AuthUIState.PasswordChangedSuccess
+            user.reauthenticate(credential)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        // Mật khẩu đúng — giờ mới validate tiếp các bước đổi mật khẩu
+                        val newPasswordValidation = Validator.validatePassword(current.newPassword)
+                        val confirmPasswordValidation = Validator.validateConfirmPassword(
+                            current.newPassword,
+                            current.confirmNewPassword
+                        )
+
+                        val hasError = listOf(
+                            newPasswordValidation,
+                            confirmPasswordValidation
+                        ).any { it is ValidationResult.Error }
+
+                        if (hasError) {
+                            _changePasswordFormState.value = current.copy(
+                                newPasswordError = newPasswordValidation,
+                                confirmNewPasswordError = confirmPasswordValidation
+                            )
+                            _changePasswordUIState.value = AuthUIState.Error("Invalid new password format")
+                            return@addOnCompleteListener
                         }
+
+                        // Nếu ok thì tiến hành đổi mật khẩu
+                        user.updatePassword(current.newPassword)
+                            .addOnCompleteListener { updateTask ->
+                                if (updateTask.isSuccessful) {
+                                    _changePasswordUIState.value = AuthUIState.PasswordChangedSuccess
+                                } else {
+                                    _changePasswordUIState.value =
+                                        AuthUIState.Error("Failed to update password")
+                                }
+                            }
+
+                    } else {
+                        // Sai password hiện tại
+                        _changePasswordFormState.value = current.copy(
+                            passwordError = ValidationResult.Error("Incorrect password")
+                        )
+                        _changePasswordUIState.value = AuthUIState.Error("Wrong current password")
                     }
-                _changePasswordUIState.value = AuthUIState.Success(user)
-            } catch (e: Exception) {
-                _changePasswordUIState.value =
-                    AuthUIState.Error(e.message ?: "Failed to change password")
-            }
+                }
         }
     }
 }
