@@ -8,29 +8,34 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavHostController
 import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.service.Service
 import com.example.baytro.view.components.ChoiceSelection
 import com.example.baytro.view.components.DividerWithSubhead
+import com.example.baytro.view.components.GeneralServiceManager
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.view.components.SubmitButton
@@ -38,12 +43,10 @@ import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.Room.EditRoomVM
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditRoomScreen(
     onBackClick: () -> Unit,
-    onEditExtraServiceClick: (String, String) -> Unit,
-    onAddServiceClick: (String, String) -> Unit,
-    getNewExtraService: (LifecycleOwner, (Service) -> Unit) -> Unit,
     viewModel: EditRoomVM = koinViewModel(),
 ) {
     val room by viewModel.room.collectAsState()
@@ -52,23 +55,27 @@ fun EditRoomScreen(
     val extraServices by viewModel.extraServices.collectAsState()
     val context : Context = LocalContext.current
     Log.d("EditRoomScreen", "roomInterior: ${room?.interior}")
-    // --- State for each TextField ---
-    val buildingName: (String) -> Unit =  viewModel::onBuildingNameChange
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val showBottomSheetState = remember { mutableStateOf(false) }
+    val showDeleteDialogState = remember { mutableStateOf(false) }
+    val serviceToDeleteState = remember { mutableStateOf<Service?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val tempServiceName by viewModel.tempServiceName.collectAsState()
+    val tempServicePrice by viewModel.tempServicePrice.collectAsState()
+    val tempServiceUnit by viewModel.tempServiceUnit.collectAsState()
+    val isEditMode by viewModel.isEditMode.collectAsState()
+    val isEditingDefaultService by viewModel.isEditingDefaultService.collectAsState()
+
     val roomNumber: (String) -> Unit = viewModel::onRoomNumberChange
     val floor: (String) -> Unit = viewModel::onFloorChange
     val size: (String) -> Unit = viewModel::onSizeChange
     val defaultRentalFee: (String) -> Unit = viewModel::onRentalFeeChange
     val interior: (Furniture) -> Unit = viewModel::onInteriorChange
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(Unit) { // chỉ chạy 1 lần khi composable được tạo
+    LaunchedEffect(Unit) {
         viewModel.loadRoom()
-        viewModel.loadService()
-        getNewExtraService(lifecycleOwner) { service ->
-            viewModel.onExtraServiceChange(service)
-            Log.d("EditRoomScreen", "Received new service: $service")
-            Log.d("EditRoomScreen", "extraServices: $extraServices")
-        }
     }
 
     LaunchedEffect(uiState) {
@@ -83,17 +90,17 @@ fun EditRoomScreen(
     }
 
     LazyColumn (
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         item { DividerWithSubhead(modifier = Modifier.padding(start = 16.dp, end = 16.dp), subhead = "Building information") }
         item {
             RequiredTextField(
-                value = formState.buildingName, // Bind to state
-                onValueChange = buildingName, // Update state
+                value = formState.buildingName,
+                onValueChange = {},
                 label = "Building name",
-                isError = false, // You'll likely get this from ViewModel validation
-                errorMessage = null, // Also from ViewModel
+                isError = false,
+                errorMessage = null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp)
@@ -166,44 +173,54 @@ fun EditRoomScreen(
         }
 
         item {
-            DividerWithSubhead(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp), subhead = "Extra services")
-            if (extraServices.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+            DividerWithSubhead(modifier = Modifier.padding(16.dp), subhead = "Extra services")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (extraServices.isNotEmpty()) {
                     extraServices.forEach { service ->
                         ServiceCard(
                             service = service,
-                            onEdit = { onEditExtraServiceClick(service.id, room?.id.toString()) },
-                            onDelete = { viewModel.deleteService(service) }
+                            onEdit = {
+                                viewModel.editTempService(it)
+                                showBottomSheetState.value = true
+                            },
+                            onDelete = {
+                                serviceToDeleteState.value = it
+                                showDeleteDialogState.value = true
+                            }
                         )
-                    }
-                    OutlinedButton(onClick = {onAddServiceClick(room?.id.toString(), room?.buildingId.toString())}) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text("Add service here")
                     }
                 }
-            } else {
-                Button(onClick = {onAddServiceClick(room?.id.toString(), room?.buildingId.toString())}) {
+
+                // Add Service Button
+                Button(
+                    onClick = {
+                        showBottomSheetState.value = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                ) {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 8.dp)
+                        contentDescription = "Add service",
+                        modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "Add service here",
+                        text = if (extraServices.isEmpty()) "Add Service" else "Add Another Service",
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
         }
+
         item {
             SubmitButton(
                 modifier = Modifier
@@ -217,4 +234,24 @@ fun EditRoomScreen(
             )
         }
     }
+
+    GeneralServiceManager(
+        sheetState = sheetState,
+        showBottomSheet = showBottomSheetState,
+        showDeleteDialog = showDeleteDialogState,
+        serviceToDelete = serviceToDeleteState,
+        snackbarHostState = snackbarHostState,
+        tempServiceName = tempServiceName,
+        tempServicePrice = tempServicePrice,
+        tempServiceUnit = tempServiceUnit,
+        isEditMode = isEditMode,
+        isEditingDefaultService = isEditingDefaultService,
+        onNameChange = viewModel::updateTempServiceName,
+        onPriceChange = viewModel::updateTempServicePrice,
+        onUnitSelected = viewModel::updateTempServiceUnit,
+        onConfirm = viewModel::addTempService,
+        onDelete = viewModel::deleteTempService,
+        onDismiss = {},
+        onClearForm = viewModel::clearTempServiceForm
+    )
 }

@@ -208,7 +208,7 @@ class AddServiceVM(
             try {
                 val newService = Service(
                     name = state.name,
-                    price = state.price,
+                    price = state.price.toIntOrNull() ?: 0,
                     metric = state.metrics,
                     status = Status.ACTIVE
                 )

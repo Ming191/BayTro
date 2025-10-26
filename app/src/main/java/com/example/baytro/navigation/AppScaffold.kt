@@ -71,13 +71,14 @@ fun AppScaffold (
                     Screens.BillList.route -> "Bills"
                     Screens.ContractList.route -> "Contracts"
                     Screens.MaintenanceRequestList.route -> "Maintenance"
-                    Screens.Dashboard.route -> "BayTro"
+                    Screens.Dashboard.route -> "Dashboard"
                     Screens.ServiceList.route -> "Services"
                     Screens.PendingMeterReadings.route -> "Meter Readings"
                     Screens.LandlordBills.route -> "Bills Dashboard"
                     Screens.TenantBill.route -> "My Bill"
                     Screens.BillDetails.route -> "Bill Details"
                     Screens.BillingHistory.route -> "Billing History"
+                    Screens.RoomDetails.route -> "Room Details"
                     else -> "BayTro"
                 }
                 CenterAlignedTopAppBar(

@@ -59,12 +59,10 @@ class MessagingService : FirebaseMessagingService(), KoinComponent {
 
         if (contractId != null) {
             CoroutineScope(Dispatchers.Default).launch {
-                // If this is a tenant join request notification for landlord
                 if (screen == "ContractDetails" && title == "New join request") {
                     Log.d("FCM", "Tenant join request received for contract: $contractId")
                     TenantJoinEventBus.emitTenantJoinRequest(contractId)
                 } else {
-                    // Otherwise it's a contract confirmation for tenant
                     TenantJoinEventBus.emitContractConfirmed(contractId)
                 }
             }

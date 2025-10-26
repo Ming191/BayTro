@@ -41,10 +41,6 @@ fun TenantScaffold(
 ) {
     val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-    LaunchedEffect(currentRoute) {
-        scrollBehavior.state.heightOffset = 0f
-        scrollBehavior.state.contentOffset = 0f
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(

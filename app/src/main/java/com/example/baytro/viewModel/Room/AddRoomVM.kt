@@ -10,6 +10,7 @@ import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.room.Status
+import com.example.baytro.data.service.Metric
 import com.example.baytro.data.service.Service
 import com.example.baytro.utils.AddRoomValidator
 import com.example.baytro.utils.Utils.formatCurrency
@@ -34,6 +35,27 @@ class AddRoomVM(
 
     private val _extraServices = MutableStateFlow<List<Service>>(emptyList())
     val extraServices: StateFlow<List<Service>> = _extraServices
+    // Temporary service form state for bottom sheet
+    private val _tempServiceName = MutableStateFlow("")
+    val tempServiceName: StateFlow<String> = _tempServiceName
+
+    private val _tempServicePrice = MutableStateFlow("")
+    val tempServicePrice: StateFlow<String> = _tempServicePrice
+
+    private val _tempServiceUnit = MutableStateFlow(Metric.ROOM)
+    val tempServiceUnit: StateFlow<Metric> = _tempServiceUnit
+
+    // Track which service is being edited (by index)
+    private var editingServiceIndex: Int? = null
+
+    // Expose whether we're in edit mode
+    private val _isEditMode = MutableStateFlow(false)
+    val isEditMode: StateFlow<Boolean> = _isEditMode
+
+    // Expose whether the service being edited is a default service
+    private val _isEditingDefaultService = MutableStateFlow(false)
+    val isEditingDefaultService: StateFlow<Boolean> = _isEditingDefaultService
+
 
     var existingRooms = emptyList<Room>()
 
@@ -82,9 +104,13 @@ class AddRoomVM(
         val cleanInput = rentalFee.replace("D".toRegex(), "")
         val formattedRentalFee = if (cleanInput.isNotEmpty()) formatCurrency(cleanInput) else ""
         _addRoomFormState.value = _addRoomFormState.value.copy(
-            rentalFee = cleanInput,           // để lưu DB
-            rentalFeeUI = formattedRentalFee    // để hiển thị
+            rentalFee = cleanInput,
+            rentalFeeUI = formattedRentalFee
         )
+    }
+
+    fun onInteriorChange(interior: Furniture) {
+        _addRoomFormState.value = _addRoomFormState.value.copy(interior = interior)
     }
 
     fun onExtraServiceChange(service: Service) {
@@ -94,9 +120,105 @@ class AddRoomVM(
         _addRoomFormState.value = _addRoomFormState.value.copy(extraService = updatedServices)
     }
 
-    fun onInteriorChange(interior: Furniture) {
-        _addRoomFormState.value = _addRoomFormState.value.copy(interior = interior)
+    // Service management methods for bottom sheet
+    fun updateTempServiceName(value: String) {
+        _tempServiceName.value = value
     }
+
+    fun updateTempServicePrice(value: String) {
+        _tempServicePrice.value = value
+    }
+
+    fun updateTempServiceUnit(unit: Metric) {
+        _tempServiceUnit.value = unit
+    }
+
+    fun addTempService() {
+        val name = _tempServiceName.value.trim()
+        val priceStr = _tempServicePrice.value.trim()
+        val unit = _tempServiceUnit.value
+
+        if (name.isBlank() || priceStr.isBlank()) {
+            Log.w("AddRoomVM", "Cannot add service: name or price is blank")
+            return
+        }
+
+        val price = priceStr.toIntOrNull()
+        if (price == null || price <= 0) {
+            Log.w("AddRoomVM", "Cannot add service: invalid price")
+            return
+        }
+
+        val updatedServices = _extraServices.value.toMutableList()
+
+        if (editingServiceIndex != null && editingServiceIndex!! < updatedServices.size) {
+            // Update existing service
+            val oldService = updatedServices[editingServiceIndex!!]
+            val updatedService = Service(
+                id = oldService.id,
+                name = name,
+                price = price,
+                metric = unit,
+                status = oldService.status,
+                isDefault = oldService.isDefault
+            )
+            updatedServices[editingServiceIndex!!] = updatedService
+            Log.d("AddRoomVM", "Updated service at index $editingServiceIndex: $updatedService")
+        } else {
+            // Create new service
+            val tempService = Service(
+                id = "",
+                name = name,
+                price = price,
+                metric = unit,
+                status = com.example.baytro.data.service.Status.ACTIVE,
+                isDefault = false
+            )
+            updatedServices.add(tempService)
+            Log.d("AddRoomVM", "Added new service: $tempService")
+        }
+
+        _extraServices.value = updatedServices
+        _addRoomFormState.value = _addRoomFormState.value.copy(extraService = updatedServices)
+
+        // Clear temp form and editing state
+        clearTempServiceForm()
+    }
+
+    fun clearTempServiceForm() {
+        _tempServiceName.value = ""
+        _tempServicePrice.value = ""
+        _tempServiceUnit.value = Metric.ROOM
+        editingServiceIndex = null
+        _isEditMode.value = false
+        _isEditingDefaultService.value = false
+    }
+
+    fun deleteTempService(service: Service) {
+        Log.d("AddRoomVM", "Deleting service: ${service.name}")
+        val updatedServices = _extraServices.value.toMutableList()
+        updatedServices.remove(service)
+        _extraServices.value = updatedServices
+        _addRoomFormState.value = _addRoomFormState.value.copy(extraService = updatedServices)
+    }
+
+    fun editTempService(service: Service) {
+        Log.d("AddRoomVM", "Editing service: ${service.name}")
+        // Find the index of the service being edited
+        editingServiceIndex = _extraServices.value.indexOf(service)
+
+        // Set edit mode
+        _isEditMode.value = true
+
+        // Track if editing a default service
+        _isEditingDefaultService.value = service.isDefault
+
+        // Populate the temp form with the service data
+        _tempServiceName.value = service.name
+        _tempServicePrice.value = service.price.toString()
+        _tempServiceUnit.value = service.metric
+    }
+
     fun addRoom() {
         val form = _addRoomFormState.value
         val updated = form.copy(

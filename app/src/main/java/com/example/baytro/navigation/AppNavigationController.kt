@@ -13,7 +13,7 @@ import com.example.baytro.MainScreen
 @Composable
 fun AppNavigationController(
     navHostController: NavHostController,
-    startDestination: String
+    startDestination: String,
 ) {
     LaunchedEffect(Unit) {
         navHostController.addOnDestinationChangedListener { controller, _, _ ->

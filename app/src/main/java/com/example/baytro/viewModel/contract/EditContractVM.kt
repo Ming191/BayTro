@@ -12,6 +12,7 @@ import com.example.baytro.data.contract.Contract
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.contract.Status
 import com.example.baytro.data.room.RoomRepository
+import com.example.baytro.data.service.Service
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
@@ -39,6 +40,12 @@ class EditContractVM(
 
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
+
+    private val _buildingServices = MutableStateFlow<List<Service>>(emptyList())
+    val buildingServices: StateFlow<List<Service>> = _buildingServices
+
+    private val _extraServices = MutableStateFlow<List<Service>>(emptyList())
+    val extraServices: StateFlow<List<Service>> = _extraServices
 
     fun loadContract(contractId: String) {
         Log.d(TAG, "loadContract: contractId=$contractId")
@@ -70,6 +77,9 @@ class EditContractVM(
                     tenantList = contract.tenantIds
                 )
 
+                // Load services for the building and room
+                loadServices(contract.roomId)
+
                 _loading.value = false
             } catch (e: Exception) {
                 Log.e(TAG, "loadContract: error", e)
@@ -82,6 +92,27 @@ class EditContractVM(
     fun clearError() {
         Log.d(TAG, "clearError: setting UiState to Idle")
         _editContractUiState.value = UiState.Idle
+    }
+
+    private fun loadServices(roomId: String) {
+        viewModelScope.launch {
+            try {
+                val room = roomRepo.getById(roomId)
+                if (room != null) {
+                    val building = buildingRepo.getById(room.buildingId)
+                    if (building != null) {
+                        _buildingServices.value = buildingRepo.getServicesByBuildingId(building.id)
+                    } else {
+                        Log.e(TAG, "loadServices: building not found")
+                    }
+                    _extraServices.value = roomRepo.getExtraServicesByRoomId(room.id)
+                } else {
+                    Log.e(TAG, "loadServices: room not found")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "loadServices: error fetching services", e)
+            }
+        }
     }
 
     fun onStartDateChange(startDate: String) {

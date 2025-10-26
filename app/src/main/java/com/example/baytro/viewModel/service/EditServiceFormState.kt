@@ -9,6 +9,7 @@ data class EditServiceFormState(
     val price: String = "",
     val metrics: Metric = Metric.entries[0],
     val searchText: String = "",
+    val isDefault: Boolean = false,
 
     val availableBuildings: List<Building> = emptyList(),
     val selectedBuilding: Building? = null,
