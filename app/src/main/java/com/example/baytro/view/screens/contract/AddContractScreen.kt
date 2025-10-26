@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.contract
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.*
@@ -114,6 +115,7 @@ fun AddContractScreen(
     )
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddContractContent(
@@ -175,11 +177,10 @@ fun AddContractContent(
                 }
             }
         }
-    ) { paddingValues ->
+    ) {
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+                .fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -383,6 +384,10 @@ fun AddContractContent(
                         maxSelectionCount = 5
                     )
                 }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(64.dp))
             }
         }
     }

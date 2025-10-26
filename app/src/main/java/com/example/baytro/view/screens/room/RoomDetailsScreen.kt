@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.room
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.Crossfade
@@ -65,6 +66,7 @@ import com.example.baytro.view.components.TenantsSection
 import com.example.baytro.viewModel.Room.RoomDetailsVM
 import org.koin.compose.viewmodel.koinViewModel
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun RoomDetailsScreen(
     viewModel: RoomDetailsVM = koinViewModel(),
@@ -183,11 +185,10 @@ fun RoomDetailsScreen(
                     }
                 }
             }
-        ) { paddingValues ->
+        ) {
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                    .fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
@@ -313,7 +314,7 @@ fun RoomDetailsScreen(
 
                 // Bottom padding for bottom bar
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(64.dp))
                 }
             }
         }

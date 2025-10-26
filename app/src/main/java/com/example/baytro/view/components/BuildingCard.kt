@@ -100,7 +100,7 @@ fun BuildingCard(
             val configuration = LocalConfiguration.current
             val density = LocalDensity.current
             val widthPx = with(density) { configuration.screenWidthDp.dp.toPx() }.toInt()
-            val heightPx = with(density) { 220.dp.toPx() }.toInt()
+            val heightPx = with(density) { 160.dp.toPx() }.toInt()
 
             Box {
                 // Image Section
@@ -121,13 +121,13 @@ fun BuildingCard(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(220.dp)
+                                    .height(160.dp)
                                     .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(48.dp),
-                                    strokeWidth = 4.dp,
+                                    modifier = Modifier.size(40.dp),
+                                    strokeWidth = 3.dp,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -136,7 +136,7 @@ fun BuildingCard(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(220.dp)
+                                    .height(160.dp)
                                     .background(
                                         Brush.verticalGradient(
                                             colors = listOf(
@@ -149,17 +149,17 @@ fun BuildingCard(
                             ) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Icon(
                                         Icons.Default.BrokenImage,
                                         contentDescription = null,
-                                        modifier = Modifier.size(56.dp),
+                                        modifier = Modifier.size(40.dp),
                                         tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
                                     )
                                     Text(
                                         "Image unavailable",
-                                        style = MaterialTheme.typography.bodyLarge,
+                                        style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -168,14 +168,14 @@ fun BuildingCard(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(220.dp)
+                            .height(160.dp)
                             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                     )
                 } else {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(220.dp)
+                            .height(160.dp)
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
@@ -188,25 +188,25 @@ fun BuildingCard(
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(20.dp))
+                                    .size(60.dp)
+                                    .clip(RoundedCornerShape(16.dp))
                                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.Image,
                                     contentDescription = null,
-                                    modifier = Modifier.size(44.dp),
+                                    modifier = Modifier.size(32.dp),
                                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                                 )
                             }
                             Text(
                                 text = "No Image Available",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium
                             )
@@ -219,7 +219,7 @@ fun BuildingCard(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .height(80.dp)
+                        .height(60.dp)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
@@ -311,32 +311,32 @@ fun BuildingCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(16.dp)
             ) {
                 // Title
                 Text(
                     text = name,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Address
                 Text(
                     text = address,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
+                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Stats Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     StatItem(
                         icon = Icons.Default.MeetingRoom,
@@ -353,14 +353,14 @@ fun BuildingCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Action Button
                 Button(
                     onClick = onViewClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -391,41 +391,41 @@ private fun StatItem(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
         tonalElevation = 1.dp
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             Column(
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(1.dp)
             ) {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )

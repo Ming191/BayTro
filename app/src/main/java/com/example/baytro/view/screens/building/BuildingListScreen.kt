@@ -304,7 +304,7 @@ fun BuildingListScreen(
                                             address = buildingWithStats.building.address,
                                             imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
                                             roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
-                                            revenue = Utils.formatCurrency(buildingWithStats.revenue.toString()),
+                                            revenue = Utils.formatCompactCurrency(buildingWithStats.revenue),
                                             onViewClick = onViewClick,
                                             onEditClick = onEditClick,
                                             onDeleteClick = onDeleteClick
