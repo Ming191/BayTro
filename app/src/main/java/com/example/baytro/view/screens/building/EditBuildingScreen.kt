@@ -9,18 +9,29 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,12 +47,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingStatus
+import com.example.baytro.data.service.Service
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.building.EditBuildingVM
@@ -59,6 +71,17 @@ fun EditBuildingScreen(
     val context = LocalContext.current
     val uiState by viewModel.editUIState.collectAsState()
     val buildingState by viewModel.building.collectAsState()
+
+    // Bottom sheet for adding services
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val showBottomSheetState = remember { mutableStateOf(false) }
+
+    // Delete confirmation dialog
+    val showDeleteDialogState = remember { mutableStateOf(false) }
+    val serviceToDeleteState = remember { mutableStateOf<Service?>(null) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val buildingServices by viewModel.buildingServices.collectAsState()
 
     LaunchedEffect(buildingId) {
         viewModel.load(buildingId)
@@ -93,6 +116,7 @@ fun EditBuildingScreen(
 
         EditBuildingContent(
             viewModel = viewModel,
+            snackbarHostState = snackbarHostState,
             onCancel = {
                 if (viewModel.hasUnsavedChanges()) {
                     showUnsavedChangesDialog = true
@@ -100,7 +124,18 @@ fun EditBuildingScreen(
                     navController?.popBackStack()
                 }
             },
-            uiState = uiState
+            onAddService = {
+                showBottomSheetState.value = true
+            },
+            buildingServices = buildingServices,
+            onEditService = {
+                viewModel.editTempService(it)
+                showBottomSheetState.value = true
+            },
+            onDeleteService = {
+                serviceToDeleteState.value = it
+                showDeleteDialogState.value = true
+            }
         )
         
         // Unsaved changes dialog
@@ -129,17 +164,32 @@ fun EditBuildingScreen(
             )
         }
     }
+
+    // Service management (add/edit/delete) with bottom sheet and dialogs
+    EditBuildingServiceManager(
+        viewModel = viewModel,
+        sheetState = sheetState,
+        showBottomSheet = showBottomSheetState,
+        showDeleteDialog = showDeleteDialogState,
+        serviceToDelete = serviceToDeleteState,
+        snackbarHostState = snackbarHostState
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditBuildingContent(
     viewModel: EditBuildingVM,
+    snackbarHostState: SnackbarHostState,
     onCancel: () -> Unit,
-    uiState: UiState<Building>
+    onAddService: () -> Unit,
+    buildingServices: List<Service>,
+    onEditService: (Service) -> Unit,
+    onDeleteService: (Service) -> Unit
 ) {
     val formState by viewModel.formState.collectAsState()
     val formErrors by viewModel.formErrors.collectAsState()
+    val uiState by viewModel.editUIState.collectAsState()
 
     val nameFocus = remember { FocusRequester() }
     val floorFocus = remember { FocusRequester() }
@@ -157,6 +207,7 @@ fun EditBuildingContent(
     var paymentTitleVisible by remember { mutableStateOf(false) }
     var billingFieldVisible by remember { mutableStateOf(false) }
     var paymentFieldsVisible by remember { mutableStateOf(false) }
+    var servicesFieldVisible by remember { mutableStateOf(false) }
     var imagesTitleVisible by remember { mutableStateOf(false) }
     var imagesFieldVisible by remember { mutableStateOf(false) }
     var buttonsVisible by remember { mutableStateOf(false) }
@@ -181,6 +232,8 @@ fun EditBuildingContent(
             billingFieldVisible = true
             delay(80)
             paymentFieldsVisible = true
+            delay(80)
+            servicesFieldVisible = true
             delay(100)
             imagesTitleVisible = true
             delay(80)
@@ -190,6 +243,7 @@ fun EditBuildingContent(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         content = { innerPadding ->
             LazyColumn(
                 modifier = Modifier
@@ -456,6 +510,85 @@ fun EditBuildingContent(
                                         onDone = { dueFocus.freeFocus() }
                                     ),
                                     modifier = Modifier.fillMaxWidth().focusRequester(dueFocus)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = servicesFieldVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        DividerWithSubhead(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp, top = 4.dp),
+                            subhead = "Services"
+                        )
+                    }
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = servicesFieldVisible,
+                        enter = fadeIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { -it / 4 }
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (buildingServices.isNotEmpty()) {
+                                buildingServices.forEach { service ->
+                                    ServiceCard(
+                                        service = service,
+                                        onEdit = onEditService,
+                                        onDelete = onDeleteService
+                                    )
+                                }
+                            }
+
+                            // Add Service Button
+                            Button(
+                                onClick = onAddService,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Add service",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text(
+                                    text = if (buildingServices.isEmpty()) "Add Service" else "Add Another Service",
+                                    style = MaterialTheme.typography.labelLarge
                                 )
                             }
                         }

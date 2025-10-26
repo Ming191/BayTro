@@ -12,7 +12,6 @@ import com.example.baytro.data.room.RoomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 
 class RoomListVM(
     private val roomRepository: RoomRepository,
@@ -38,6 +37,9 @@ class RoomListVM(
     private val _isLoadingRooms = MutableStateFlow(false)
     val isLoadingRooms: StateFlow<Boolean> = _isLoadingRooms
 
+    private val _roomTenants = MutableStateFlow<Map<String, List<String>>>(emptyMap())
+    val roomTenants: StateFlow<Map<String, List<String>>> = _roomTenants
+
     fun fetchBuilding() {
         viewModelScope.launch {
             try {
@@ -54,10 +56,21 @@ class RoomListVM(
             try {
                 _isLoadingRooms.value = true
                 
-                val building = _building.value?: buildingRepository.getById(buildingId)
+                val building = _building.value ?: buildingRepository.getById(buildingId)
                 _building.value = building
                 val rooms = roomRepository.getAll()
                 val filteredRooms = rooms.filter { it.buildingId == buildingId }
+
+                val roomTenantsMap = mutableMapOf<String, List<String>>()
+                filteredRooms.forEach { room ->
+                    val contracts = contractRepository.getContractsByRoomId(room.id)
+                    val activeContract = contracts.firstOrNull { it.status == com.example.baytro.data.contract.Status.ACTIVE }
+                    if (activeContract != null) {
+                        roomTenantsMap[room.id] = activeContract.tenantIds
+                    }
+                }
+                _roomTenants.value = roomTenantsMap
+
                 val roomsGroupByFloor = filteredRooms.groupBy { it.floor }
                 val floorsList = roomsGroupByFloor.map { (floorNumber, rooms) ->
                     Floor(number = floorNumber, rooms = rooms)

@@ -72,11 +72,9 @@ fun AddBuildingScreen(
     val formState by viewModel.formState.collectAsState()
     val context = LocalContext.current
 
-    // Bottom sheet for adding services
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val showBottomSheetState = remember { mutableStateOf(false) }
 
-    // Delete confirmation dialog
     val showDeleteDialogState = remember { mutableStateOf(false) }
     val serviceToDeleteState = remember { mutableStateOf<Service?>(null) }
 
@@ -419,7 +417,6 @@ fun AddBuildingScreen(
     }
     }
 
-    // Service management (add/edit/delete) with bottom sheet and dialogs
     BuildingServiceManager(
         viewModel = viewModel,
         sheetState = sheetState,

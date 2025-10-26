@@ -4,16 +4,17 @@ import com.example.baytro.data.room.Furniture
 import com.example.baytro.data.room.Room
 
 object EditRoomValidator {
-    fun validateBuildingName(buildingName: String): String? {
-        return if (buildingName.isBlank()) "Building name is required" else null
-    }
 
     fun validateRoomNumber(
         roomNumber: String,
         floorNumber : String,
-        existingRooms : List<Room>
+        existingRooms : List<Room>,
+        currentRoomId: String? = null
     ): String? {
-        val existingRoom = existingRooms.find { it.roomNumber == roomNumber }
+        // Exclude the current room being edited from the duplicate check
+        val existingRoom = existingRooms.find {
+            it.roomNumber == roomNumber && it.id != currentRoomId
+        }
         if (existingRoom != null) {
             return "Room number already exists"
         }

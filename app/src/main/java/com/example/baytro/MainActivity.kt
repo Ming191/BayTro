@@ -90,7 +90,9 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        AppNavigation(startDestination = startDestination)
+                        AppNavigation(startDestination = startDestination, onExit = {
+                            finish()
+                        })
                     }
                 }
             }
