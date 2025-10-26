@@ -11,7 +11,7 @@ import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.MeterStatus
 import com.example.baytro.data.meter_reading.MeterReading
 import com.example.baytro.data.meter_reading.MeterReadingRepository
-import com.example.baytro.service.MeterReadingApiService
+import com.example.baytro.service.BayTroApiService
 import com.example.baytro.utils.cloudFunctions.MeterReadingCloudFunctions
 import com.example.baytro.utils.SingleEvent
 import com.google.firebase.auth.FirebaseAuth
@@ -57,7 +57,7 @@ sealed interface MeterReadingAction {
 }
 
 class MeterReadingVM(
-    private val meterReadingApiService: MeterReadingApiService,
+    private val bayTroApiService: BayTroApiService,
     private val meterReadingRepository: MeterReadingRepository,
     private val mediaRepository: MediaRepository,
     private val meterReadingCloudFunctions: MeterReadingCloudFunctions,
@@ -143,7 +143,7 @@ class MeterReadingVM(
                 _errorEvent.emit(SingleEvent("Failed to load image"))
                 return@launch
             }
-            val result = meterReadingApiService.predictMeterReading(bitmap)
+            val result = bayTroApiService.predictMeterReading(bitmap)
             result.onSuccess { response ->
                 val meterReading = extractMeterReading(response.detections)
                 val avgConfidence = if (response.detections.isNotEmpty()) {
