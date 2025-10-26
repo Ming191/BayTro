@@ -8,6 +8,7 @@ import com.example.baytro.data.request.FullRequestInfo
 import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.SingleEvent
+import com.example.baytro.utils.Utils
 import com.example.baytro.utils.cloudFunctions.RequestCloudFunctions
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,16 +16,21 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.Calendar
+import java.util.Date
 
 data class RequestListUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val isLandlord: Boolean = false,
     val buildings: List<BuildingSummary> = emptyList(),
     val selectedBuildingId: String? = null,
     val requests: List<FullRequestInfo> = emptyList(),
     val nextCursor: String? = null,
-    val error: SingleEvent<String>? = null
+    val error: SingleEvent<String>? = null,
+    val fromDate: String? = null,
+    val toDate: String? = null
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -41,8 +47,9 @@ class RequestListVM(
     private val currentUserId = auth.currentUser?.uid
     private val _loadNextMutex = Mutex()
 
-    private val selectedBuildingFlow = _uiState
-        .map { it.selectedBuildingId }
+    // flow theo dõi cả building lẫn khoảng ngày 👇
+    private val filterFlow = _uiState
+        .map { Triple(it.selectedBuildingId, it.fromDate, it.toDate) }
         .distinctUntilChanged()
         .drop(1)
 
@@ -50,8 +57,13 @@ class RequestListVM(
         loadInitialData()
 
         viewModelScope.launch {
-            selectedBuildingFlow.collect { buildingId ->
-                loadRequests(buildingId = buildingId, isRefresh = true)
+            filterFlow.collect { (buildingId, fromDate, toDate) ->
+                loadRequests(
+                    buildingId = buildingId,
+                    fromDate = fromDate,
+                    toDate = toDate,
+                    isRefresh = true
+                )
             }
         }
     }
@@ -90,30 +102,71 @@ class RequestListVM(
 
             _uiState.update { it.copy(isLandlord = isLandlord, buildings = buildings) }
 
-            loadRequests(buildingId = _uiState.value.selectedBuildingId, isRefresh = false)
+            loadRequests(
+                buildingId = _uiState.value.selectedBuildingId,
+                fromDate = _uiState.value.fromDate,
+                toDate = _uiState.value.toDate,
+                isRefresh = false
+            )
         }
     }
 
-    private fun loadRequests(buildingId: String?, isRefresh: Boolean) {
+    private fun loadRequests(
+        buildingId: String?,
+        fromDate: String?,
+        toDate: String?,
+        isRefresh: Boolean
+    ) {
         viewModelScope.launch {
             if (isRefresh) {
-                _uiState.update { it.copy(isLoading = true, requests = emptyList(), nextCursor = null, error = null) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = true,
+                        requests = emptyList(),
+                        nextCursor = null,
+                        error = null
+                    )
+                }
             }
 
             val result = requestCloudFunctions.getRequestList(
                 buildingIdFilter = buildingId,
-                limit = 10
+                limit = 10,
+                fromDate = fromDate,
+                toDate = toDate
             )
 
             result.onSuccess { response ->
+                // --- Bắt đầu lọc theo createdAt ---
+                val from = fromDate?.let { Utils.parseDateToDate(it) }
+                val to = toDate?.let {
+                    Calendar.getInstance().apply {
+                        time = Utils.parseDateToDate(it)
+                        set(Calendar.HOUR_OF_DAY, 23)
+                        set(Calendar.MINUTE, 59)
+                        set(Calendar.SECOND, 59)
+                    }.time
+                }
+
+                val filteredRequests = response.requests.filter { fullInfo ->
+                    val createdAt = fullInfo.request.createdAt?.let { Date(it.seconds * 1000) }
+                    if (createdAt == null) return@filter true
+
+                    val fromOk = from?.let { createdAt >= it } ?: true
+                    val toOk = to?.let { createdAt <= it } ?: true
+                    fromOk && toOk
+                }
+                // --- Kết thúc lọc ---
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        requests = response.requests,
+                        requests = filteredRequests,
                         nextCursor = response.nextCursor
                     )
                 }
             }
+
             result.onFailure { exception ->
                 _uiState.update {
                     it.copy(
@@ -127,6 +180,8 @@ class RequestListVM(
         }
     }
 
+
+
     fun loadNextPage() {
         viewModelScope.launch {
             _loadNextMutex.withLock {
@@ -139,7 +194,9 @@ class RequestListVM(
                 val result = requestCloudFunctions.getRequestList(
                     buildingIdFilter = currentState.selectedBuildingId,
                     limit = 10,
-                    startAfter = cursor
+                    startAfter = cursor,
+                    fromDate = currentState.fromDate, // ⬅️ giữ filter khi load thêm
+                    toDate = currentState.toDate
                 )
 
                 result.onSuccess { response ->
@@ -170,7 +227,67 @@ class RequestListVM(
         }
     }
 
+    fun selectDateRange(from: String?, to: String?) {
+        _uiState.update { it.copy(fromDate = from, toDate = to) }
+    }
+
     fun refresh() {
-        loadInitialData()
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true, error = null) }
+
+            if (currentUserId == null) {
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = false,
+                        isLandlord = false,
+                        buildings = emptyList(),
+                        requests = emptyList(),
+                        nextCursor = null
+                    )
+                }
+                return@launch
+            }
+
+            val userResult = runCatching {
+                userRepository.getById(currentUserId)
+            }
+
+            val user = userResult.getOrNull()
+            val isLandlord = user?.role is Role.Landlord
+
+            var buildings = emptyList<BuildingSummary>()
+            if (isLandlord) {
+                val buildingsResult = runCatching {
+                    buildingRepository.getBuildingSummariesByLandlord(currentUserId)
+                }
+                buildings = buildingsResult.getOrElse { emptyList() }
+            }
+
+            _uiState.update { it.copy(isLandlord = isLandlord, buildings = buildings) }
+
+            // Load requests with refresh flag
+            val result = requestCloudFunctions.getRequestList(
+                buildingIdFilter = _uiState.value.selectedBuildingId,
+                limit = 10
+            )
+
+            result.onSuccess { response ->
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = false,
+                        requests = response.requests,
+                        nextCursor = response.nextCursor
+                    )
+                }
+            }
+            result.onFailure { exception ->
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = false,
+                        error = SingleEvent(exception.message ?: "Failed to load requests")
+                    )
+                }
+            }
+        }
     }
 }

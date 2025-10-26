@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.building
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -38,10 +39,12 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +79,7 @@ private enum class LoadingState {
     LOADING, CONTENT, EMPTY
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun BuildingListScreen(
@@ -118,17 +122,17 @@ fun BuildingListScreen(
         { filter: BuildingStatusFilter -> viewModel.setStatusFilter(filter) }
     }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refresh()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
+//    DisposableEffect(lifecycleOwner) {
+//        val observer = LifecycleEventObserver { _, event ->
+//            if (event == Lifecycle.Event.ON_RESUME) {
+//                viewModel.refresh()
+//            }
+//        }
+//        lifecycleOwner.lifecycle.addObserver(observer)
+//        onDispose {
+//            lifecycleOwner.lifecycle.removeObserver(observer)
+//        }
+//    }
 
     LaunchedEffect(viewModel) {
         viewModel.errorEvent.collect { event ->
@@ -148,8 +152,30 @@ fun BuildingListScreen(
 
     val isDeletingBuilding by viewModel.isDeletingBuilding.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            if (!uiState.isLoading) {
+                FloatingActionButton(
+                    onClick = onAddBuildingClick,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    elevation = FloatingActionButtonDefaults.elevation(8.dp),
+                    modifier = Modifier.semantics { contentDescription = "Add building" }
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add building icon",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+    ) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,43 +253,63 @@ fun BuildingListScreen(
                             }
                         }
                         LoadingState.CONTENT -> {
-                            LazyColumn(
+                            PullToRefreshBox(
+                                isRefreshing = uiState.isLoading,
+                                onRefresh = { viewModel.refresh() },
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .semantics { contentDescription = "Buildings list" },
-                                contentPadding = PaddingValues(
-                                    start = 16.dp,
-                                    end = 16.dp,
-                                    top = 8.dp,
-                                    bottom = 100.dp
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                //.padding(paddingValues)
                             ) {
-                                items(
-                                    items = uiState.buildings,
-                                    key = { it.building.id }
-                                ) { buildingWithStats ->
-                                    val buildingId = buildingWithStats.building.id
-                                    val onViewClick = remember(buildingId) {
-                                        { navController.navigate(Screens.RoomList.createRoute(buildingId)) }
-                                    }
-                                    val onEditClick = remember(buildingId) {
-                                        { navController.navigate(Screens.BuildingEdit.createRoute(buildingId)) }
-                                    }
-                                    val onDeleteClick = remember(buildingId, viewModel) {
-                                        { viewModel.archiveBuilding(buildingId) }
-                                    }
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .semantics { contentDescription = "Buildings list" },
+                                    contentPadding = PaddingValues(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        top = 8.dp,
+                                        bottom = 100.dp
+                                    ),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    items(
+                                        items = uiState.buildings,
+                                        key = { it.building.id }
+                                    ) { buildingWithStats ->
+                                        val buildingId = buildingWithStats.building.id
+                                        val onViewClick = remember(buildingId) {
+                                            {
+                                                navController.navigate(
+                                                    Screens.RoomList.createRoute(
+                                                        buildingId
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        val onEditClick = remember(buildingId) {
+                                            {
+                                                navController.navigate(
+                                                    Screens.BuildingEdit.createRoute(
+                                                        buildingId
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        val onDeleteClick = remember(buildingId, viewModel) {
+                                            { viewModel.archiveBuilding(buildingId) }
+                                        }
 
-                                    BuildingCard(
-                                        name = buildingWithStats.building.name,
-                                        address = buildingWithStats.building.address,
-                                        imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
-                                        roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
-                                        revenue = Utils.formatCurrency(buildingWithStats.revenue.toString()),
-                                        onViewClick = onViewClick,
-                                        onEditClick = onEditClick,
-                                        onDeleteClick = onDeleteClick
-                                    )
+                                        BuildingCard(
+                                            name = buildingWithStats.building.name,
+                                            address = buildingWithStats.building.address,
+                                            imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
+                                            roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
+                                            revenue = Utils.formatCompactCurrency(buildingWithStats.revenue),
+                                            onViewClick = onViewClick,
+                                            onEditClick = onEditClick,
+                                            onDeleteClick = onDeleteClick
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -277,65 +323,33 @@ fun BuildingListScreen(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 24.dp, end = 20.dp),
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            FloatingActionButton(
-                onClick = onAddBuildingClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = 6.dp,
-                    pressedElevation = 12.dp
-                ),
-                modifier = Modifier.semantics { contentDescription = "Add new building" }
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Add",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 16.dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            SnackbarHost(snackbarHostState)
-        }
-
-        if (isDeletingBuilding) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 8.dp
+            if (isDeletingBuilding) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        modifier = Modifier.padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 8.dp
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Deleting building...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Column(
+                            modifier = Modifier.padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Deleting building...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }

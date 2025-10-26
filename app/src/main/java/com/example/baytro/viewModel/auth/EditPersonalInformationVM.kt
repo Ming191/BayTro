@@ -204,9 +204,9 @@ class EditPersonalInformationVM (
 
     fun onChangePersonalInformationClicked() {
         viewModelScope.launch {
-            _editPersonalInformationUIState.value = AuthUIState.Loading
             try {
                 if (validateInput()) {
+                    _editPersonalInformationUIState.value = AuthUIState.Loading
                     val auth = authRepository.getCurrentUser()
                     val user = _editPersonalInformationFormState.value
                     val editedUser = User(

@@ -4,19 +4,22 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.contract.Contract
+import com.example.baytro.data.contract.Status
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.service.Service
 import com.example.baytro.data.user.User
 import com.example.baytro.data.user.UserRepository
-import com.example.baytro.navigation.Screens
+import com.example.baytro.utils.SingleEvent
+import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 class RoomDetailsVM(
@@ -24,6 +27,7 @@ class RoomDetailsVM(
     private val contractRepository: ContractRepository,
     private val userRepository: UserRepository,
     private val buildingRepository: BuildingRepository,
+    private val buildingCloudFunctions: BuildingCloudFunctions,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val roomId: String = checkNotNull(savedStateHandle["roomId"])
@@ -48,6 +52,15 @@ class RoomDetailsVM(
 
     private val _isDeleteOnClicked = MutableStateFlow(false)
     val isDeleteOnClicked = _isDeleteOnClicked
+
+    private val _isDeletingRoom = MutableStateFlow(false)
+    val isDeletingRoom: StateFlow<Boolean> = _isDeletingRoom
+
+    private val _errorEvent = MutableSharedFlow<SingleEvent<String>>()
+    val errorEvent: SharedFlow<SingleEvent<String>> = _errorEvent.asSharedFlow()
+
+    private val _successEvent = MutableSharedFlow<SingleEvent<String>>()
+    val successEvent: SharedFlow<SingleEvent<String>> = _successEvent.asSharedFlow()
 
     fun loadRoom() {
         viewModelScope.launch {
@@ -90,7 +103,8 @@ class RoomDetailsVM(
             try {
                 val contracts = contractRepository.getContractsByRoomId(roomId)
                 Log.d("RoomDetailsVM", "ContractsInRoomDetailsVM: ${contracts.size}")
-                _contract.value = contracts
+                val filteredContracts = contracts.filter { it.status != Status.ENDED }
+                _contract.value = filteredContracts
             } catch (e: Exception) {
                 e.printStackTrace()
                 _contract.value = emptyList()
@@ -139,32 +153,37 @@ class RoomDetailsVM(
         viewModelScope.launch {
             try {
                 val roomId = room.value?.id
-                if (roomId != null) {
-                    roomRepository.delete(roomId)
-                    Log.d("RoomDetailsVM", "Room $roomId deleted successfully.")
-                } else {
+                if (roomId == null) {
                     Log.e("RoomDetailsVM", "Room ID is null, cannot delete.")
+                    _errorEvent.emit(SingleEvent("Room ID is not available."))
+                    _isDeleteOnClicked.value = false
+                    return@launch
                 }
 
-                _isDeleteOnClicked.value = false
+                _isDeletingRoom.value = true
+
+                val result = buildingCloudFunctions.archiveRoom(roomId)
+
+                result.onSuccess { message ->
+                    Log.d("RoomDetailsVM", "Room $roomId archived successfully: $message")
+                    _successEvent.emit(SingleEvent(message))
+                    _isDeleteOnClicked.value = false
+                }
+
+                result.onFailure { exception ->
+                    Log.e("RoomDetailsVM", "Error archiving room $roomId", exception)
+                    _errorEvent.emit(SingleEvent(exception.message ?: "Failed to archive room"))
+                    _isDeleteOnClicked.value = false
+                }
+
             } catch (e: Exception) {
-                Log.e("RoomDetailsVM", "Error deleting room", e)
+                Log.e("RoomDetailsVM", "Unexpected error deleting room", e)
+                _errorEvent.emit(SingleEvent("An unexpected error occurred: ${e.message}"))
                 _isDeleteOnClicked.value = false
+            } finally {
+                _isDeletingRoom.value = false
             }
         }
     }
 
-    fun deleteService(service: Service) {
-        viewModelScope.launch {
-            try {
-                val roomId = room.value?.id
-                if (roomId != null) {
-                    roomRepository.removeExtraServiceFromRoom(roomId,service.id)
-                    Log.d("RoomDetailsVM", "Service deleted successfully.")
-                }
-            } catch (e: Exception) {
-                Log.e("RoomDetailsVM", "Error deleting service", e)
-            }
-        }
-    }
 }

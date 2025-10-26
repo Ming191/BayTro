@@ -124,11 +124,7 @@ fun AddServiceScreen(
                 onToggleRoom = { viewModel.onToggleRoom(it) },
                 onToggleSelectAll = { viewModel.onToggleSelectAll() },
                 onSearchTextChange = { viewModel.onSearchTextChange(it) },
-                onConfirm = {
-
-                        viewModel.onConfirm()
-
-                },
+                onConfirm = { viewModel.onConfirm() },
                 isLoading = uiState is UiState.Loading
             )
         }

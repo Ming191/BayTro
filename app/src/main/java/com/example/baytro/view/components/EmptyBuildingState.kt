@@ -45,13 +45,13 @@ fun EmptyBuildingState(
             )
 
             Text(
-                text = "No Buildings Yet",
+                text = "No Buildings Found",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Text(
-                text = "Start by adding your first building to manage your properties",
+                text = "Add your first building to manage your properties",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

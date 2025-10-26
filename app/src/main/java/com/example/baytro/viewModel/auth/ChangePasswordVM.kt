@@ -8,6 +8,7 @@ import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
 import com.example.baytro.view.AuthUIState
+import com.google.firebase.auth.EmailAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -42,44 +43,64 @@ class ChangePasswordVM (
     }
 
     fun changePassword() {
-        val currentState = _changePasswordFormState.value
+        val current = _changePasswordFormState.value
 
-        // Validate password
-        val passwordValidation = Validator.validatePassword(currentState.password)
-        val newPasswordValidator = Validator.validatePassword(currentState.newPassword)
-        val newPasswordStrengthValidator = Validator.validatePasswordStrength(currentState.newPassword)
-        val confirmPasswordValidator = Validator.validateConfirmPassword(currentState.password, currentState.newPassword)
-        val confirmNewPasswordValidator = Validator.validateConfirmPassword(currentState.newPassword, currentState.confirmNewPassword)
+        val passwordValidation = Validator.validatePassword(current.password)
+        val newPasswordValidation = Validator.validatePassword(current.newPassword)
+        val newPasswordStrengthValidation = Validator.validatePasswordStrength(current.newPassword)
+        val confirmPasswordValidation = Validator.validateConfirmPassword(current.password, current.newPassword)
+        val confirmNewPasswordValidation = Validator.validateConfirmPassword(current.newPassword, current.confirmNewPassword)
 
-        if (passwordValidation is ValidationResult.Error) {
-            _changePasswordFormState.value = currentState.copy(
-                passwordError = passwordValidation
-            )
-            return
-        }
+        val updatedState = current.copy(
+            passwordError = passwordValidation,
+            newPasswordError = newPasswordValidation,
+            newPasswordStrengthError = newPasswordStrengthValidation,
+            confirmNewPasswordError = confirmNewPasswordValidation
+        )
+        _changePasswordFormState.value = updatedState
 
-        if (newPasswordValidator == ValidationResult.Success && newPasswordStrengthValidator == ValidationResult.Success
-            && confirmNewPasswordValidator == ValidationResult.Success && confirmPasswordValidator != ValidationResult.Success) {
-            // Proceed with change password
-            viewModelScope.launch {
-                _changePasswordUIState.value = AuthUIState.Loading
-                try {
-                    val user = authRepository.getCurrentUser()
-                    user!!.updatePassword(currentState.newPassword)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                _changePasswordUIState.value = AuthUIState.PasswordChangedSuccess
-                            }
-                        }
-                    _changePasswordUIState.value = AuthUIState.Success(user)
-                } catch (e: Exception) {
-                    _changePasswordUIState.value = AuthUIState.Error(
-                        e.message ?: "Failed to change password"
-                    )
-                }
+        val hasError = listOf(
+            passwordValidation,
+            newPasswordValidation,
+            newPasswordStrengthValidation,
+            confirmNewPasswordValidation
+        ).any { it is ValidationResult.Error }
+
+        if (hasError) return
+
+        viewModelScope.launch {
+            val user = authRepository.getCurrentUser()
+
+            if (user == null) {
+                _changePasswordUIState.value = AuthUIState.Error("User not logged in")
+                return@launch
             }
-        } else {
-            return
+
+            val userEmail = user.email
+            if (userEmail.isNullOrEmpty()) {
+                _changePasswordUIState.value = AuthUIState.Error("No email found for user")
+                return@launch
+            }
+
+            val credential = EmailAuthProvider.getCredential(userEmail, current.password)
+            _changePasswordUIState.value = AuthUIState.Loading
+
+            user.reauthenticate(credential)
+                .addOnSuccessListener {
+                    user.updatePassword(current.newPassword)
+                        .addOnSuccessListener {
+                            _changePasswordUIState.value = AuthUIState.PasswordChangedSuccess
+                        }
+                        .addOnFailureListener { e ->
+                            _changePasswordUIState.value =
+                                AuthUIState.Error("Failed to update password: ${e.message}")
+                        }
+                }
+                .addOnFailureListener {
+                    _changePasswordFormState.value =
+                        current.copy(passwordError = ValidationResult.Error("Incorrect password"))
+                    _changePasswordUIState.value = AuthUIState.Error("Wrong current password")
+                }
         }
     }
 }

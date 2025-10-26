@@ -19,6 +19,7 @@ enum class ContractTab { ACTIVE, PENDING, ENDED }
 @Stable
 data class ContractListUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val buildings: List<BuildingSummary> = emptyList(),
     val selectedBuildingId: String? = null,
     val searchQuery: String = "",
@@ -39,6 +40,7 @@ class ContractListVM(
     private val _selectedBuildingId = MutableStateFlow<String?>(null)
     private val _buildings = MutableStateFlow<List<BuildingSummary>>(emptyList())
     private val _refreshTrigger = MutableStateFlow(0)
+    private val _isRefreshing = MutableStateFlow(false)
 
     private val _errorEvent = MutableSharedFlow<SingleEvent<String>>()
     val errorEvent: SharedFlow<SingleEvent<String>> = _errorEvent.asSharedFlow()
@@ -55,35 +57,49 @@ class ContractListVM(
             debouncedSearchQuery,
             _selectedBuildingId,
             _buildings,
-            _refreshTrigger
+            _refreshTrigger,
+            _isRefreshing
         ) { flows ->
             val tab = flows[0] as ContractTab
             val immediateQuery = flows[1] as String
             val debouncedQuery = flows[2] as String
             val buildingId = flows[3] as String?
             val buildings = flows[4] as List<BuildingSummary>
-            SearchFilters(tab, immediateQuery, debouncedQuery, buildingId, buildings)
+            val refreshTrigger = flows[5] as Int
+            val isRefreshing = flows[6] as Boolean
+            SearchFilters(tab, immediateQuery, debouncedQuery, buildingId, buildings, refreshTrigger, isRefreshing)
         }.flatMapLatest { filters ->
             flow {
                 val currentState = uiState.value
-                val cachedContractsForTab = currentState.contractsByTab[filters.selectedTab]
+
+                // Clear cache if refresh was triggered
+                val currentCache = if (filters.refreshTrigger > 0) {
+                    emptyMap()
+                } else {
+                    currentState.contractsByTab
+                }
+
+                val cachedContractsForTab = currentCache[filters.selectedTab]
 
                 if (cachedContractsForTab != null) {
                     emit(currentState.copy(
                         isLoading = false,
+                        isRefreshing = filters.isRefreshing,
                         selectedBuildingId = filters.selectedBuildingId,
                         searchQuery = filters.immediateSearchQuery,
-                        selectedTab = filters.selectedTab
+                        selectedTab = filters.selectedTab,
+                        contractsByTab = currentCache
                     ))
-                    return@flow // Kết thúc flow ở đây
+                    return@flow
                 }
                 emit(ContractListUiState(
                     isLoading = true,
+                    isRefreshing = filters.isRefreshing,
                     buildings = filters.buildings,
                     selectedBuildingId = filters.selectedBuildingId,
                     searchQuery = filters.immediateSearchQuery,
                     selectedTab = filters.selectedTab,
-                    contractsByTab = currentState.contractsByTab
+                    contractsByTab = currentCache
                 ))
 
                 val result = contractCloudFunctions.getContractList(
@@ -93,25 +109,27 @@ class ContractListVM(
                 )
 
                 result.onSuccess { response ->
-                    val newCache = uiState.value.contractsByTab + (filters.selectedTab to response.contracts)
+                    val newCache = currentCache + (filters.selectedTab to response.contracts)
                     emit(ContractListUiState(
                         isLoading = false,
+                        isRefreshing = false,
                         buildings = filters.buildings,
                         selectedBuildingId = filters.selectedBuildingId,
                         searchQuery = filters.immediateSearchQuery,
                         selectedTab = filters.selectedTab,
-                        contractsByTab = newCache // Cập nhật cache với dữ liệu mới
+                        contractsByTab = newCache
                     ))
                 }
                 result.onFailure { exception ->
                     _errorEvent.emit(SingleEvent(exception.message ?: "Failed to load contracts"))
                     emit(ContractListUiState(
                         isLoading = false,
+                        isRefreshing = false,
                         buildings = filters.buildings,
                         selectedBuildingId = filters.selectedBuildingId,
                         searchQuery = filters.immediateSearchQuery,
                         selectedTab = filters.selectedTab,
-                        contractsByTab = uiState.value.contractsByTab
+                        contractsByTab = currentCache
                     ))
                 }
             }
@@ -127,7 +145,9 @@ class ContractListVM(
         val immediateSearchQuery: String,
         val debouncedSearchQuery: String,
         val selectedBuildingId: String?,
-        val buildings: List<BuildingSummary>
+        val buildings: List<BuildingSummary>,
+        val refreshTrigger: Int,
+        val isRefreshing: Boolean
     )
 
     private fun loadBuildings() {
@@ -144,9 +164,13 @@ class ContractListVM(
 
     fun selectTab(tab: ContractTab) { _selectedTab.value = tab }
     fun setSearchQuery(query: String) { _searchQuery.value = query }
-    fun setSelectedBuildingId(buildingId: String?) { _selectedBuildingId.value = buildingId }
+    fun setSelectedBuildingId(buildingId: String?) {
+        _selectedBuildingId.value = buildingId
+        _refreshTrigger.value += 1
+    }
 
     fun refresh() {
+        _isRefreshing.value = true
         val currentState = uiState.value
         _selectedTab.value = currentState.selectedTab
         _refreshTrigger.value += 1

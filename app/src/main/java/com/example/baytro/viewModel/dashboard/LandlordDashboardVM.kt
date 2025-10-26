@@ -23,16 +23,23 @@ data class UiRevenueDataPoint(
 @Stable
 data class LandlordDashboardUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val username: String = "",
     val totalPendingActions: Int = 0,
     val pendingReadingsCount: Int = 0,
     val newJoinRequestsCount: Int = 0,
     val overdueBillsCount: Int = 0,
+    val pendingRequestsCount: Int = 0,
     val monthlyRevenue: Double = 0.0,
     val unpaidBalance: Double = 0.0,
     val occupancyRate: Double = 0.0,
     val occupiedRooms: Int = 0,
     val totalRooms: Int = 0,
+    val totalTenants: Int = 0,
+    val totalBuildings: Int = 0,
+    val activeContracts: Int = 0,
+    val upcomingDeadlines: Int = 0,
+    val recentPayments: Int = 0,
     val revenueHistory: List<UiRevenueDataPoint> = emptyList()
 )
 
@@ -53,40 +60,57 @@ class LandlordDashboardVM(
     fun loadDashboardData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+            fetchDashboardData()
+        }
+    }
 
-            val result = dashboardCloudFunctions.getLandlordDashboardData()
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            fetchDashboardData()
+        }
+    }
 
-            result.onSuccess { data ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        username = data.username,
-                        totalPendingActions = data.totalPendingActions,
-                        pendingReadingsCount = data.pendingReadingsCount,
-                        newJoinRequestsCount = data.newJoinRequestsCount,
-                        overdueBillsCount = data.overdueBillsCount,
-                        monthlyRevenue = data.totalRevenueThisMonth,
-                        unpaidBalance = data.totalUnpaidAmount,
-                        occupancyRate = data.totalOccupancyRate / 100.0,
-                        occupiedRooms = data.occupiedRoomCount,
-                        totalRooms = data.totalRoomCount,
-                        revenueHistory = data.monthlyRevenueHistory.map { historyPoint ->
-                            UiRevenueDataPoint(
-                                monthLabel = historyPoint.month,
-                                revenue = historyPoint.revenue.toFloat()
-                            )
-                        }
-                    )
-                }
+    private suspend fun fetchDashboardData() {
+        val result = dashboardCloudFunctions.getLandlordDashboardData()
+
+        result.onSuccess { data ->
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    isRefreshing = false,
+                    username = data.username,
+                    totalPendingActions = data.totalPendingActions,
+                    pendingReadingsCount = data.pendingReadingsCount,
+                    newJoinRequestsCount = data.newJoinRequestsCount,
+                    overdueBillsCount = data.overdueBillsCount,
+                    pendingRequestsCount = data.pendingRequestsCount,
+                    monthlyRevenue = data.totalRevenueThisMonth,
+                    unpaidBalance = data.totalUnpaidAmount,
+                    occupancyRate = data.totalOccupancyRate / 100.0,
+                    occupiedRooms = data.occupiedRoomCount,
+                    totalRooms = data.totalRoomCount,
+                    totalTenants = data.totalTenantsCount,
+                    totalBuildings = data.totalBuildingsCount,
+                    activeContracts = data.activeContractsCount,
+                    upcomingDeadlines = data.upcomingBillingDeadlinesCount,
+                    recentPayments = data.recentPaymentsCount,
+                    revenueHistory = data.monthlyRevenueHistory.map { historyPoint ->
+                        UiRevenueDataPoint(
+                            monthLabel = historyPoint.month,
+                            revenue = historyPoint.revenue.toFloat()
+                        )
+                    }
+                )
             }
-            result.onFailure { e ->
-                _errorEvent.emit(SingleEvent("Failed to load dashboard: ${e.message}"))
-                _uiState.update { it.copy(isLoading = false) }
-            }
+        }
+        result.onFailure { e ->
+            _errorEvent.emit(SingleEvent("Failed to load dashboard: ${e.message}"))
+            _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
         }
     }
 
     fun refreshDashboardData() {
-        loadDashboardData()
+        refresh()
     }
 }

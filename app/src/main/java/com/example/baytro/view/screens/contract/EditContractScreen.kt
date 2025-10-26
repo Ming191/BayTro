@@ -1,12 +1,10 @@
 package com.example.baytro.view.screens.contract
 
-import android.annotation.SuppressLint
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,9 +12,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.HomeRepairService
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MeetingRoom
+import androidx.compose.material.icons.filled.MiscellaneousServices
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,13 +38,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.baytro.data.contract.Contract
-import com.example.baytro.data.contract.Status
+import com.example.baytro.data.service.Service
 import com.example.baytro.utils.ValidationResult
-import com.example.baytro.view.components.DividerWithSubhead
-import com.example.baytro.view.components.DropdownSelectField
+import com.example.baytro.view.components.AnimatedItem
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.contract.EditContractFormState
@@ -58,6 +65,8 @@ fun EditContractScreen(
 
     val uiState by viewModel.editContractUiState.collectAsState()
     val formState by viewModel.editContractFormState.collectAsState()
+    val buildingServices by viewModel.buildingServices.collectAsState()
+    val extraServices by viewModel.extraServices.collectAsState()
 
     when (uiState) {
         is UiState.Error -> {
@@ -85,144 +94,137 @@ fun EditContractScreen(
 
     EditContractContent(
         formState = formState,
+        buildingServices = buildingServices,
+        extraServices = extraServices,
         onStartDateSelected = viewModel::onStartDateChange,
         onEndDateSelected = viewModel::onEndDateChange,
         onDepositChange = viewModel::onDepositChange,
         onRentalFeeChange = viewModel::onRentalFeeChange,
         onPhotosSelected = viewModel::onPhotosChange,
         onSubmit = { viewModel.onSubmit(context) },
-        onStatusChange = viewModel::onStatusChange,
         uiState = uiState
     )
 }
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditContractContent(
     formState: EditContractFormState,
+    buildingServices: List<Service> = emptyList(),
+    extraServices: List<Service> = emptyList(),
     onStartDateSelected: (String) -> Unit = {},
     onEndDateSelected: (String) -> Unit = {},
     onDepositChange: (String) -> Unit = {},
     onRentalFeeChange: (String) -> Unit = {},
     onPhotosSelected: (List<Uri>) -> Unit = {},
     onSubmit: () -> Unit = {},
-    onStatusChange: (Status) -> Unit = {},
     uiState: UiState<Contract> = UiState.Idle,
 ) {
-    var visible by remember { mutableStateOf(false) }
+    // Animation states for each section
+    var showContractDetails by remember { mutableStateOf(false) }
+    var showContractPeriod by remember { mutableStateOf(false) }
+    var showFinancialDetails by remember { mutableStateOf(false) }
+    var showBuildingServices by remember { mutableStateOf(false) }
+    var showExtraServices by remember { mutableStateOf(false) }
+    var showPhotos by remember { mutableStateOf(false) }
 
+    // Staggered animation trigger
     LaunchedEffect(Unit) {
+        showContractDetails = true
         delay(100)
-        visible = true
+        showContractPeriod = true
+        delay(100)
+        showFinancialDetails = true
+        delay(100)
+        showBuildingServices = true
+        delay(100)
+        showExtraServices = true
+        delay(100)
+        showPhotos = true
     }
 
     Scaffold(
-        content = {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+        bottomBar = {
+            Surface(
+                shadowElevation = 8.dp,
+                tonalElevation = 0.dp
             ) {
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
-                            animationSpec = tween(300),
-                            initialOffsetY = { -it / 3 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
-                        DividerWithSubhead(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            subhead = "Contract Details"
-                        )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
+                    SubmitButton(
+                        text = "Update Contract",
+                        isLoading = uiState is UiState.Loading,
+                        onClick = onSubmit,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .height(56.dp)
+                    )
+                }
+            }
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Contract Details Section
+            item {
+                AnimatedItem(visible = showContractDetails) {
+                    SectionTitle(
+                        title = "Contract Details"
+                    )
+                }
+            }
+
+            item {
+                AnimatedItem(visible = showContractDetails) {
+                    InfoCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            InfoRow(
+                                icon = Icons.Filled.Business,
+                                label = "Building",
+                                value = formState.selectedBuilding?.name ?: "N/A"
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(
+                                icon = Icons.Filled.MeetingRoom,
+                                label = "Room Number",
+                                value = formState.selectedRoom?.roomNumber ?: "N/A"
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(
+                                icon = Icons.Filled.Info,
+                                label = "Status",
+                                value = formState.status.name.lowercase().replaceFirstChar { it.uppercase() }
+                            )
+                        }
                     }
                 }
+            }
 
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 50)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 50),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
-                        DropdownSelectField(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            label = "Building",
-                            options = formState.selectedBuilding?.let { listOf(it) } ?: emptyList(),
-                            selectedOption = formState.selectedBuilding,
-                            onOptionSelected = { /* Disabled */ },
-                            optionToString = { it.name },
-                            enabled = false
-                        )
-                    }
+            // Contract Period Section
+            item {
+                AnimatedItem(visible = showContractPeriod) {
+                    SectionTitle(
+                        title = "Contract Period"
+                    )
                 }
+            }
 
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 100)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 100),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
-                        DropdownSelectField(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            label = "Room",
-                            options = formState.selectedRoom?.let { listOf(it) } ?: emptyList(),
-                            selectedOption = formState.selectedRoom,
-                            onOptionSelected = { /* Disabled */ },
-                            optionToString = { it.roomNumber },
-                            enabled = false
-                        )
-                    }
-                }
-
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 150)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 150),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
-                        DropdownSelectField(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            label = "Status",
-                            options = Status.entries.filter { it != Status.PENDING },
-                            selectedOption = formState.status,
-                            onOptionSelected = onStatusChange,
-                            optionToString = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
-                            enabled = true
-                        )
-                    }
-                }
-
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 200)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 200),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
+            item {
+                AnimatedItem(visible = showContractPeriod) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         RequiredDateTextField(
-                            modifier = Modifier
-                                .fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth(),
                             label = "Start date",
                             selectedDate = formState.startDate,
                             onDateSelected = onStartDateSelected,
@@ -231,21 +233,9 @@ fun EditContractContent(
                                 if (it is ValidationResult.Error) it.message else null
                             }
                         )
-                    }
-                }
 
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 250)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 250),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
                         RequiredDateTextField(
-                            modifier = Modifier
-                                .fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth(),
                             label = "End date",
                             selectedDate = formState.endDate,
                             onDateSelected = onEndDateSelected,
@@ -254,19 +244,24 @@ fun EditContractContent(
                         )
                     }
                 }
+            }
 
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 300)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 300),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
+            // Financial Details Section
+            item {
+                AnimatedItem(visible = showFinancialDetails) {
+                    SectionTitle(
+                        title = "Financial Details"
+                    )
+                }
+            }
+
+            item {
+                AnimatedItem(visible = showFinancialDetails) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         RequiredTextField(
-                            modifier = Modifier
-                                .fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth(),
                             value = formState.rentalFee,
                             onValueChange = onRentalFeeChange,
                             label = "Rental fee",
@@ -274,21 +269,9 @@ fun EditContractContent(
                             errorMessage = (formState.rentalFeeError as? ValidationResult.Error)?.message,
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                         )
-                    }
-                }
 
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 350)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 350),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
                         RequiredTextField(
-                            modifier = Modifier
-                                .fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth(),
                             value = formState.deposit,
                             onValueChange = onDepositChange,
                             label = "Deposit",
@@ -298,86 +281,97 @@ fun EditContractContent(
                         )
                     }
                 }
+            }
 
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 400)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 400),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
-                        DividerWithSubhead(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            subhead = "Service"
-                        )
-                    }
+            // Building Services Section
+            item {
+                AnimatedItem(visible = showBuildingServices) {
+                    SectionTitle(
+                        title = "Building Services"
+                    )
                 }
+            }
 
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 450)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 450),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
-                        DividerWithSubhead(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            subhead = "Contract Photos (Up to 5)"
-                        )
-                    }
-                }
-
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 500)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 500),
-                            initialOffsetY = { it / 4 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
-                        PhotoCarousel(
-                            selectedPhotos = formState.selectedPhotos,
-                            onPhotosSelected = onPhotosSelected,
-                            existingImageUrls = formState.existingPhotosURL,
-                            maxSelectionCount = 5,
-                        )
-                    }
-                }
-
-                item {
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn(animationSpec = tween(300, delayMillis = 550)) + slideInVertically(
-                            animationSpec = tween(300, delayMillis = 550),
-                            initialOffsetY = { it / 3 }
-                        ),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = 0.dp, bottom = 32.dp, start = 16.dp, end = 16.dp)
-                        ) {
-                            SubmitButton(
-                                text = "Update",
-                                isLoading = uiState is UiState.Loading,
-                                onClick = onSubmit,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                                    .height(50.dp)
+            item {
+                AnimatedItem(visible = showBuildingServices) {
+                    Crossfade(
+                        targetState = buildingServices.isNotEmpty(),
+                        label = "buildingServicesState"
+                    ) { hasServices ->
+                        if (hasServices) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                buildingServices.forEach { service ->
+                                    ServiceCard(
+                                        service = service,
+                                        onEdit = null,
+                                        onDelete = null
+                                    )
+                                }
+                            }
+                        } else {
+                            EmptyStateCard(
+                                icon = Icons.Filled.HomeRepairService,
+                                message = "No building services available"
                             )
                         }
                     }
                 }
             }
+
+            // Extra Services Section
+            item {
+                AnimatedItem(visible = showExtraServices) {
+                    SectionTitle(
+                        title = "Extra Services"
+                    )
+                }
+            }
+
+            item {
+                AnimatedItem(visible = showExtraServices) {
+                    Crossfade(
+                        targetState = extraServices.isNotEmpty(),
+                        label = "extraServicesState"
+                    ) { hasServices ->
+                        if (hasServices) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                extraServices.forEach { service ->
+                                    ServiceCard(
+                                        service = service,
+                                        onEdit = null,
+                                        onDelete = null
+                                    )
+                                }
+                            }
+                        } else {
+                            EmptyStateCard(
+                                icon = Icons.Filled.MiscellaneousServices,
+                                message = "No extra services in this room"
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Contract Photos Section
+            item {
+                AnimatedItem(visible = showPhotos) {
+                    SectionTitle(
+                        title = "Contract Photos (Up to 5)"
+                    )
+                }
+            }
+
+            item {
+                AnimatedItem(visible = showPhotos) {
+                    PhotoCarousel(
+                        selectedPhotos = formState.selectedPhotos,
+                        onPhotosSelected = onPhotosSelected,
+                        existingImageUrls = formState.existingPhotosURL,
+                        maxSelectionCount = 5
+                    )
+                }
+            }
         }
-    )
+    }
 }

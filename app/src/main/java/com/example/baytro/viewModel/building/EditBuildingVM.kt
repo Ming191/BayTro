@@ -10,7 +10,9 @@ import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.MediaRepository
+import com.example.baytro.data.service.Metric
 import com.example.baytro.data.service.Service
+import com.example.baytro.data.service.Status
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.async
@@ -59,12 +61,27 @@ class EditBuildingVM(
 
     private val _formErrors = MutableStateFlow(BuildingFormErrors())
     val formErrors: StateFlow<BuildingFormErrors> = _formErrors.asStateFlow()
-
-    private var originalFormState: EditBuildingFormState? = null
-
     private val _buildingServices = MutableStateFlow<List<Service>>(emptyList())
     val buildingServices: StateFlow<List<Service>> = _buildingServices
 
+    private val _tempServiceName = MutableStateFlow("")
+    val tempServiceName: StateFlow<String> = _tempServiceName.asStateFlow()
+
+    private val _tempServicePrice = MutableStateFlow("")
+    val tempServicePrice: StateFlow<String> = _tempServicePrice.asStateFlow()
+
+    private val _tempServiceUnit = MutableStateFlow(Metric.ROOM)
+    val tempServiceUnit: StateFlow<Metric> = _tempServiceUnit.asStateFlow()
+
+    private var editingServiceId: String? = null
+
+    private val _isEditMode = MutableStateFlow(false)
+    val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
+
+    private val _isEditingDefaultService = MutableStateFlow(false)
+    val isEditingDefaultService: StateFlow<Boolean> = _isEditingDefaultService.asStateFlow()
+
+    private var originalFormState: EditBuildingFormState? = null
 
     fun load(id: String) {
         viewModelScope.launch {
@@ -82,12 +99,14 @@ class EditBuildingVM(
                     selectedImages = emptyList(),
                     existingImageUrls = b?.imageUrls ?: emptyList()
                 )
-                if(_buildingServices.value.isNotEmpty()) {
-                    return@launch
-                }
-                _buildingServices.value = buildingRepository.getServicesByBuildingId(id)
                 _formState.value = initialFormState
                 originalFormState = initialFormState
+
+                if (b != null) {
+                    val services = buildingRepository.getServicesByBuildingId(id)
+                    _buildingServices.value = services
+                }
+
                 _editUIState.value = UiState.Idle
             } catch (e: Exception) {
                 _editUIState.value = UiState.Error(e.message ?: "Failed to load building")
@@ -128,14 +147,6 @@ class EditBuildingVM(
 
     fun updateExistingImages(urls: List<String>) {
         _formState.value = _formState.value.copy(existingImageUrls = urls)
-    }
-
-    fun onBuildingServicesChange(service: Service) {
-        Log.d("AddBuildingVM", "onBuildingServicesChange: $service")
-        val updateBuildingServices = _buildingServices.value.toMutableList()
-        updateBuildingServices.add(service)
-        _buildingServices.value = updateBuildingServices
-        //_formState.value = _formState.value.copy(buildingServices = updateBuildingServices)
     }
 
     private fun validateField(field: String) {
@@ -208,6 +219,9 @@ class EditBuildingVM(
         if (paymentDue.isBlank()) return "Payment due is required"
         val value = paymentDue.toIntOrNull()
         if (value == null || value <= 0) return "Payment due must be a positive integer"
+        if (value < (_formState.value.paymentStart.toIntOrNull() ?: 0)) {
+            return "Payment due cannot be before payment start"
+        }
         return null
     }
 
@@ -230,6 +244,7 @@ class EditBuildingVM(
             userId = building.userId,
             imageUrls = state.existingImageUrls
         )
+
         if (state.selectedImages.isNotEmpty()) {
             updateWithImages(updatedBuilding, state.selectedImages)
         } else {
@@ -242,9 +257,6 @@ class EditBuildingVM(
             _editUIState.value = UiState.Loading
             try {
                 buildingRepository.update(building.id, building)
-                _buildingServices.value.forEach { service ->
-                    buildingRepository.addServiceToBuilding(building.id, service)
-                }
                 _editUIState.value = UiState.Success(building)
             } catch (e: Exception) {
                 _editUIState.value = UiState.Error(e.message ?: "Failed to update building")
@@ -304,9 +316,6 @@ class EditBuildingVM(
                 Log.d("EditBuildingVM", "Merged images: existing=${building.imageUrls.size}, new=${urls.size}, total=${mergedImageUrls.size}")
                 
                 buildingRepository.update(building.id, building.copy(imageUrls = mergedImageUrls))
-                _buildingServices.value.forEach { service ->
-                    buildingRepository.addServiceToBuilding(building.id, service)
-                }
                 _editUIState.value = UiState.Success(building)
             } catch (e: Exception) {
                 _editUIState.value = UiState.Error(e.message ?: "Failed to update building")
@@ -316,5 +325,127 @@ class EditBuildingVM(
 
     fun clearError() {
         _editUIState.value = UiState.Idle
+    }
+
+    // Service management methods
+    fun updateTempServiceName(value: String) {
+        _tempServiceName.value = value
+    }
+
+    fun updateTempServicePrice(value: String) {
+        _tempServicePrice.value = value
+    }
+
+    fun updateTempServiceUnit(unit: Metric) {
+        _tempServiceUnit.value = unit
+    }
+
+    fun addTempService() {
+        val name = _tempServiceName.value.trim()
+        val priceStr = _tempServicePrice.value.trim()
+        val unit = _tempServiceUnit.value
+        val buildingId = _building.value?.id ?: return
+
+        if (name.isBlank() || priceStr.isBlank()) {
+            Log.w("EditBuildingVM", "Cannot add service: name or price is blank")
+            return
+        }
+
+        val price = priceStr.toIntOrNull()
+        if (price == null || price <= 0) {
+            Log.w("EditBuildingVM", "Cannot add service: invalid price")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                if (editingServiceId != null) {
+                    // Update existing service
+                    val existingService = _buildingServices.value.find { it.id == editingServiceId }
+                    if (existingService != null) {
+                        val updatedService = Service(
+                            id = editingServiceId!!,
+                            name = name,
+                            price = price,
+                            metric = unit,
+                            status = existingService.status,
+                            isDefault = existingService.isDefault
+                        )
+                        buildingRepository.updateServiceInBuilding(buildingId, updatedService)
+
+                        // Update local state
+                        val updatedList = _buildingServices.value.map {
+                            if (it.id == editingServiceId) updatedService else it
+                        }
+                        _buildingServices.value = updatedList
+                        Log.d("EditBuildingVM", "Updated service: $updatedService")
+                    }
+                } else {
+                    // Create new service
+                    val newService = Service(
+                        id = "",
+                        name = name,
+                        price = price,
+                        metric = unit,
+                        status = Status.ACTIVE,
+                        isDefault = false
+                    )
+                    val newId = buildingRepository.addServiceToBuilding(buildingId, newService)
+
+                    // Update local state with the new service including its ID
+                    val serviceWithId = newService.copy(id = newId)
+                    _buildingServices.value = _buildingServices.value + serviceWithId
+                    Log.d("EditBuildingVM", "Added new service: $serviceWithId")
+                }
+
+                // Clear temp form and editing state
+                clearTempServiceForm()
+            } catch (e: Exception) {
+                Log.e("EditBuildingVM", "Error managing service: ${e.message}")
+            }
+        }
+    }
+
+    fun clearTempServiceForm() {
+        _tempServiceName.value = ""
+        _tempServicePrice.value = ""
+        _tempServiceUnit.value = Metric.ROOM
+        editingServiceId = null
+        _isEditMode.value = false
+        _isEditingDefaultService.value = false
+    }
+
+    fun deleteTempService(service: Service) {
+        val buildingId = _building.value?.id ?: return
+
+        viewModelScope.launch {
+            try {
+                Log.d("EditBuildingVM", "Deleting service: ${service.name}")
+                buildingRepository.deleteServiceFromBuilding(buildingId, service.id)
+
+                // Update local state
+                _buildingServices.value = _buildingServices.value.filter { it.id != service.id }
+            } catch (e: Exception) {
+                Log.e("EditBuildingVM", "Error deleting service: ${e.message}")
+            }
+        }
+    }
+
+    fun editTempService(service: Service) {
+        Log.d("EditBuildingVM", "Editing service: ${service.name}")
+
+        // Track the service ID being edited
+        editingServiceId = service.id
+
+        // Set edit mode
+        _isEditMode.value = true
+
+        // Track if editing a default service
+        _isEditingDefaultService.value = service.isDefault
+
+        // Populate the temp form with the service data
+        _tempServiceName.value = service.name
+        _tempServicePrice.value = service.price.toString()
+        _tempServiceUnit.value = service.metric
     }
 }

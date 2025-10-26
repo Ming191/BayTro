@@ -1,8 +1,6 @@
 package com.example.baytro.data.room
 
 import android.util.Log
-import com.example.baytro.data.Building
-import com.example.baytro.data.Repository
 import com.example.baytro.data.service.Service
 import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
@@ -20,7 +18,9 @@ class RoomRepository(
 
     suspend fun getAll(): List<Room> {
         return try {
-            val snapshot = collection.get()
+            val snapshot = collection
+                .where { "status" notEqualTo "ARCHIVED" }
+                .get()
             snapshot.documents.mapNotNull { doc ->
                 try {
                     val room = doc.data<Room>()
@@ -70,7 +70,12 @@ class RoomRepository(
 
     suspend fun getRoomsByBuildingId(buildingId: String): List<Room> {
         return try {
-            val snapshot = collection.where { "buildingId" equalTo buildingId }.get()
+            val snapshot = collection.where {
+                all(
+                    "buildingId" equalTo buildingId,
+                    "status" notEqualTo "ARCHIVED"
+                )
+            }.get()
             snapshot.documents.mapNotNull { doc ->
                 try {
                     val room = doc.data<Room>()
@@ -97,7 +102,10 @@ class RoomRepository(
 
             batches.forEach { batch ->
                 val snapshot = collection.where {
-                    FieldPath.documentId inArray batch
+                    all(
+                        FieldPath.documentId inArray batch,
+                        "status" notEqualTo "ARCHIVED"
+                    )
                 }.get()
 
                 snapshot.documents.mapNotNullTo(rooms) { doc ->
@@ -197,5 +205,45 @@ class RoomRepository(
             .document(serviceId)
             .get()
         return doc.exists
+    }
+
+    /**
+     * Updates room data and manages its services in a batch operation
+     */
+    suspend fun updateRoomAndServices(
+        roomId: String,
+        updatedRoomData: Room,
+        servicesToAdd: List<Service>,
+        servicesToUpdate: List<Service>,
+        servicesToDelete: List<Service>
+    ) {
+        try {
+            // Update room data
+            update(roomId, updatedRoomData)
+
+            // Delete services
+            servicesToDelete.forEach { service ->
+                removeExtraServiceFromRoom(roomId, service.id)
+            }
+
+            // Add new services
+            servicesToAdd.forEach { service ->
+                val serviceToAdd = service.copy(
+                    id = "", // Clear temp ID
+                    status = com.example.baytro.data.service.Status.ACTIVE
+                )
+                addExtraServiceToRoom(roomId, serviceToAdd)
+            }
+
+            // Update existing services
+            servicesToUpdate.forEach { service ->
+                updateExtraServiceInRoom(roomId, service)
+            }
+
+            Log.d(TAG, "Successfully updated room $roomId and its services")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating room and services: ${e.message}")
+            throw e
+        }
     }
 }

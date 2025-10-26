@@ -21,7 +21,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.launch
 
 data class AddBuildingFormState(
@@ -65,6 +64,27 @@ class AddBuildingVM(
 
     private val _buildingServices = MutableStateFlow<List<Service>>(emptyList())
     val buildingServices: StateFlow<List<Service>> = _buildingServices
+
+    // Temporary service form state for bottom sheet
+    private val _tempServiceName = MutableStateFlow("")
+    val tempServiceName: StateFlow<String> = _tempServiceName.asStateFlow()
+
+    private val _tempServicePrice = MutableStateFlow("")
+    val tempServicePrice: StateFlow<String> = _tempServicePrice.asStateFlow()
+
+    private val _tempServiceUnit = MutableStateFlow(Metric.ROOM)
+    val tempServiceUnit: StateFlow<Metric> = _tempServiceUnit.asStateFlow()
+
+    // Track which service is being edited (by index)
+    private var editingServiceIndex: Int? = null
+
+    // Expose whether we're in edit mode
+    private val _isEditMode = MutableStateFlow(false)
+    val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
+
+    // Expose whether the service being edited is a default service
+    private val _isEditingDefaultService = MutableStateFlow(false)
+    val isEditingDefaultService: StateFlow<Boolean> = _isEditingDefaultService.asStateFlow()
 
     init {
         createDefaultServices()
@@ -134,6 +154,107 @@ class AddBuildingVM(
         updateBuildingServices.add(service)
         _buildingServices.value = updateBuildingServices
         _formState.value = _formState.value.copy(buildingServices = updateBuildingServices)
+    }
+
+    // Temporary service management for bottom sheet
+    fun updateTempServiceName(value: String) {
+        _tempServiceName.value = value
+    }
+
+    fun updateTempServicePrice(value: String) {
+        _tempServicePrice.value = value
+    }
+
+    fun updateTempServiceUnit(unit: Metric) {
+        _tempServiceUnit.value = unit
+    }
+
+    fun addTempService() {
+        val name = _tempServiceName.value.trim()
+        val priceStr = _tempServicePrice.value.trim()
+        val unit = _tempServiceUnit.value
+
+        if (name.isBlank() || priceStr.isBlank()) {
+            Log.w("AddBuildingVM", "Cannot add service: name or price is blank")
+            return
+        }
+
+        val price = priceStr.toIntOrNull()
+        if (price == null || price <= 0) {
+            Log.w("AddBuildingVM", "Cannot add service: invalid price")
+            return
+        }
+
+        val updateBuildingServices = _buildingServices.value.toMutableList()
+
+        if (editingServiceIndex != null && editingServiceIndex!! < updateBuildingServices.size) {
+            // Update existing service
+            val oldService = updateBuildingServices[editingServiceIndex!!]
+            val updatedService = Service(
+                id = oldService.id,
+                name = name,
+                price = price,
+                metric = unit,
+                status = oldService.status,
+                isDefault = oldService.isDefault
+            )
+            updateBuildingServices[editingServiceIndex!!] = updatedService
+            Log.d("AddBuildingVM", "Updated service at index $editingServiceIndex: $updatedService")
+        } else {
+            // Create new service
+            val tempService = Service(
+                id = "", // Empty ID for now
+                name = name,
+                price = price,
+                metric = unit,
+                status = Status.ACTIVE,
+                isDefault = false
+            )
+            updateBuildingServices.add(tempService)
+            Log.d("AddBuildingVM", "Added new temporary service: $tempService")
+        }
+
+        _buildingServices.value = updateBuildingServices
+        _formState.value = _formState.value.copy(buildingServices = updateBuildingServices)
+
+        // Clear temp form and editing state
+        clearTempServiceForm()
+    }
+
+    fun clearTempServiceForm() {
+        _tempServiceName.value = ""
+        _tempServicePrice.value = ""
+        _tempServiceUnit.value = Metric.ROOM
+        editingServiceIndex = null
+        _isEditMode.value = false
+        _isEditingDefaultService.value = false
+    }
+
+    fun deleteTempService(service: Service) {
+        Log.d("AddBuildingVM", "Deleting temporary service: ${service.name}")
+        val updatedServices = _buildingServices.value.toMutableList()
+        updatedServices.remove(service)
+        _buildingServices.value = updatedServices
+        _formState.value = _formState.value.copy(buildingServices = updatedServices)
+    }
+
+    fun editTempService(service: Service) {
+        Log.d("AddBuildingVM", "Editing temporary service: ${service.name}")
+        // Find the index of the service being edited
+        editingServiceIndex = _buildingServices.value.indexOf(service)
+
+        // Set edit mode
+        _isEditMode.value = true
+
+        // Track if editing a default service
+        _isEditingDefaultService.value = service.isDefault
+
+        // Populate the temp form with the service data
+        _tempServiceName.value = service.name
+        _tempServicePrice.value = service.price.toString()
+        _tempServiceUnit.value = service.metric
+
+        // Don't remove the service - it will be updated when user confirms
     }
 
     fun updateSelectedImages(images: List<Uri>) {
@@ -213,15 +334,17 @@ class AddBuildingVM(
         val services =  listOf(
             Service(
                 name = "Water",
-                price = "18000",
+                price = 18000,
                 metric = Metric.M3,
-                status = Status.ACTIVE
+                status = Status.ACTIVE,
+                isDefault = true
             ),
             Service(
                 name = "Electricity",
-                price = "4000",
+                price = 4000,
                 metric = Metric.KWH,
-                status = Status.ACTIVE
+                status = Status.ACTIVE,
+                isDefault = true
             )
         )
         _formState.value = _formState.value.copy(
@@ -247,10 +370,11 @@ class AddBuildingVM(
                     ?: throw IllegalStateException("No logged in user found")
                 
                 val buildingWithDefaults = building.copy(
-                    userId = currentUser.uid
+                    userId = currentUser.uid,
+                    services = _buildingServices.value
                 )
                 val newId = buildingRepository.add(buildingWithDefaults)
-                buildingServices.value.forEach { services ->
+                _buildingServices.value.forEach { services ->
                     buildingRepository.addServiceToBuilding(newId, services)
                 }
                 // Update the document to include its own ID
@@ -275,7 +399,7 @@ class AddBuildingVM(
                 val buildingWithDefaults = building.copy(
                     userId = currentUser.uid,
                     imageUrls = emptyList(),
-                    services = buildingServices.value
+                    services = _buildingServices.value
                 )
                 val newId = buildingRepository.add(buildingWithDefaults)
 

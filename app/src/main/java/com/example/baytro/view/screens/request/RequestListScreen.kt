@@ -3,12 +3,10 @@ package com.example.baytro.view.screens.request
 import SpeedDialFab
 import SpeedDialMenuItem
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,8 +53,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -75,9 +74,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.baytro.data.BuildingSummary
 import com.example.baytro.data.request.FullRequestInfo
 import com.example.baytro.data.request.Request
@@ -87,6 +83,7 @@ import com.example.baytro.view.components.CarouselOrientation
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequestListSkeleton
+import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.request.RequestListUiState
@@ -104,6 +101,8 @@ private val tabData: List<Pair<String, ImageVector>> = listOf(
 @Composable
 fun RequestListScreen(
     viewModel: RequestListVM = koinViewModel(),
+    requestAdded: Boolean? = null,
+    onRequestAddedHandled: () -> Unit = {},
     onAddRequest: () -> Unit,
     onAssignRequest: (String) -> Unit = {},
     onUpdateRequest: (String) -> Unit = {}
@@ -111,19 +110,14 @@ fun RequestListScreen(
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabData.size })
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     val uiState by viewModel.uiState.collectAsState()
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refresh()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
+    // Auto-refresh when a request is successfully added
+    LaunchedEffect(requestAdded) {
+        if (requestAdded == true) {
+            viewModel.refresh()
+            onRequestAddedHandled()
         }
     }
 
@@ -149,7 +143,8 @@ fun RequestListScreen(
         onAddRequest = onAddRequest,
         onAssignRequest = onAssignRequest,
         onUpdateRequest = onUpdateRequest,
-        snackbarHostState = snackbarHostState
+        snackbarHostState = snackbarHostState,
+        onRefresh = { viewModel.refresh() }
     )
 }
 
@@ -163,10 +158,12 @@ private fun RequestListContent(
     onAddRequest: () -> Unit,
     onAssignRequest: (String) -> Unit,
     onUpdateRequest: (String) -> Unit,
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    onRefresh: () -> Unit
 ) {
     var showFilterDialog by remember { mutableStateOf(false) }
     var isSpeedDialOpen by remember { mutableStateOf(false) }
+    val pullToRefreshState = rememberPullToRefreshState()
 
     val lazyListStates = remember {
         mapOf(
@@ -180,7 +177,10 @@ private fun RequestListContent(
         FilterDialog(
             buildings = uiState.buildings,
             selectedBuildingId = uiState.selectedBuildingId,
+            selectedFromDate = uiState.fromDate,
+            selectedToDate = uiState.toDate,
             onBuildingSelected = viewModel::selectBuilding,
+            onDateRangeSelected = viewModel::selectDateRange,
             onDismiss = { showFilterDialog = false }
         )
     }
@@ -231,23 +231,33 @@ private fun RequestListContent(
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            if(uiState.isLoading) {
-                RequestListSkeleton(itemCount = 5)
-            } else {
-                RequestListPager(
-                    pagerState = pagerState,
-                    requests = uiState.requests,
-                    isLandlord = uiState.isLandlord,
-                    selectedTabIndex = selectedTabIndex,
-                    onAssignRequest = onAssignRequest,
-                    onUpdateRequest = onUpdateRequest,
-                    lazyListStates = lazyListStates,
-                    snackbarHostState = snackbarHostState,
-                    viewModel = viewModel,
-                    hasNextPage = uiState.nextCursor != null,
-                    isLoadingMore = uiState.isLoadingMore
-                )
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = onRefresh,
+            state = pullToRefreshState,
+            modifier = Modifier.padding(paddingValues)
+        ) {
+            Crossfade(
+                targetState = uiState.isLoading || uiState.isRefreshing,
+                label = "request_list_crossfade"
+            ) { isLoading ->
+                if (isLoading) {
+                    RequestListSkeleton(itemCount = 5)
+                } else {
+                    RequestListPager(
+                        pagerState = pagerState,
+                        requests = uiState.requests,
+                        isLandlord = uiState.isLandlord,
+                        selectedTabIndex = selectedTabIndex,
+                        onAssignRequest = onAssignRequest,
+                        onUpdateRequest = onUpdateRequest,
+                        lazyListStates = lazyListStates,
+                        snackbarHostState = snackbarHostState,
+                        viewModel = viewModel,
+                        hasNextPage = uiState.nextCursor != null,
+                        isLoadingMore = uiState.isLoadingMore
+                    )
+                }
             }
         }
     }
@@ -373,18 +383,8 @@ private fun RequestListPage(
 
                 AnimatedVisibility(
                     visible = visible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { it / 3 }
-                    )
+                    enter = fadeIn(animationSpec = tween(300)),
+                    exit = fadeOut(animationSpec = tween(200))
                 ) {
                     RequestCard(
                         info = info,
@@ -397,18 +397,18 @@ private fun RequestListPage(
             }
 
             // Loading indicator at bottom
-            if (isLoadingMore) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        androidx.compose.material3.CircularProgressIndicator()
-                    }
-                }
-            }
+//            if (isLoadingMore) {
+//                item {
+//                    Box(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(16.dp),
+//                        contentAlignment = Alignment.Center
+//                    ) {
+//                        androidx.compose.material3.CircularProgressIndicator()
+//                    }
+//                }
+//            }
         }
     }
 }
@@ -783,9 +783,15 @@ fun RequestCardActions(
 private fun FilterDialog(
     buildings: List<BuildingSummary>,
     selectedBuildingId: String?,
+    selectedFromDate: String?,
+    selectedToDate: String?,
     onBuildingSelected: (String?) -> Unit,
+    onDateRangeSelected: (String?, String?) -> Unit = { _, _ -> },
     onDismiss: () -> Unit
 ) {
+    var fromDate by remember { mutableStateOf(selectedFromDate ?: "") }
+    var toDate by remember { mutableStateOf(selectedToDate ?: "") }
+
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -818,13 +824,37 @@ private fun FilterDialog(
                     onOptionSelected = { onBuildingSelected(it.id) },
                     optionToString = { it.name }
                 )
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Filter by date range",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                RequiredDateTextField(
+                    label = "From Date",
+                    selectedDate = fromDate,
+                    onDateSelected = { fromDate = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                RequiredDateTextField(
+                    label = "To Date",
+                    selectedDate = toDate,
+                    onDateSelected = { toDate = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
+            TextButton(onClick = {
+                onDateRangeSelected(fromDate, toDate)
+                onDismiss()
+            }) {
+                Text("Apply")
             }
         },
+
         containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(16.dp)
     )

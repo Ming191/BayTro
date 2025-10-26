@@ -66,8 +66,9 @@ class EditServiceVM(
 
         _formState.value = EditServiceFormState(
             name = service.name,
-            price = service.price,
+            price = service.price.toString(),
             metrics = service.metric,
+            isDefault = service.isDefault,
             availableRooms = listOf(room),
             selectedRooms = setOf(room.id),
             selectedBuilding = building,
@@ -90,8 +91,9 @@ class EditServiceVM(
 
         _formState.value = EditServiceFormState(
             name = service.name,
-            price = service.price,
+            price = service.price.toString(),
             metrics = service.metric,
+            isDefault = service.isDefault,
             selectedBuilding = building,
             availableBuildings = listOf(building),
             availableRooms = rooms,
@@ -138,7 +140,7 @@ class EditServiceVM(
 
             val updatedService = oldService.copy(
                 name = state.name,
-                price = state.price,
+                price = state.price.toIntOrNull() ?: 0,
                 metric = state.metrics
             )
 

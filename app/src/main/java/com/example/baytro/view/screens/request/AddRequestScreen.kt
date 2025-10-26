@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.request
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -16,14 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -46,11 +41,12 @@ import com.example.baytro.viewModel.request.AddRequestVM
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddRequestScreen(
     viewModel: AddRequestVM = koinViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: (requestAdded: Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val formState by viewModel.formState.collectAsState()
@@ -69,7 +65,7 @@ fun AddRequestScreen(
             is UiState.Success -> {
                 isNavigatingBack = true
                 Toast.makeText(context, "Request submitted successfully!", Toast.LENGTH_SHORT).show()
-                onNavigateBack()
+                onNavigateBack(true) // Request was successfully added
                 viewModel.resetState()
             }
             is UiState.Error -> {
@@ -93,21 +89,6 @@ fun AddRequestScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(text = "Add Request")
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                    }
-                )
-            },
             bottomBar = {
                 AnimatedVisibility(
                     visible = buttonsVisible,
@@ -144,11 +125,10 @@ fun AddRequestScreen(
                     }
                 }
             }
-        ) { innerPadding ->
+        ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .padding(16.dp)
             ) {
                 item {
@@ -299,7 +279,9 @@ fun AddRequestScreen(
                     ) {
                         PhotoCarousel(
                             selectedPhotos = formState.selectedPhotos,
-                            onPhotosSelected = { photos -> viewModel.updateSelectedPhotos(photos) }
+                            onPhotosSelected = { photos -> viewModel.updateSelectedPhotos(photos) },
+                            isError = formState.photoError is ValidationResult.Error,
+                            errorMessage = (formState.photoError as? ValidationResult.Error)?.message
                         )
                     }
                 }

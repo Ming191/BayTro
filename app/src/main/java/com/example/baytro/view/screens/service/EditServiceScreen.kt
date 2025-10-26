@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,7 +50,6 @@ import com.example.baytro.view.components.CompactSearchBar
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
-import com.example.baytro.viewModel.service.AddServiceFormState
 import com.example.baytro.viewModel.service.EditServiceFormState
 import com.example.baytro.viewModel.service.EditServiceVM
 import kotlinx.coroutines.delay
@@ -78,7 +78,7 @@ fun EditServiceScreen(
 
     when (uiState) {
         is UiState.Success -> {
-            Toast.makeText(LocalContext.current, "Cập nhật dịch vụ thành công!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(LocalContext.current, "Updated service", Toast.LENGTH_SHORT).show()
             navController.popBackStack()
             viewModel.clearError()
         }
@@ -159,7 +159,7 @@ fun EditServiceContent(
                         onValueChange = onNameChange,
                         label = { Text("Service name") },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading
+                        enabled = !isLoading && !formState.isDefault,
                     )
                 }
 
@@ -209,7 +209,7 @@ fun EditServiceContent(
                         onOptionSelected = onUnitSelected,
                         optionToString = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading
+                        enabled = !isLoading && !formState.isDefault
                     )
                 }
 

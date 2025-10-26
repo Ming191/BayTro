@@ -23,7 +23,8 @@ data class Service(
     @DocumentId
     val id: String = "",
     val name: String = "",
-    val price: String = "",
+    val price: Int = 0,
     val metric: Metric = Metric.OTHER,
     val status: Status = Status.ACTIVE,
+    val isDefault: Boolean = false
 )

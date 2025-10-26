@@ -23,10 +23,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.baytro.data.user.RoleType
 
 @Composable
 fun<T : Enum<T>> ChoiceSelection(
+    label: String = "",
     options: List<T>,
     selectedOption: T? = null,
     onOptionSelected: (T) -> Unit,
@@ -36,6 +38,14 @@ fun<T : Enum<T>> ChoiceSelection(
     var internalSelectedOption by remember { mutableStateOf(selectedOption) }
 
     Column {
+        if(label!="") {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 8.dp),
+                fontSize = 16.sp
+            )
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
