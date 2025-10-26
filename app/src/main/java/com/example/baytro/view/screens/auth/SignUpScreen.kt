@@ -87,6 +87,7 @@ fun SignUpScreen(
                 Log.d("SignUpScreen", "Calling onNavigateToSignIn()")
                 onNavigateToSignIn()
                 Log.d("SignUpScreen", "Navigation callback completed")
+                viewModel.resetState()
             }
             is SignUpUiState.Error -> {
                 Log.e("SignUpScreen", "Error state: ${state.message}")
