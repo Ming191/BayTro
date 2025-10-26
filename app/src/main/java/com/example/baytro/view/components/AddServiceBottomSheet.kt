@@ -6,11 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -96,25 +93,6 @@ fun AddServiceBottomSheet(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = when {
-                                    isDefaultService -> "This is a default service. Name and unit cannot be changed. You can only update the price."
-                                    isEditMode -> "Update the service details. Changes will be applied when the building is created."
-                                    else -> "This service will be added to the building once it's created."
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
 
                         RequiredTextField(
                             value = name,

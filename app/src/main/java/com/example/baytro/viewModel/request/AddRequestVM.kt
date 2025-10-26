@@ -96,7 +96,7 @@ class AddRequestVM(
 
         val photoError = if (state.selectedPhotos.isEmpty()) {
             isValid = false
-            ValidationResult.Error("You can upload up to 5 photos")
+            ValidationResult.Error("You must select at least one photo")
         } else {
             ValidationResult.Success
         }

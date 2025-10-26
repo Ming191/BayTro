@@ -3,9 +3,7 @@ package com.example.baytro.data
 import com.example.baytro.data.service.Service
 import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import dev.gitlive.firebase.firestore.Direction
-import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
-import dev.gitlive.firebase.firestore.where
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -52,33 +50,6 @@ class BuildingRepository(
         collection.document(id).update(fields)
     }
 
-    suspend fun getBuildingsByIds(buildingIds: List<String>): List<Building> {
-        if (buildingIds.isEmpty()) return emptyList()
-
-        return try {
-            val batches = buildingIds.chunked(10)
-            val buildings = mutableListOf<Building>()
-
-            batches.forEach { batch ->
-                val snapshot = collection.where {
-                    FieldPath.documentId inArray batch
-                }.get()
-
-                snapshot.documents.mapNotNullTo(buildings) { doc ->
-                    try {
-                        val building = doc.data<Building>()
-                        building.copy(id = doc.id)
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-            }
-            buildings
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
-
     suspend fun getBuildingSummariesByLandlord(landlordId: String): List<BuildingSummary> {
         val snapshot = collection
             .where {
@@ -109,7 +80,7 @@ class BuildingRepository(
 
     fun listenToBuildingServices(buildingId: String): Flow<List<Service>> {
         return collection.document(buildingId)
-            .collection("services").where { "status" equalTo "ACTIVE" }
+            .collection("services").where { "status" notEqualTo  "DELETE" }
             .snapshots
             .map { querySnapshot ->
                 querySnapshot.documents.mapNotNull { doc ->
@@ -126,7 +97,7 @@ class BuildingRepository(
     suspend fun getServicesByBuildingId(buildingId: String): List<Service> {
         return try {
             val snapshot = collection.document(buildingId)
-                .collection("services")
+                .collection("services").where { "status" notEqualTo  "DELETE" }
                 .get()
 
             snapshot.documents.mapNotNull { doc ->
