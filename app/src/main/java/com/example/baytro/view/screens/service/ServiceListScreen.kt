@@ -214,7 +214,7 @@ fun ServiceListContent (
                     Log.d("ServiceListContent", "Rendering ${formState.availableServices.size} service cards")
                     itemsIndexed(
                         items = formState.availableServices,
-                        key = { _, service -> "${formState.selectedBuilding?.id}-${service.name}-${service.price}" }
+                        key = { _, service -> service.id }
                     ) { index, service ->
                         var visible by remember { mutableStateOf(false) }
 

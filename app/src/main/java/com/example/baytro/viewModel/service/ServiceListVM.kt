@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.service.Service
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,10 +51,11 @@ class ServiceListVM(
 
             try {
                 val buildings = buildingRepo.getBuildingsByUserId(userId)
+                val buildingsNoArchived = buildings.filter { BuildingStatus.ARCHIVED != it.status }
                 val currentSelectedBuilding = _serviceListFormState.value.selectedBuilding
 
                 _serviceListFormState.value = _serviceListFormState.value.copy(
-                    availableBuildings = buildings
+                    availableBuildings = buildingsNoArchived
                 )
 
                 if (buildings.isNotEmpty()) {
@@ -72,6 +74,7 @@ class ServiceListVM(
                     }
                 } else {
                     _serviceListUiState.value = UiState.Success(emptyList())
+                    onBuildingChange(buildingsNoArchived[0])
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "fetchBuildings error", e)

@@ -15,6 +15,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import com.example.baytro.view.screens.tenant.TenantInfoScreen
+import com.google.firebase.auth.FirebaseAuth
 
 fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
     composable(Screens.PersonalInformation.route) {
@@ -83,5 +85,9 @@ fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
     composable(Screens.PaymentSettings.route) {
         PaymentSettingsScreen(
         )
+    }
+
+    composable(Screens.TenantInfo.route) {
+        TenantInfoScreen()
     }
 }
