@@ -44,7 +44,7 @@ fun TenantListScreen(
     viewModel: TenantListVM = koinViewModel()
 ) {
     val filteredTenantList by viewModel.filteredTenantList.collectAsState()
-    val tenantList by viewModel.tenantList.collectAsState() // Giữ để trigger LaunchedEffect
+    val tenantList by viewModel.tenantList.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
     LaunchedEffect(Unit) {

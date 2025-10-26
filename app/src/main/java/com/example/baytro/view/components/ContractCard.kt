@@ -13,10 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -28,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -186,32 +183,27 @@ private fun StatusChip(status: Status) {
     val backgroundColor: Color
     val textColor: Color
     val label: String
-    val icon: ImageVector
 
     when (status) {
         Status.ACTIVE -> {
             backgroundColor = MaterialTheme.colorScheme.primaryContainer
             textColor = MaterialTheme.colorScheme.onPrimaryContainer
             label = "Active"
-            icon = Icons.Default.CheckCircle
         }
         Status.PENDING -> {
             backgroundColor = MaterialTheme.colorScheme.secondaryContainer
             textColor = MaterialTheme.colorScheme.onSecondaryContainer
             label = "Pending"
-            icon = Icons.Default.Schedule
         }
         Status.OVERDUE -> {
             backgroundColor = MaterialTheme.colorScheme.errorContainer
             textColor = MaterialTheme.colorScheme.onErrorContainer
             label = "Overdue"
-            icon = Icons.Default.CalendarToday
         }
         Status.ENDED -> {
             backgroundColor = MaterialTheme.colorScheme.surfaceVariant
             textColor = MaterialTheme.colorScheme.onSurfaceVariant
             label = "Ended"
-            icon = Icons.Default.CheckCircle
         }
     }
 
@@ -219,27 +211,16 @@ private fun StatusChip(status: Status) {
         modifier = Modifier.semantics {
             contentDescription = "Contract status: $label"
         },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = backgroundColor
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = textColor
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = textColor,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = textColor,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
     }
 }
 
