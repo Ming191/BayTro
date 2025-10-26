@@ -33,6 +33,30 @@ object Utils {
         }
     }
 
+    fun formatCompactCurrency(amount: Double): String {
+        return try {
+            when {
+                amount >= 1_000_000_000 -> {
+                    val billions = amount / 1_000_000_000
+                    String.format(Locale.US, "%.1fB", billions)
+                }
+                amount >= 1_000_000 -> {
+                    val millions = amount / 1_000_000
+                    String.format(Locale.US, "%.1fM", millions)
+                }
+                amount >= 1_000 -> {
+                    val thousands = amount / 1_000
+                    String.format(Locale.US, "%.1fK", thousands)
+                }
+                else -> {
+                    String.format(Locale.US, "%.0f", amount)
+                }
+            }
+        } catch (_: Exception) {
+            amount.toString()
+        }
+    }
+
     fun formatVND(amount: String): String {
         return try {
             val numericAmount = amount.replace("[^\\d]".toRegex(), "").toLongOrNull() ?: 0L

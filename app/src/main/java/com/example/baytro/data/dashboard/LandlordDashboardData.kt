@@ -6,11 +6,17 @@ data class LandlordDashboardData(
     val pendingReadingsCount: Int = 0,
     val newJoinRequestsCount: Int = 0,
     val overdueBillsCount: Int = 0,
+    val pendingRequestsCount: Int = 0,
     val totalRevenueThisMonth: Double = 0.0,
     val totalUnpaidAmount: Double = 0.0,
     val totalOccupancyRate: Double = 0.0,
     val occupiedRoomCount: Int = 0,
     val totalRoomCount: Int = 0,
+    val totalTenantsCount: Int = 0,
+    val totalBuildingsCount: Int = 0,
+    val activeContractsCount: Int = 0,
+    val upcomingBillingDeadlinesCount: Int = 0,
+    val recentPaymentsCount: Int = 0,
     val monthlyRevenueHistory: List<RevenueDataPoint> = emptyList()
 )
 

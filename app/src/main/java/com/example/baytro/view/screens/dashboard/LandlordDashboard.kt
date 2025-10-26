@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material3.Button
@@ -46,8 +47,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,9 +72,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.baytro.utils.Utils
 import com.example.baytro.view.components.LandlordDashboardSkeleton
 import com.example.baytro.viewModel.dashboard.LandlordDashboardUiState
@@ -93,19 +92,6 @@ fun LandlordDashboard(
     onNavigateToImportBuildingRoom: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refreshDashboardData()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
 
     if (uiState.isLoading && uiState.username.isBlank()) {
         LandlordDashboardSkeleton()
@@ -117,7 +103,8 @@ fun LandlordDashboard(
             onNavigateToBuildings = onNavigateToBuildings,
             onNavigateToBills = onNavigateToBills,
             onNavigateToMaintenance = onNavigateToMaintenance,
-            onNavigateToImportBuildingRoom = onNavigateToImportBuildingRoom
+            onNavigateToImportBuildingRoom = onNavigateToImportBuildingRoom,
+            onRefresh = { viewModel.refresh() }
         )
     }
 }
@@ -127,18 +114,17 @@ fun QuickActionsSection(
     pendingReadingsCount: Int,
     newJoinRequestsCount: Int,
     overdueBillsCount: Int,
-    totalRooms: Int,
+    totalBuildings: Int,
+    totalTenants: Int,
     onNavigateToPendingReadings: () -> Unit,
     onNavigateToTenantList: () -> Unit,
     onNavigateToBills: () -> Unit,
-    onNavigateToBuildings: () -> Unit,
-    onNavigateToMaintenance: () -> Unit
+    onNavigateToBuildings: () -> Unit
 ) {
     val onPendingReadingsClick = remember { onNavigateToPendingReadings }
     val onTenantListClick = remember { onNavigateToTenantList }
     val onBillsClick = remember { onNavigateToBills }
     val onBuildingsClick = remember { onNavigateToBuildings }
-    val onMaintenanceClick = remember { onNavigateToMaintenance }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -200,20 +186,21 @@ fun QuickActionsSection(
             QuickActionButton(
                 icon = Icons.Default.Home,
                 label = "Buildings",
-                count = totalRooms,
+                count = totalBuildings,
                 onClick = onBuildingsClick,
                 modifier = Modifier.weight(1f)
             )
             QuickActionButton(
                 icon = Icons.Default.People,
                 label = "Tenants",
+                count = totalTenants,
                 onClick = onTenantListClick,
                 modifier = Modifier.weight(1f)
             )
             QuickActionButton(
-                icon = Icons.Default.Build,
-                label = "Maintenance",
-                onClick = onMaintenanceClick,
+                icon = Icons.Default.Receipt,
+                label = "Bills",
+                onClick = onBillsClick,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -296,7 +283,7 @@ fun ActionCard(
                         text = count.toString(),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onError
                     )
                 }
             }
@@ -372,7 +359,8 @@ fun LandlordDashboardContent(
     onNavigateToBills: () -> Unit = {},
     onNavigateToBuildings: () -> Unit = {},
     onNavigateToMaintenance: () -> Unit = {},
-    onNavigateToImportBuildingRoom: () -> Unit = {}
+    onNavigateToImportBuildingRoom: () -> Unit = {},
+    onRefresh: () -> Unit = {}
 ) {
     val onPendingReadingsClick = remember { onNavigateToPendingReadings }
     val onTenantListClick = remember { onNavigateToTenantList }
@@ -380,6 +368,7 @@ fun LandlordDashboardContent(
     val onBuildingsClick = remember { onNavigateToBuildings }
     val onMaintenanceClick = remember { onNavigateToMaintenance }
     val onImportClick = remember { onNavigateToImportBuildingRoom }
+    val pullToRefreshState = rememberPullToRefreshState()
 
     var isVisible by remember { mutableStateOf(false) }
 
@@ -387,10 +376,15 @@ fun LandlordDashboardContent(
         isVisible = true
     }
 
-    LazyColumn(
-        modifier = modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    PullToRefreshBox(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = onRefresh,
+        state = pullToRefreshState
     ) {
+        LazyColumn(
+            modifier = modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         item(key = "header") {
             AnimatedVisibility(
                 visible = isVisible,
@@ -518,13 +512,103 @@ fun LandlordDashboardContent(
                         pendingReadingsCount = uiState.pendingReadingsCount,
                         newJoinRequestsCount = uiState.newJoinRequestsCount,
                         overdueBillsCount = uiState.overdueBillsCount,
-                        totalRooms = uiState.totalRooms,
+                        totalBuildings = uiState.totalBuildings,
+                        totalTenants = uiState.totalTenants,
                         onNavigateToPendingReadings = onPendingReadingsClick,
                         onNavigateToTenantList = onTenantListClick,
                         onNavigateToBills = onBillsClick,
-                        onNavigateToBuildings = onBuildingsClick,
-                        onNavigateToMaintenance = onMaintenanceClick
+                        onNavigateToBuildings = onBuildingsClick
                     )
+                }
+            }
+        }
+
+        // Additional stats section
+        if (uiState.pendingRequestsCount > 0 || uiState.upcomingDeadlines > 0) {
+            item(key = "additional_alerts") {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(tween(600, delayMillis = 120)) +
+                            slideInVertically(
+                                initialOffsetY = { 40 },
+                                animationSpec = tween(600, easing = FastOutSlowInEasing)
+                            )
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (uiState.pendingRequestsCount > 0) {
+                            ActionCard(
+                                icon = Icons.Default.Build,
+                                title = "Pending Requests",
+                                count = uiState.pendingRequestsCount,
+                                description = "Review and assign requests",
+                                color = MaterialTheme.colorScheme.tertiary,
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                onClick = onMaintenanceClick
+                            )
+                        }
+
+                        if (uiState.upcomingDeadlines > 0) {
+                            ActionCard(
+                                icon = Icons.Default.CalendarToday,
+                                title = "Billing Deadlines",
+                                count = uiState.upcomingDeadlines,
+                                description = "Bills due soon",
+                                color = MaterialTheme.colorScheme.secondary,
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                onClick = onBillsClick
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Overview stats section
+        item(key = "overview_stats") {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(600, delayMillis = 130)) +
+                        slideInVertically(
+                            initialOffsetY = { 40 },
+                            animationSpec = tween(600, easing = FastOutSlowInEasing)
+                        )
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Overview",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CompactStatCard(
+                            icon = Icons.Default.CheckCircle,
+                            value = "${uiState.activeContracts}",
+                            label = "Active",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactStatCard(
+                            icon = Icons.Default.People,
+                            value = "${uiState.totalTenants}",
+                            label = "Tenants",
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (uiState.recentPayments > 0) {
+                            CompactStatCard(
+                                icon = Icons.Default.AttachMoney,
+                                value = "${uiState.recentPayments}",
+                                label = "Recent",
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -632,6 +716,7 @@ fun LandlordDashboardContent(
         }
 
         item { Spacer(modifier = Modifier.height(16.dp)) }
+        }
     }
 }
 
@@ -719,8 +804,9 @@ fun BentoFinancialCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
-    val formattedValue = remember(value) { Utils.formatCurrency(value.toString()) }
-    val semanticDescription = "$label: $formattedValue"
+    val formattedValue = remember(value) { Utils.formatCompactCurrency(value) }
+    val fullFormattedValue = remember(value) { Utils.formatCurrency(value.toString()) }
+    val semanticDescription = "$label: $fullFormattedValue"
     val onClickMemoized = remember { onClick }
 
     Card(
@@ -775,8 +861,9 @@ fun BentoAverageRentCard(
     val averageRent = remember(monthlyRevenue, occupiedRooms) {
         if (occupiedRooms > 0) monthlyRevenue / occupiedRooms else 0.0
     }
-    val formattedRent = remember(averageRent) { Utils.formatCurrency(averageRent.toString()) }
-    val semanticDescription = "Average rent: $formattedRent per room per month, $occupiedRooms occupied rooms"
+    val formattedRent = remember(averageRent) { Utils.formatCompactCurrency(averageRent) }
+    val fullFormattedRent = remember(averageRent) { Utils.formatCurrency(averageRent.toString()) }
+    val semanticDescription = "Average rent: $fullFormattedRent per room per month, $occupiedRooms occupied rooms"
 
     Card(
         modifier = modifier
@@ -947,9 +1034,11 @@ fun BentoPaymentStatus(
     val paidPercentage = remember(monthlyRevenue, paidAmount) {
         if (monthlyRevenue > 0) paidAmount / monthlyRevenue else 0.0
     }
-    val formattedPaid = remember(paidAmount) { Utils.formatCurrency(paidAmount.toString()) }
-    val formattedUnpaid = remember(unpaidBalance) { Utils.formatCurrency(unpaidBalance.toString()) }
-    val semanticDescription = "Payment status: $formattedPaid paid, $formattedUnpaid unpaid out of ${Utils.formatCurrency(monthlyRevenue.toString())} total"
+    val formattedPaid = remember(paidAmount) { Utils.formatCompactCurrency(paidAmount) }
+    val formattedUnpaid = remember(unpaidBalance) { Utils.formatCompactCurrency(unpaidBalance) }
+    val fullFormattedPaid = remember(paidAmount) { Utils.formatCurrency(paidAmount.toString()) }
+    val fullFormattedUnpaid = remember(unpaidBalance) { Utils.formatCurrency(unpaidBalance.toString()) }
+    val semanticDescription = "Payment status: $fullFormattedPaid paid, $fullFormattedUnpaid unpaid out of ${Utils.formatCurrency(monthlyRevenue.toString())} total"
 
     Card(
         modifier = Modifier
@@ -1084,6 +1173,7 @@ fun LineChart(revenueHistory: List<UiRevenueDataPoint>) {
         revenueHistory.minOfOrNull { it.revenue.toDouble() } ?: 0.0
     }
     val primaryColor = MaterialTheme.colorScheme.primary
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
@@ -1182,7 +1272,7 @@ fun LineChart(revenueHistory: List<UiRevenueDataPoint>) {
                         center = point
                     )
                     drawCircle(
-                        color = Color.White,
+                        color = surfaceColor,
                         radius = if (isSelected) 3.dp.toPx() else 2.dp.toPx(),
                         center = point
                     )
@@ -1209,7 +1299,7 @@ fun LineChart(revenueHistory: List<UiRevenueDataPoint>) {
         ) {
             revenueHistory.forEachIndexed { index, dataPoint ->
                 val formattedRevenue = remember(dataPoint.revenue) {
-                    Utils.formatCurrency(dataPoint.revenue.toString())
+                    Utils.formatCompactCurrency(dataPoint.revenue.toDouble())
                 }
                 val onClick = remember(index) {
                     { selectedIndex = if (selectedIndex == index) null else index }
@@ -1220,7 +1310,7 @@ fun LineChart(revenueHistory: List<UiRevenueDataPoint>) {
                         .weight(1f)
                         .clickable(onClick = onClick)
                         .semantics {
-                            contentDescription = "${dataPoint.monthLabel}: $formattedRevenue"
+                            contentDescription = "${dataPoint.monthLabel}: ${Utils.formatCurrency(dataPoint.revenue.toString())}"
                         },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
