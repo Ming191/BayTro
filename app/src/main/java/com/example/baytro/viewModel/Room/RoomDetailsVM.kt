@@ -8,6 +8,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.contract.Contract
+import com.example.baytro.data.contract.Status
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.room.RoomRepository
@@ -90,7 +91,8 @@ class RoomDetailsVM(
             try {
                 val contracts = contractRepository.getContractsByRoomId(roomId)
                 Log.d("RoomDetailsVM", "ContractsInRoomDetailsVM: ${contracts.size}")
-                _contract.value = contracts
+                val filteredContracts = contracts.filter { it.status != Status.ENDED }
+                _contract.value = filteredContracts
             } catch (e: Exception) {
                 e.printStackTrace()
                 _contract.value = emptyList()
