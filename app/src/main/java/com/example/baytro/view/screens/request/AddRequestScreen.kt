@@ -46,7 +46,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun AddRequestScreen(
     viewModel: AddRequestVM = koinViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: (requestAdded: Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val formState by viewModel.formState.collectAsState()
@@ -65,7 +65,7 @@ fun AddRequestScreen(
             is UiState.Success -> {
                 isNavigatingBack = true
                 Toast.makeText(context, "Request submitted successfully!", Toast.LENGTH_SHORT).show()
-                onNavigateBack()
+                onNavigateBack(true) // Request was successfully added
                 viewModel.resetState()
             }
             is UiState.Error -> {

@@ -132,8 +132,7 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
         TenantListScreen(
             onViewTenantInfoClick = { tenantId ->
                 navController.navigate(Screens.TenantInfo.createRoute(tenantId))
-            },
-            navController = navController
+            }
         )
     }
 
@@ -151,8 +150,16 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
         )
     }
 
-    composable(Screens.MaintenanceRequestList.route) {
+    composable(Screens.MaintenanceRequestList.route) { backStackEntry ->
+        // Listen for result from AddRequestScreen
+        val requestAdded = backStackEntry.savedStateHandle.get<Boolean>("request_added")
+
         RequestListScreen(
+            requestAdded = requestAdded,
+            onRequestAddedHandled = {
+                // Clear the flag after handling
+                backStackEntry.savedStateHandle.remove<Boolean>("request_added")
+            },
             onAddRequest = {
                 navController.navigate(Screens.AddRequest.route)
             },

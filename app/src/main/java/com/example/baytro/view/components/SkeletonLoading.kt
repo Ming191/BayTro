@@ -608,6 +608,7 @@ fun RequestCardSkeleton(modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(16.dp).fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Header: Title and Badge
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -617,8 +618,8 @@ fun RequestCardSkeleton(modifier: Modifier = Modifier) {
                         // Title
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.8f)
-                                .height(20.dp)
+                                .fillMaxWidth(0.7f)
+                                .height(24.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .shimmerEffect()
                         )
@@ -626,54 +627,175 @@ fun RequestCardSkeleton(modifier: Modifier = Modifier) {
                         // Created date
                         Box(
                             modifier = Modifier
-                                .width(80.dp)
+                                .width(150.dp)
                                 .height(14.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .shimmerEffect()
                         )
                     }
-                    // Badge
+                    // Status Badge
                     Box(
                         modifier = Modifier
-                            .width(60.dp)
-                            .height(24.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .width(85.dp)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .shimmerEffect()
                     )
                 }
-                // Description
+
+                // Description (2-3 lines)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.95f)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .shimmerEffect()
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
-                        .height(14.dp)
+                        .height(16.dp)
                         .clip(RoundedCornerShape(4.dp))
                         .shimmerEffect()
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
-                        .height(14.dp)
+                        .height(16.dp)
                         .clip(RoundedCornerShape(4.dp))
                         .shimmerEffect()
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+
+                // Divider
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                )
+
+                // Details Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Requester detail row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .shimmerEffect()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(70.dp)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .shimmerEffect()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(120.dp)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .shimmerEffect()
+                        )
+                    }
+
+                    // Location detail row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .shimmerEffect()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(60.dp)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .shimmerEffect()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(160.dp)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .shimmerEffect()
+                        )
+                    }
+
+                    // Scheduled date detail row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .shimmerEffect()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(95.dp)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .shimmerEffect()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(100.dp)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .shimmerEffect()
+                        )
+                    }
+                }
+
+                // Images section (optional - showing placeholder)
+                Column {
+                    Box(
+                        modifier = Modifier
+                            .width(120.dp)
+                            .height(18.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .shimmerEffect()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        repeat(3) {
+                            Box(
+                                modifier = Modifier
+                                    .width(120.dp)
+                                    .height(160.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .shimmerEffect()
+                            )
+                        }
+                    }
+                }
+
+                // Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Action buttons
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(36.dp)
+                            .height(40.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .shimmerEffect()
                     )
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(36.dp)
+                            .height(40.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .shimmerEffect()
                     )
