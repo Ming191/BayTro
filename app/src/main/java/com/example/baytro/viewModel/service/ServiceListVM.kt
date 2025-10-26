@@ -58,14 +58,14 @@ class ServiceListVM(
                     availableBuildings = buildingsNoArchived
                 )
 
-                if (buildings.isNotEmpty()) {
+                if (buildingsNoArchived.isNotEmpty()) {
                     // Try to preserve the currently selected building
                     val buildingToSelect = if (currentSelectedBuilding != null) {
                         // Check if the currently selected building still exists in the new list
-                        buildings.find { it.id == currentSelectedBuilding.id } ?: buildings[0]
+                        buildingsNoArchived.find { it.id == currentSelectedBuilding.id } ?: buildingsNoArchived[0]
                     } else {
                         // No building was selected before, select the first one
-                        buildings[0]
+                        buildingsNoArchived[0]
                     }
 
                     // Only trigger onBuildingChange if the building is different

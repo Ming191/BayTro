@@ -30,16 +30,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
+import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.CompactSearchBar
-import com.example.baytro.viewModel.tenant.TenantDisplay
+import com.example.baytro.view.components.TenantListSkeleton
 import com.example.baytro.viewModel.tenant.TenantListVM
+import com.example.baytro.viewModel.tenant.TenantDisplay
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun TenantListScreen(
+    navController: NavHostController,
     onViewTenantInfoClick: (String) -> Unit,
     viewModel: TenantListVM = koinViewModel()
 ) {
@@ -60,80 +65,87 @@ fun TenantListScreen(
 
     Log.d("TenantListScreen", "Filtered tenant list size: ${filteredTenantList.size}")
 
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.Start,
-        modifier = Modifier.fillMaxSize().padding(16.dp)
-    ) {
-        item {
-            CompactSearchBar(
-                modifier = Modifier.fillMaxWidth(),
-                value = searchQuery,
-                onValueChange = { viewModel.searchingQuery(it) },
-                placeholderText = "Search tenants..."
-            )
-        }
-        items(filteredTenantList) { display: TenantDisplay ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant, // màu viền nhạt
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Row(
+    // Show skeleton while tenantList is empty (loading). Replace with viewModel.isLoading if you add that flag.
+    val isLoading = tenantList.isEmpty()
+
+    if (isLoading) {
+        TenantListSkeleton(itemCount = 6)
+    } else {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier.fillMaxSize().padding(16.dp)
+        ) {
+            item {
+                CompactSearchBar(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = searchQuery,
+                    onValueChange = { viewModel.searchingQuery(it) },
+                    placeholderText = "Search tenants..."
+                )
+            }
+            items(filteredTenantList) { display: TenantDisplay ->
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
-                        .clickable {
-                            Log.d("TenantListScreen", "Tenant clicked: ${display.tenant.fullName}")
-                            onViewTenantInfoClick(display.tenant.id)
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    AsyncImage(
-                        model = display.tenant.profileImgUrl,
-                        contentDescription = display.tenant.fullName,
+                    Row(
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentScale = ContentScale.Crop
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable {
+                                Log.d("TenantListScreen", "Tenant clicked: ${display.tenant.fullName}")
+                                onViewTenantInfoClick(display.tenant.id)
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = display.tenant.fullName,
-                            style = MaterialTheme.typography.titleMedium // Giống headline
+                        AsyncImage(
+                            model = display.tenant.profileImgUrl,
+                            contentDescription = display.tenant.fullName,
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentScale = ContentScale.Crop
                         )
-                        Column {
-                            Text(
-                                text = display.tenant.phoneNumber,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = "${display.room.roomNumber} - ${display.building.name}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
 
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                        contentDescription = "Tenant Info",
-                        modifier = Modifier.size(24.dp)
-                    )
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = display.tenant.fullName,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Column {
+                                Text(
+                                    text = display.tenant.phoneNumber,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = "${display.room.roomNumber} - ${display.building.name}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                            contentDescription = "Tenant Info",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         }

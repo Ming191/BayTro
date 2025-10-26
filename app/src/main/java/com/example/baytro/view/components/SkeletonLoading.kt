@@ -2126,6 +2126,96 @@ fun LandlordDashboardSkeleton() {
     }
 }
 
+@Composable
+fun TenantListSkeleton(
+    itemCount: Int = 6
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item(key = "tenant_search_skeleton") {
+            // Search bar placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .shimmerEffect()
+                    .padding(bottom = 8.dp)
+            )
+        }
+
+        items(count = itemCount, key = { index -> "tenant_skeleton_$index" }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Avatar
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .shimmerEffect()
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Text content
+                    Column(
+                        modifier = Modifier
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.6f)
+                                .height(20.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .shimmerEffect()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.5f)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .shimmerEffect()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.4f)
+                                .height(14.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .shimmerEffect()
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Trailing arrow placeholder
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .shimmerEffect()
+                    )
+                }
+            }
+        }
+    }
+}
+
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewRequestListSkeleton() {

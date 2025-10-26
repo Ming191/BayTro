@@ -83,6 +83,7 @@ import com.example.baytro.view.components.CarouselOrientation
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequestListSkeleton
+import com.example.baytro.view.components.RequiredDateTextField
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.request.RequestListVM
 import com.example.baytro.viewModel.request.RequestListUiState
@@ -176,7 +177,10 @@ private fun RequestListContent(
         FilterDialog(
             buildings = uiState.buildings,
             selectedBuildingId = uiState.selectedBuildingId,
+            selectedFromDate = uiState.fromDate,
+            selectedToDate = uiState.toDate,
             onBuildingSelected = viewModel::selectBuilding,
+            onDateRangeSelected = viewModel::selectDateRange,
             onDismiss = { showFilterDialog = false }
         )
     }
@@ -393,18 +397,18 @@ private fun RequestListPage(
             }
 
             // Loading indicator at bottom
-            if (isLoadingMore) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        androidx.compose.material3.CircularProgressIndicator()
-                    }
-                }
-            }
+//            if (isLoadingMore) {
+//                item {
+//                    Box(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(16.dp),
+//                        contentAlignment = Alignment.Center
+//                    ) {
+//                        androidx.compose.material3.CircularProgressIndicator()
+//                    }
+//                }
+//            }
         }
     }
 }
@@ -779,9 +783,15 @@ fun RequestCardActions(
 private fun FilterDialog(
     buildings: List<BuildingSummary>,
     selectedBuildingId: String?,
+    selectedFromDate: String?,
+    selectedToDate: String?,
     onBuildingSelected: (String?) -> Unit,
+    onDateRangeSelected: (String?, String?) -> Unit = { _, _ -> },
     onDismiss: () -> Unit
 ) {
+    var fromDate by remember { mutableStateOf(selectedFromDate ?: "") }
+    var toDate by remember { mutableStateOf(selectedToDate ?: "") }
+
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -814,13 +824,37 @@ private fun FilterDialog(
                     onOptionSelected = { onBuildingSelected(it.id) },
                     optionToString = { it.name }
                 )
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Filter by date range",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                RequiredDateTextField(
+                    label = "From Date",
+                    selectedDate = fromDate,
+                    onDateSelected = { fromDate = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                RequiredDateTextField(
+                    label = "To Date",
+                    selectedDate = toDate,
+                    onDateSelected = { toDate = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
+            TextButton(onClick = {
+                onDateRangeSelected(fromDate, toDate)
+                onDismiss()
+            }) {
+                Text("Apply")
             }
         },
+
         containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(16.dp)
     )

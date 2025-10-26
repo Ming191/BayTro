@@ -97,45 +97,43 @@ fun AssigningScreen(
         Scaffold(
             topBar = {},
             bottomBar = {
-                BottomAppBar {
-                    AnimatedVisibility(
-                        visible = buttonsVisible,
-                        enter = fadeIn(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        ) + slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
-                            initialOffsetY = { it }
+                AnimatedVisibility(
+                    visible = buttonsVisible,
+                    enter = fadeIn(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
                         )
+                    ) + slideInVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        initialOffsetY = { it }
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
+                        OutlinedButton(
+                            onClick = onNavigateBack,
+                            modifier = Modifier.weight(1f),
+                            enabled = uiState !is UiState.Loading
                         ) {
-                            OutlinedButton(
-                                onClick = onNavigateBack,
-                                modifier = Modifier.weight(1f),
-                                enabled = uiState !is UiState.Loading
-                            ) {
-                                Text("Cancel")
-                            }
-                            Spacer(modifier = Modifier.padding(8.dp))
-                            Button(
-                                onClick = { viewModel.assignRequest() },
-                                modifier = Modifier.weight(1f),
-                                enabled = uiState !is UiState.Loading,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Text("Confirm")
-                            }
+                            Text("Cancel")
+                        }
+                        Spacer(modifier = Modifier.padding(8.dp))
+                        Button(
+                            onClick = { viewModel.assignRequest() },
+                            modifier = Modifier.weight(1f),
+                            enabled = uiState !is UiState.Loading,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text("Confirm")
                         }
                     }
                 }
@@ -144,10 +142,28 @@ fun AssigningScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    //.padding(paddingValues)
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+                AnimatedVisibility(
+                    visible = nameVisible,
+                    enter = fadeIn(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    ) + slideInVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        initialOffsetY = { it / 3 }
+                    )
+                ) {
+                    DividerWithSubhead("Assignee Information")
+                }
+
                 AnimatedVisibility(
                     visible = nameVisible,
                     enter = fadeIn(
@@ -175,7 +191,7 @@ fun AssigningScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 AnimatedVisibility(
                     visible = phoneVisible,
@@ -206,7 +222,7 @@ fun AssigningScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 AnimatedVisibility(
                     visible = photoVisible,
