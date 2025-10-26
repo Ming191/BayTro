@@ -42,44 +42,46 @@ class ChangePasswordVM (
     }
 
     fun changePassword() {
-        val currentState = _changePasswordFormState.value
+        val current = _changePasswordFormState.value
 
-        // Validate password
-        val passwordValidation = Validator.validatePassword(currentState.password)
-        val newPasswordValidator = Validator.validatePassword(currentState.newPassword)
-        val newPasswordStrengthValidator = Validator.validatePasswordStrength(currentState.newPassword)
-        val confirmPasswordValidator = Validator.validateConfirmPassword(currentState.password, currentState.newPassword)
-        val confirmNewPasswordValidator = Validator.validateConfirmPassword(currentState.newPassword, currentState.confirmNewPassword)
+        val passwordValidation = Validator.validatePassword(current.password)
+        val newPasswordValidation = Validator.validatePassword(current.newPassword)
+        val newPasswordStrengthValidation = Validator.validatePasswordStrength(current.newPassword)
+        val confirmPasswordValidation = Validator.validateConfirmPassword(current.password, current.newPassword)
+        val confirmNewPasswordValidation = Validator.validateConfirmPassword(current.newPassword, current.confirmNewPassword)
 
-        if (passwordValidation is ValidationResult.Error) {
-            _changePasswordFormState.value = currentState.copy(
-                passwordError = passwordValidation
-            )
-            return
-        }
+        val updatedState = current.copy(
+            passwordError = passwordValidation,
+            newPasswordError = newPasswordValidation,
+            newPasswordStrengthError = newPasswordStrengthValidation,
+            confirmNewPasswordError = confirmNewPasswordValidation
+        )
+        _changePasswordFormState.value = updatedState
 
-        if (newPasswordValidator == ValidationResult.Success && newPasswordStrengthValidator == ValidationResult.Success
-            && confirmNewPasswordValidator == ValidationResult.Success && confirmPasswordValidator != ValidationResult.Success) {
-            // Proceed with change password
-            viewModelScope.launch {
-                _changePasswordUIState.value = AuthUIState.Loading
-                try {
-                    val user = authRepository.getCurrentUser()
-                    user!!.updatePassword(currentState.newPassword)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                _changePasswordUIState.value = AuthUIState.PasswordChangedSuccess
-                            }
+        val hasError = listOf(
+            passwordValidation,
+            newPasswordValidation,
+            newPasswordStrengthValidation,
+            confirmNewPasswordValidation
+        ).any { it is ValidationResult.Error }
+        if (hasError) return
+        if (confirmPasswordValidation != ValidationResult.Success) return
+
+        viewModelScope.launch {
+            _changePasswordUIState.value = AuthUIState.Loading
+            try {
+                val user = authRepository.getCurrentUser()
+                user!!.updatePassword(current.newPassword)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            _changePasswordUIState.value = AuthUIState.PasswordChangedSuccess
                         }
-                    _changePasswordUIState.value = AuthUIState.Success(user)
-                } catch (e: Exception) {
-                    _changePasswordUIState.value = AuthUIState.Error(
-                        e.message ?: "Failed to change password"
-                    )
-                }
+                    }
+                _changePasswordUIState.value = AuthUIState.Success(user)
+            } catch (e: Exception) {
+                _changePasswordUIState.value =
+                    AuthUIState.Error(e.message ?: "Failed to change password")
             }
-        } else {
-            return
         }
     }
 }

@@ -124,10 +124,11 @@ fun EditPersonalInformationContent(
                 value = formState.fullName,
                 onValueChange = onFullNameChange,
                 label = "Full name",
-                isError = false,
-                errorMessage = null,
-                modifier = Modifier
-                    .fillMaxWidth()
+                isError = !formState.fullNumberError.isSuccess,
+                errorMessage = formState.fullNumberError.let {
+                    if (it is ValidationResult.Error) it.message else null
+                },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer (
@@ -162,10 +163,11 @@ fun EditPersonalInformationContent(
                 value = formState.address,
                 onValueChange = onAddressChange,
                 label = "Address",
-                isError = false,
-                errorMessage = null,
-                modifier = Modifier
-                    .fillMaxWidth()
+                isError = !formState.addressError.isSuccess,
+                errorMessage = formState.addressError.let {
+                    if (it is ValidationResult.Error) it.message else null
+                },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer (
@@ -186,8 +188,10 @@ fun EditPersonalInformationContent(
                 options = Gender.entries.toList().dropLast(1),
                 selectedOption = formState.gender,
                 onOptionSelected = onGenderChange,
-                isError = false,
-                errorMessage = null
+                isError = !formState.genderError.isSuccess,
+                errorMessage = formState.genderError.let {
+                    if (it is ValidationResult.Error) it.message else null
+                }
             )
         }
 
@@ -297,6 +301,7 @@ fun EditPersonalInformationContent(
                         options = listOf("MB", "VCB", "BIDV"),
                         selectedOption = roleFormState.bankCode,
                         onOptionSelected = onBankCodeChange,
+                        enabled = false,
                         modifier = Modifier
                             .fillMaxWidth()
                     )
