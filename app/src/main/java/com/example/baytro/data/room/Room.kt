@@ -9,6 +9,7 @@ enum class Status {
     AVAILABLE,
     OCCUPIED,
     MAINTENANCE,
+    ARCHIVED
 }
 
 @Serializable

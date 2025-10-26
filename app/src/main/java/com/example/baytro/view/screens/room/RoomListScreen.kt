@@ -50,6 +50,7 @@ import com.example.baytro.R
 import com.example.baytro.data.Building
 import com.example.baytro.data.room.Floor
 import com.example.baytro.data.room.Room
+import com.example.baytro.data.room.Status
 import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.Tabs
 import com.example.baytro.viewModel.Room.RoomListVM
@@ -130,9 +131,11 @@ fun ViewRoomList(
     roomTenants: Map<String, List<String>> = emptyMap()
 ) {
     var expandedFloorNumber by remember { mutableIntStateOf(-1) }
-    val totalRooms = floors.sumOf { it.rooms.size }
+    val totalRooms = floors.sumOf { floor ->
+        floor.rooms.count { room -> room.status != Status.ARCHIVED}
+    }
     val occupiedRooms = floors.sumOf { floor ->
-        floor.rooms.count { room -> roomTenants[room.id]?.isNotEmpty() == true }
+        floor.rooms.count { room -> room.status != Status.ARCHIVED && roomTenants[room.id]?.isNotEmpty() == true }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -438,7 +441,9 @@ fun RoomListItem(
                         imageVector = Icons.Filled.MeetingRoom,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.padding(8.dp).size(20.dp)
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(20.dp)
                     )
                 }
                 Text(
@@ -703,7 +708,10 @@ fun BuildingPhotosSection(building: Building?) {
                         repeat(building.imageUrls.size) { index ->
                             Box(
                                 modifier = Modifier
-                                    .size(if (photoPagerState.currentPage == index) 24.dp else 8.dp, 8.dp)
+                                    .size(
+                                        if (photoPagerState.currentPage == index) 24.dp else 8.dp,
+                                        8.dp
+                                    )
                                     .clip(RoundedCornerShape(4.dp))
                                     .background(
                                         if (photoPagerState.currentPage == index)
