@@ -30,7 +30,7 @@ class Settings:
     
     # GraphRAG Configuration
     JSON_DATA_PATH: str = os.getenv("JSON_DATA_PATH", "data/luatnhao_structuredv33.converted.json")
-    CHROMADB_PATH: str = os.getenv("CHROMADB_PATH", "chromadb_law_improved")
+    CHROMADB_PATH: str = os.getenv("CHROMADB_PATH", "chromadb_law_v2")
     COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", "law_nodes_improved")
     
     # API Limits
