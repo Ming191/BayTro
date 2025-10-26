@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 enum class MeterStatus {
     PENDING,
     APPROVED,
-    DECLINED
+    DECLINED,
+    CANCELLED
 }
 
 @Serializable

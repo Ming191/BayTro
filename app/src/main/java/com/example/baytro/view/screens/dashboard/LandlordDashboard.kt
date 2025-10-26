@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarToday
@@ -89,7 +90,8 @@ fun LandlordDashboard(
     onNavigateToBills: () -> Unit = {},
     onNavigateToBuildings: () -> Unit = {},
     onNavigateToMaintenance: () -> Unit = {},
-    onNavigateToImportBuildingRoom: () -> Unit = {}
+    onNavigateToImportBuildingRoom: () -> Unit = {},
+    onNavigateToAiAssistant: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -104,6 +106,7 @@ fun LandlordDashboard(
             onNavigateToBills = onNavigateToBills,
             onNavigateToMaintenance = onNavigateToMaintenance,
             onNavigateToImportBuildingRoom = onNavigateToImportBuildingRoom,
+            onNavigateToAiAssistant = onNavigateToAiAssistant,
             onRefresh = { viewModel.refresh() }
         )
     }
@@ -119,7 +122,8 @@ fun QuickActionsSection(
     onNavigateToPendingReadings: () -> Unit,
     onNavigateToTenantList: () -> Unit,
     onNavigateToBills: () -> Unit,
-    onNavigateToBuildings: () -> Unit
+    onNavigateToBuildings: () -> Unit,
+    onNavigateToAiAssistant: () -> Unit = {}
 ) {
     val onPendingReadingsClick = remember { onNavigateToPendingReadings }
     val onTenantListClick = remember { onNavigateToTenantList }
@@ -178,6 +182,13 @@ fun QuickActionsSection(
                 }
             }
         }
+
+        QuickActionButton(
+            icon = Icons.Default.Android,
+            label = "AI Assistant",
+            onClick = onNavigateToAiAssistant,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -360,6 +371,7 @@ fun LandlordDashboardContent(
     onNavigateToBuildings: () -> Unit = {},
     onNavigateToMaintenance: () -> Unit = {},
     onNavigateToImportBuildingRoom: () -> Unit = {},
+    onNavigateToAiAssistant: () -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
     val onPendingReadingsClick = remember { onNavigateToPendingReadings }
@@ -517,7 +529,8 @@ fun LandlordDashboardContent(
                         onNavigateToPendingReadings = onPendingReadingsClick,
                         onNavigateToTenantList = onTenantListClick,
                         onNavigateToBills = onBillsClick,
-                        onNavigateToBuildings = onBuildingsClick
+                        onNavigateToBuildings = onBuildingsClick,
+                        onNavigateToAiAssistant = onNavigateToAiAssistant
                     )
                 }
             }

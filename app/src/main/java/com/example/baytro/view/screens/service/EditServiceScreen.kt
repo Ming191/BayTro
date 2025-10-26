@@ -2,12 +2,9 @@ package com.example.baytro.view.screens.service
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -39,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -79,6 +76,10 @@ fun EditServiceScreen(
     when (uiState) {
         is UiState.Success -> {
             Toast.makeText(LocalContext.current, "Updated service", Toast.LENGTH_SHORT).show()
+            // Set flag to trigger refresh in ServiceListScreen
+            navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.set("service_modified", true)
             navController.popBackStack()
             viewModel.clearError()
         }
@@ -118,13 +119,9 @@ fun EditServiceContent(
     var roomsSectionVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        delay(50)
         nameFieldVisible = true
-        delay(80)
         priceFieldVisible = true
-        delay(80)
         metricsFieldVisible = true
-        delay(100)
         roomsSectionVisible = true
     }
 
@@ -141,18 +138,7 @@ fun EditServiceContent(
             ) {
                 AnimatedVisibility(
                     visible = nameFieldVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
+                    enter = fadeIn(animationSpec = tween(300))
                 ) {
                     OutlinedTextField(
                         value = formState.name,
@@ -165,18 +151,7 @@ fun EditServiceContent(
 
                 AnimatedVisibility(
                     visible = priceFieldVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
+                    enter = fadeIn(animationSpec = tween(300))
                 ) {
                     OutlinedTextField(
                         value = formState.price,
@@ -189,18 +164,7 @@ fun EditServiceContent(
 
                 AnimatedVisibility(
                     visible = metricsFieldVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { -it / 4 }
-                    )
+                    enter = fadeIn(animationSpec = tween(300))
                 ) {
                     DropdownSelectField(
                         label = "Metrics",
@@ -215,18 +179,7 @@ fun EditServiceContent(
 
                 AnimatedVisibility(
                     visible = roomsSectionVisible,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetY = { it / 4 }
-                    )
+                    enter = fadeIn(animationSpec = tween(300))
                 ) {
                     if (formState.availableRooms.isNotEmpty()) {
                         Column(
@@ -239,20 +192,13 @@ fun EditServiceContent(
                             var searchBarVisible by remember { mutableStateOf(false) }
 
                             LaunchedEffect(Unit) {
-                                delay(100)
                                 dividerVisible = true
-                                delay(150)
                                 searchBarVisible = true
                             }
 
                             AnimatedVisibility(
                                 visible = dividerVisible,
-                                enter = fadeIn(
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMedium
-                                    )
-                                )
+                                enter = fadeIn(animationSpec = tween(300))
                             ) {
                                 HorizontalDivider(
                                     thickness = 2.dp,
@@ -262,18 +208,7 @@ fun EditServiceContent(
 
                             AnimatedVisibility(
                                 visible = searchBarVisible,
-                                enter = fadeIn(
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessLow
-                                    )
-                                ) + slideInVertically(
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessLow
-                                    ),
-                                    initialOffsetY = { -it / 4 }
-                                )
+                                enter = fadeIn(animationSpec = tween(300))
                             ) {
                                 Row(
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -312,11 +247,9 @@ fun EditServiceContent(
                             LaunchedEffect(formState.selectedBuilding?.id) {
                                 if (currentBuildingId != formState.selectedBuilding?.id && currentBuildingId != null) {
                                     roomsVisible = false
-                                    delay(300)
                                 }
                                 currentBuildingId = formState.selectedBuilding?.id
                                 if (filteredRooms.isNotEmpty()) {
-                                    delay(250)
                                     roomsVisible = true
                                 }
                             }
@@ -340,26 +273,12 @@ fun EditServiceContent(
 
                                         LaunchedEffect(room.id, formState.selectedBuilding?.id) {
                                             visible = false
-                                            val delayTime = index * 80L + 100L
-                                            delay(delayTime)
                                             visible = true
                                         }
 
                                         AnimatedVisibility(
                                             visible = visible,
-                                            enter = fadeIn(
-                                                animationSpec = spring(
-                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                    stiffness = Spring.StiffnessLow
-                                                ),
-                                                initialAlpha = 0f
-                                            ) + slideInVertically(
-                                                animationSpec = spring(
-                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                    stiffness = Spring.StiffnessLow
-                                                ),
-                                                initialOffsetY = { -it / 4 }
-                                            )
+                                            enter = fadeIn(animationSpec = tween(250))
                                         ) {
                                             Card(
                                                 modifier = Modifier
@@ -397,24 +316,12 @@ fun EditServiceContent(
                     } else if (formState.selectedBuilding != null) {
                         var emptyMessageVisible by remember { mutableStateOf(false) }
                         LaunchedEffect(Unit) {
-                            delay(600)
                             emptyMessageVisible = true
                         }
 
                         AnimatedVisibility(
                             visible = emptyMessageVisible,
-                            enter = fadeIn(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                )
-                            ) + slideInVertically(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                ),
-                                initialOffsetY = { it / 4 }
-                            )
+                            enter = fadeIn(animationSpec = tween(300))
                         ) {
                             Column(
                                 modifier = Modifier
@@ -425,12 +332,6 @@ fun EditServiceContent(
                             ) {
                                 HorizontalDivider(
                                     thickness = 2.dp,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                )
-                                Text(
-                                    text = "This building has no rooms yet.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(vertical = 8.dp)
                                 )
                                 Text(
@@ -448,30 +349,15 @@ fun EditServiceContent(
             }
         },
         bottomBar = {
-            var buttonVisible by remember { mutableStateOf(false) }
-
-            LaunchedEffect(Unit) {
-                delay(400)
-                buttonVisible = true
-            }
-
-            AnimatedVisibility(
-                visible = buttonVisible,
-                enter = fadeIn(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                ) + slideInVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    initialOffsetY = { it }
-                )
+            BottomAppBar(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 SubmitButton(
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .padding(horizontal = 16.dp),
                     isLoading = uiState is UiState.Loading,
                     onClick = { onConfirm() }
                 )

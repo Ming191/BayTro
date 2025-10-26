@@ -3,7 +3,6 @@ package com.example.baytro.view.screens.request
 import SpeedDialFab
 import SpeedDialMenuItem
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -39,6 +38,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,6 +47,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -143,6 +144,7 @@ fun RequestListScreen(
         onAddRequest = onAddRequest,
         onAssignRequest = onAssignRequest,
         onUpdateRequest = onUpdateRequest,
+        onCompleteRequest = { requestId -> viewModel.completeRequest(requestId) },
         snackbarHostState = snackbarHostState,
         onRefresh = { viewModel.refresh() }
     )
@@ -158,6 +160,7 @@ private fun RequestListContent(
     onAddRequest: () -> Unit,
     onAssignRequest: (String) -> Unit,
     onUpdateRequest: (String) -> Unit,
+    onCompleteRequest: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
     onRefresh: () -> Unit
 ) {
@@ -231,19 +234,17 @@ private fun RequestListContent(
             }
         }
     ) { paddingValues ->
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = onRefresh,
-            state = pullToRefreshState,
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            Crossfade(
-                targetState = uiState.isLoading || uiState.isRefreshing,
-                label = "request_list_crossfade"
-            ) { isLoading ->
-                if (isLoading) {
-                    RequestListSkeleton(itemCount = 5)
-                } else {
+        Box(modifier = Modifier.padding(paddingValues)) {
+            // Show skeleton only on initial load, not on refresh
+            if (uiState.isLoading && !uiState.isRefreshing) {
+                RequestListSkeleton(itemCount = 5)
+            } else {
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = onRefresh,
+                    state = pullToRefreshState,
+                    modifier = Modifier.fillMaxSize()
+                ) {
                     RequestListPager(
                         pagerState = pagerState,
                         requests = uiState.requests,
@@ -251,6 +252,7 @@ private fun RequestListContent(
                         selectedTabIndex = selectedTabIndex,
                         onAssignRequest = onAssignRequest,
                         onUpdateRequest = onUpdateRequest,
+                        onCompleteRequest = onCompleteRequest,
                         lazyListStates = lazyListStates,
                         snackbarHostState = snackbarHostState,
                         viewModel = viewModel,
@@ -271,6 +273,7 @@ private fun RequestListPager(
     selectedTabIndex: Int,
     onAssignRequest: (String) -> Unit,
     onUpdateRequest: (String) -> Unit,
+    onCompleteRequest: (String) -> Unit,
     lazyListStates: Map<Int, LazyListState>,
     snackbarHostState: SnackbarHostState,
     viewModel: RequestListVM,
@@ -302,6 +305,7 @@ private fun RequestListPager(
                 isLandlord = isLandlord,
                 onAssignRequest = onAssignRequest,
                 onUpdateRequest = onUpdateRequest,
+                onCompleteRequest = onCompleteRequest,
                 lazyListState = lazyListStates[page] ?: rememberLazyListState(),
                 snackbarHostState = snackbarHostState,
                 viewModel = viewModel,
@@ -321,6 +325,7 @@ private fun RequestListPage(
     isLandlord: Boolean,
     onAssignRequest: (String) -> Unit,
     onUpdateRequest: (String) -> Unit,
+    onCompleteRequest: (String) -> Unit,
     lazyListState: LazyListState,
     snackbarHostState: SnackbarHostState,
     viewModel: RequestListVM,
@@ -391,6 +396,7 @@ private fun RequestListPage(
                         isLandlord = isLandlord,
                         onAssignRequest = onAssignRequest,
                         onUpdateRequest = onUpdateRequest,
+                        onCompleteRequest = onCompleteRequest,
                         snackbarHostState = snackbarHostState
                     )
                 }
@@ -419,6 +425,7 @@ fun RequestCard(
     isLandlord: Boolean,
     onAssignRequest: (String) -> Unit,
     onUpdateRequest: (String) -> Unit = {},
+    onCompleteRequest: (String) -> Unit = {},
     snackbarHostState: SnackbarHostState
 ) {
     val request = info.request
@@ -428,9 +435,8 @@ fun RequestCard(
         RequestStatus.DONE -> MaterialTheme.colorScheme.primary
     }
 
-    Card(
+    OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
     ) {
         Row {
             Box(
@@ -496,6 +502,7 @@ fun RequestCard(
                     onAssignRequest = onAssignRequest,
                     info = info,
                     onUpdateRequest = onUpdateRequest,
+                    onCompleteRequest = onCompleteRequest,
                     snackbarHostState = snackbarHostState
                 )
             }
@@ -656,14 +663,42 @@ fun RequestCardActions(
     isLandlord: Boolean,
     onAssignRequest: (String) -> Unit,
     onUpdateRequest: (String) -> Unit,
+    onCompleteRequest: (String) -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var showContactDialog by remember { mutableStateOf(false) }
+    var showCompleteDialog by remember { mutableStateOf(false) }
+
+    if (showCompleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showCompleteDialog = false },
+            title = { Text("Complete Request") },
+            text = { Text("Are you sure you want to mark this maintenance request as complete?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCompleteDialog = false
+                        onCompleteRequest(request.id)
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Request marked as complete")
+                        }
+                    }
+                ) {
+                    Text("Complete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCompleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     if (showContactDialog && request.status == RequestStatus.IN_PROGRESS && !isLandlord) {
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { showContactDialog = false },
             title = { Text("Contact") },
             text = {
@@ -775,12 +810,24 @@ fun RequestCardActions(
                     Text("Update", style = MaterialTheme.typography.labelLarge)
                 }
             }
+            !isLandlord && request.status == RequestStatus.IN_PROGRESS -> {
+                Button(
+                    onClick = { showCompleteDialog = true },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary
+                    )
+                ) {
+                    Text("Complete", style = MaterialTheme.typography.labelLarge)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun FilterDialog(
+fun FilterDialog(
     buildings: List<BuildingSummary>,
     selectedBuildingId: String?,
     selectedFromDate: String?,

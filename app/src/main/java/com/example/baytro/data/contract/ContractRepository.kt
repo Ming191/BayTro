@@ -214,6 +214,7 @@ class ContractRepository(
         }
     }
 
+
     suspend fun getContractsByLandlordId(landlordId: String): List<Contract> {
         if (landlordId.isBlank()) {
             Log.d("ContractRepository", "Query skipped: landlordId is blank")

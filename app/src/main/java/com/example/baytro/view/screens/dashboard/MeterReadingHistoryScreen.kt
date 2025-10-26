@@ -274,6 +274,7 @@ fun StatusChip(status: MeterStatus) {
         MeterStatus.PENDING -> Triple(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, "Pending")
         MeterStatus.APPROVED -> Triple(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, "Approved")
         MeterStatus.DECLINED -> Triple(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, "Declined")
+        MeterStatus.CANCELLED -> Triple(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, "Cancelled")
     }
     Surface(color = color, shape = RoundedCornerShape(8.dp)) {
         Text(

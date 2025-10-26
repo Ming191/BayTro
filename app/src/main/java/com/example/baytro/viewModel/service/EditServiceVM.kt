@@ -21,7 +21,6 @@ class EditServiceVM(
 
     private val serviceId: String? = savedStateHandle["serviceId"]
     private val buildingId: String? = savedStateHandle["buildingId"]
-    private val roomId: String? = savedStateHandle["roomId"]
 
     private val _uiState = MutableStateFlow<UiState<Service>>(UiState.Loading)
     val uiState: StateFlow<UiState<Service>> = _uiState
@@ -33,19 +32,16 @@ class EditServiceVM(
 
     init {
         viewModelScope.launch { loadService() }
-        Log.d("EditServiceVM", "roomId: $roomId, buildingId: $buildingId, serviceId: $serviceId")
+        Log.d("EditServiceVM", "buildingId: $buildingId, serviceId: $serviceId")
     }
 
-    // ==========================
-    //       LOAD SERVICE
-    // ==========================
     private suspend fun loadService() {
         _uiState.value = UiState.Loading
         try {
-            when {
-                roomId != null && serviceId != null -> loadFromRoom(roomId, serviceId)
-                buildingId != null && serviceId != null -> loadFromBuilding(buildingId, serviceId)
-                else -> throw Exception("No building or room specified")
+            if (buildingId != null && serviceId != null) {
+                loadFromBuilding(buildingId, serviceId)
+            } else {
+                throw Exception("Building ID or Service ID not provided")
             }
             _uiState.value = UiState.Idle
         } catch (e: Exception) {
@@ -54,40 +50,16 @@ class EditServiceVM(
         }
     }
 
-    private suspend fun loadFromRoom(roomId: String, serviceId: String) {
-        val room = roomRepo.getById(roomId) ?: throw Exception("Room not found")
-        val building = buildingRepo.getById(room.buildingId) ?: throw Exception("Building not found")
-
-        // Lấy service từ subcollection: rooms/{roomId}/services/{serviceId}
-        val service = roomRepo.getExtraServiceById(roomId, serviceId)
-            ?: throw Exception("Service not found in room subcollection")
-
-        originalService = service
-
-        _formState.value = EditServiceFormState(
-            name = service.name,
-            price = service.price.toString(),
-            metrics = service.metric,
-            isDefault = service.isDefault,
-            availableRooms = listOf(room),
-            selectedRooms = setOf(room.id),
-            selectedBuilding = building,
-            availableBuildings = listOf(building)
-        )
-    }
-
-
-    private suspend fun loadFromBuilding(buildingId: String, serviceId: String?) {
+    private suspend fun loadFromBuilding(buildingId: String, serviceId: String) {
         val building = buildingRepo.getById(buildingId) ?: throw Exception("Building not found")
-        val service = serviceId?.let { buildingRepo.getServiceById(buildingId, it) }
+        val service = buildingRepo.getServiceById(buildingId, serviceId)
             ?: throw Exception("Service not found")
 
         originalService = service
 
-        val rooms = roomRepo.getRoomsByBuildingId(building.id)
-        val selectedRooms = rooms.filter { room ->
-            room.extraService.any { it.id == serviceId }
-        }.map { it.id }.toSet()
+        // Don't load rooms at all - we're editing a building service, not room services
+        // Loading rooms causes unnecessary queries and UI glitches
+        Log.d("EditServiceVM", "Building service loaded: ${service.name}")
 
         _formState.value = EditServiceFormState(
             name = service.name,
@@ -96,8 +68,8 @@ class EditServiceVM(
             isDefault = service.isDefault,
             selectedBuilding = building,
             availableBuildings = listOf(building),
-            availableRooms = rooms,
-            selectedRooms = selectedRooms
+            availableRooms = emptyList(), // Don't load rooms to avoid glitches
+            selectedRooms = emptySet()
         )
     }
 
@@ -145,51 +117,9 @@ class EditServiceVM(
             )
 
             try {
-                val allRooms = state.availableRooms
-                val selectedRooms = state.selectedRooms
-
-                // CASE 1: Tất cả hoặc không chọn phòng nào → service thuộc BUILDING
-                if (selectedRooms.isEmpty() || selectedRooms.size == allRooms.size) {
-                    //  Cập nhật service ở building
-                    buildingRepo.updateServiceInBuilding(building.id, updatedService)
-
-                    //  Xóa service khỏi tất cả room (nếu có)
-                    allRooms.forEach { room ->
-                        roomRepo.removeExtraServiceFromRoom(room.id, oldService.id)
-                    }
-
-                    Log.d("EditServiceVM", "Service updated at building level")
-                }
-                //  CASE 2: Chỉ chọn 1 số phòng → service thuộc ROOM
-                else {
-                    //  Xóa service khỏi building
-                    buildingRepo.deleteServiceFromBuilding(building.id, oldService.id)
-
-                    //  Với mỗi phòng:
-                    allRooms.forEach { room ->
-                        val hasService = roomRepo.hasExtraService(room.id, oldService.id)
-                        val isSelected = selectedRooms.contains(room.id)
-
-                        when {
-                            isSelected && !hasService -> {
-                                // Thêm mới
-                                roomRepo.addExtraServiceToRoom(room.id, updatedService)
-                            }
-
-                            isSelected && hasService -> {
-                                // Cập nhật
-                                roomRepo.updateExtraServiceInRoom(room.id, updatedService)
-                            }
-
-                            !isSelected && hasService -> {
-                                // Gỡ bỏ
-                                roomRepo.removeExtraServiceFromRoom(room.id, oldService.id)
-                            }
-                        }
-                    }
-
-                    Log.d("EditServiceVM", "Service moved to selected rooms")
-                }
+                // Building service - only update at building level
+                buildingRepo.updateServiceInBuilding(building.id, updatedService)
+                Log.d("EditServiceVM", "Building service updated: ${updatedService.name}")
 
                 _uiState.value = UiState.Success(updatedService)
             } catch (e: Exception) {
@@ -203,9 +133,6 @@ class EditServiceVM(
         _uiState.value = UiState.Idle
     }
 
-    // ==========================
-    //       HELPERS
-    // ==========================
     private inline fun <T> MutableStateFlow<T>.update(block: (T) -> T) {
         value = block(value)
     }

@@ -67,6 +67,7 @@ fun LandlordMainScreen() {
     val navController = rememberNavController()
 
     ModalNavigationDrawer(
+        gesturesEnabled = false,
         drawerContent = {
             ModalDrawerSheet {
                 NavigationDrawerView (
