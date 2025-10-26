@@ -32,6 +32,9 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
                 }
             },
             backToRoomListScreen = {
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("room_modified", true)
                 navController.popBackStack()
             }
         )
@@ -43,6 +46,9 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
     ) {
         EditRoomScreen(
             onBackClick = {
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("room_modified", true)
                 navController.popBackStack()
             }
         )
@@ -64,7 +70,8 @@ fun NavGraphBuilder.roomNavGraph(navController: NavHostController) {
             },
             onBackClick = {
                 navController.popBackStack()
-            }
+            },
+            navController = navController
         )
     }
 }

@@ -17,7 +17,7 @@ class RoomListVM(
     private val roomRepository: RoomRepository,
     private val buildingRepository: BuildingRepository,
     private val contractRepository: ContractRepository,
-    private val savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val buildingId: String = checkNotNull(savedStateHandle["buildingId"])
@@ -36,6 +36,9 @@ class RoomListVM(
 
     private val _isLoadingRooms = MutableStateFlow(false)
     val isLoadingRooms: StateFlow<Boolean> = _isLoadingRooms
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     private val _roomTenants = MutableStateFlow<Map<String, List<String>>>(emptyMap())
     val roomTenants: StateFlow<Map<String, List<String>>> = _roomTenants
@@ -105,6 +108,19 @@ class RoomListVM(
             } catch (e: Exception) {
                 e.printStackTrace()
                 _buildingTenants.value = emptyList()
+            }
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                fetchBuilding()
+                fetchRooms()
+                fetchBuildingTenants()
+            } finally {
+                _isRefreshing.value = false
             }
         }
     }

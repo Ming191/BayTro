@@ -47,6 +47,37 @@ class BuildingCloudFunctions(
         }
     }
 
+    /**
+     * Calls the backend function to soft-delete (archive) a room.
+     * The room can only be archived if it has no active contracts.
+     *
+     * @param roomId The ID of the room to be archived.
+     * @return A Result containing a success message or an Exception on failure.
+     */
+    suspend fun archiveRoom(roomId: String): Result<String> {
+        return try {
+            val data = hashMapOf("roomId" to roomId)
+
+            val result = functions.getHttpsCallable("archiveRoom")
+                .call(data)
+                .await()
+
+            val response = result.data as? Map<*, *>
+            val message = response?.get("message") as? String ?: "Room archived successfully."
+
+            Log.d(TAG, "Successfully archived room: $roomId")
+            Result.success(message)
+
+        } catch (e: FirebaseFunctionsException) {
+            Log.e(TAG, "Error archiving room $roomId", e)
+            val errorMessage = Utils.parseFirebaseError(e)
+            Result.failure(Exception(errorMessage))
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error archiving room $roomId", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun getBuildingListWithStats(
         searchQuery: String,
         statusFilter: String

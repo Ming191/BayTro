@@ -28,6 +28,8 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,8 +69,10 @@ fun ViewBuildingTabRow(
     onDeleteBuilding: (String) -> Unit,
     buildingTenants: List<String>,
     isLoadingRooms: Boolean = false,
+    isRefreshing: Boolean = false,
     roomTenants: Map<String, List<String>> = emptyMap(),
-    currentTabIndex: Int // Pass the current selected tab index
+    currentTabIndex: Int,
+    onRefresh: () -> Unit = {}
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(initialPage = 0) { tabItemList.size }
@@ -107,7 +111,9 @@ fun ViewBuildingTabRow(
                     navController = navController,
                     buildingId = building?.id,
                     isLoading = isLoadingRooms,
-                    roomTenants = roomTenants
+                    isRefreshing = isRefreshing,
+                    roomTenants = roomTenants,
+                    onRefresh = onRefresh
                 )
                 1 -> ViewBuildingDetails(
                     navController = navController,
@@ -122,15 +128,20 @@ fun ViewBuildingTabRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewRoomList(
     floors: List<Floor>,
     navController: NavController,
     buildingId: String?,
     isLoading: Boolean = false,
-    roomTenants: Map<String, List<String>> = emptyMap()
+    isRefreshing: Boolean = false,
+    roomTenants: Map<String, List<String>> = emptyMap(),
+    onRefresh: () -> Unit = {}
 ) {
     var expandedFloorNumber by remember { mutableIntStateOf(-1) }
+    val pullToRefreshState = rememberPullToRefreshState()
+
     val totalRooms = floors.sumOf { floor ->
         floor.rooms.count { room -> room.status != Status.ARCHIVED}
     }
@@ -139,7 +150,7 @@ fun ViewRoomList(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (isLoading) {
+        if (isLoading && !isRefreshing) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -210,30 +221,36 @@ fun ViewRoomList(
                 }
             }
         } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(16.dp),
-                modifier = Modifier.fillMaxSize()
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = onRefresh,
+                state = pullToRefreshState
             ) {
-                // Summary card
-                item {
-                    SummaryCard(
-                        totalFloors = floors.size,
-                        totalRooms = totalRooms,
-                        occupiedRooms = occupiedRooms
-                    )
-                }
-                items(floors) { floor ->
-                    FloorCard(
-                        floor = floor,
-                        isExpanded = expandedFloorNumber == floor.number,
-                        onExpandToggle = {
-                            expandedFloorNumber = if (expandedFloorNumber == floor.number) -1 else floor.number
-                        },
-                        onRoomClick = { roomId ->
-                            navController.navigate(Screens.RoomDetails.createRoute(roomId))
-                        }
-                    )
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Summary card
+                    item {
+                        SummaryCard(
+                            totalFloors = floors.size,
+                            totalRooms = totalRooms,
+                            occupiedRooms = occupiedRooms
+                        )
+                    }
+                    items(floors) { floor ->
+                        FloorCard(
+                            floor = floor,
+                            isExpanded = expandedFloorNumber == floor.number,
+                            onExpandToggle = {
+                                expandedFloorNumber = if (expandedFloorNumber == floor.number) -1 else floor.number
+                            },
+                            onRoomClick = { roomId ->
+                                navController.navigate(Screens.RoomDetails.createRoute(roomId))
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -846,8 +863,20 @@ fun RoomListScreen(
     val building by viewModel.building.collectAsState()
     val buildingTenants by viewModel.buildingTenants.collectAsState()
     val isLoadingRooms by viewModel.isLoadingRooms.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val roomTenants by viewModel.roomTenants.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    // Listen for results from Add/Edit/Delete Room operations
+    val currentBackStackEntry = navController.currentBackStackEntry
+    val roomModified = currentBackStackEntry?.savedStateHandle?.get<Boolean>("room_modified")
+
+    LaunchedEffect(roomModified) {
+        if (roomModified == true) {
+            viewModel.refresh()
+            currentBackStackEntry.savedStateHandle.remove<Boolean>("room_modified")
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.fetchBuilding()
@@ -887,8 +916,10 @@ fun RoomListScreen(
             onDeleteBuilding = { id -> viewModel.deleteBuilding(id) },
             buildingTenants = buildingTenants,
             isLoadingRooms = isLoadingRooms,
+            isRefreshing = isRefreshing,
             roomTenants = roomTenants,
-            currentTabIndex = selectedTab
+            currentTabIndex = selectedTab,
+            onRefresh = { viewModel.refresh() }
         )
 
     }

@@ -3,7 +3,6 @@ package com.example.baytro.data
 import com.example.baytro.data.service.Service
 import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import dev.gitlive.firebase.firestore.Direction
-import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -15,7 +14,9 @@ class BuildingRepository(
     private val collection = db.collection("buildings")
 
     override suspend fun getAll(): List<Building> {
-        val snapshot = collection.get()
+        val snapshot = collection
+            .where { "status" notEqualTo "ARCHIVED" }
+            .get()
         return snapshot.documents.map { doc ->
             val b = doc.data<Building>()
             b.copy(id = doc.id)
@@ -49,33 +50,6 @@ class BuildingRepository(
 
     override suspend fun updateFields(id: String, fields: Map<String, Any?>) {
         collection.document(id).update(fields)
-    }
-
-    suspend fun getBuildingsByIds(buildingIds: List<String>): List<Building> {
-        if (buildingIds.isEmpty()) return emptyList()
-
-        return try {
-            val batches = buildingIds.chunked(10)
-            val buildings = mutableListOf<Building>()
-
-            batches.forEach { batch ->
-                val snapshot = collection.where {
-                    FieldPath.documentId inArray batch
-                }.get()
-
-                snapshot.documents.mapNotNullTo(buildings) { doc ->
-                    try {
-                        val building = doc.data<Building>()
-                        building.copy(id = doc.id)
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-            }
-            buildings
-        } catch (_: Exception) {
-            emptyList()
-        }
     }
 
     suspend fun getBuildingSummariesByLandlord(landlordId: String): List<BuildingSummary> {

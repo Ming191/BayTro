@@ -3,6 +3,7 @@ package com.example.baytro.view.screens.room
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +56,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.example.baytro.utils.Utils.formatCurrency
 import com.example.baytro.view.components.ContractCard
 import com.example.baytro.view.components.DividerWithSubhead
@@ -69,7 +71,8 @@ fun RoomDetailsScreen(
     onAddContractClick: (String) -> Unit,
     onViewContractClick: (String) -> Unit,
     onEditRoomOnClick: (String) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    navController: NavHostController? = null
 ) {
     val room by viewModel.room.collectAsState()
     val buildingServices by viewModel.buildingServices.collectAsState()
@@ -78,7 +81,31 @@ fun RoomDetailsScreen(
     val tenants by viewModel.tenants.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isDeleteOnClicked by viewModel.isDeleteOnClicked.collectAsState()
+    val isDeletingRoom by viewModel.isDeletingRoom.collectAsState()
     val context: Context = LocalContext.current
+
+    // Handle error events
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    // Handle success events
+    LaunchedEffect(Unit) {
+        viewModel.successEvent.collect { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                // Set flag to indicate room was modified (archived)
+                navController?.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("room_modified", true)
+                onBackClick()
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadRoom()
@@ -290,12 +317,48 @@ fun RoomDetailsScreen(
                 }
             }
         }
+
+        // Loading overlay when deleting room
+        if (isDeletingRoom) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Archiving room...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
     }
 
     // Delete Confirmation Dialog
     if (isDeleteOnClicked) {
         AlertDialog(
-                onDismissRequest = { viewModel.onCancelDelete() },
+                onDismissRequest = {
+                    if (!isDeletingRoom) {
+                        viewModel.onCancelDelete()
+                    }
+                },
                 icon = {
                     Icon(
                         Icons.Outlined.Warning,
@@ -303,31 +366,29 @@ fun RoomDetailsScreen(
                         tint = MaterialTheme.colorScheme.error
                     )
                 },
-                title = { Text("Delete Room?") },
+                title = { Text("Archive Room?") },
                 text = {
-                    Text("Are you sure you want to delete Room ${room?.roomNumber}? This action cannot be undone.")
+                    Text("Are you sure you want to archive Room ${room?.roomNumber}? This room will be hidden but can be restored later. You cannot archive a room with an active contract.")
                 },
                 confirmButton = {
                     FilledTonalButton(
                         onClick = {
                             viewModel.deleteRoom()
-                            Toast.makeText(
-                                context,
-                                "Room ${room?.roomNumber} deleted successfully!",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            onBackClick()
                         },
+                        enabled = !isDeletingRoom,
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = MaterialTheme.colorScheme.errorContainer,
                             contentColor = MaterialTheme.colorScheme.onErrorContainer
                         )
                     ) {
-                        Text("Delete")
+                        Text("Archive")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { viewModel.onCancelDelete() }) {
+                    TextButton(
+                        onClick = { viewModel.onCancelDelete() },
+                        enabled = !isDeletingRoom
+                    ) {
                         Text("Cancel")
                     }
                 }

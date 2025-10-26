@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class RoomRepository(
-    private val db: FirebaseFirestore
+    db: FirebaseFirestore
 ) {
     private val collection = db.collection("rooms")
 
@@ -18,7 +18,9 @@ class RoomRepository(
 
     suspend fun getAll(): List<Room> {
         return try {
-            val snapshot = collection.get()
+            val snapshot = collection
+                .where { "status" notEqualTo "ARCHIVED" }
+                .get()
             snapshot.documents.mapNotNull { doc ->
                 try {
                     val room = doc.data<Room>()
@@ -68,7 +70,12 @@ class RoomRepository(
 
     suspend fun getRoomsByBuildingId(buildingId: String): List<Room> {
         return try {
-            val snapshot = collection.where { "buildingId" equalTo buildingId }.get()
+            val snapshot = collection.where {
+                all(
+                    "buildingId" equalTo buildingId,
+                    "status" notEqualTo "ARCHIVED"
+                )
+            }.get()
             snapshot.documents.mapNotNull { doc ->
                 try {
                     val room = doc.data<Room>()
@@ -95,7 +102,10 @@ class RoomRepository(
 
             batches.forEach { batch ->
                 val snapshot = collection.where {
-                    FieldPath.documentId inArray batch
+                    all(
+                        FieldPath.documentId inArray batch,
+                        "status" notEqualTo "ARCHIVED"
+                    )
                 }.get()
 
                 snapshot.documents.mapNotNullTo(rooms) { doc ->
