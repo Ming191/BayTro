@@ -16,7 +16,8 @@ import com.example.baytro.data.user.RoleTypeAdapter
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.service.FptAiService
-import com.example.baytro.service.MeterReadingApiService
+import com.example.baytro.service.BayTroApiService
+import com.example.baytro.data.chatbot.ChatbotRepository
 import com.example.baytro.utils.AvatarCache
 import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import com.example.baytro.utils.cloudFunctions.ContractCloudFunctions
@@ -59,6 +60,7 @@ import com.example.baytro.viewModel.service.AddServiceVM
 import com.example.baytro.viewModel.service.EditServiceVM
 import com.example.baytro.viewModel.service.ServiceListVM
 import com.example.baytro.viewModel.splash.IdCardDataViewModel
+import com.example.baytro.viewModel.chatbot.ChatbotViewModel
 import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
 import com.example.baytro.viewModel.splash.SplashScreenVM
@@ -97,6 +99,10 @@ val coreModule = module {
             install(Logging) {
                 level = LogLevel.ALL
             }
+            engine {
+                connectTimeout = 30_000
+                socketTimeout = 30_000
+            }
         }
     }
     single {
@@ -114,6 +120,9 @@ val dataModule = module {
     single<UserRepository> { UserRepository(get()) }
     single<BuildingRepository> { BuildingRepository(get(), get()) }
     single<RoomRepository> { RoomRepository(get()) }
+    single<FptAiService> { FptAiService(get(), get()) }
+    single<BayTroApiService> { BayTroApiService(get()) }
+    single<ChatbotRepository> { ChatbotRepository(get()) }
     single<ContractRepository> { ContractRepository(get()) }
     single<MediaRepository> { MediaRepository(get()) }
     single<QrSessionRepository> { QrSessionRepository(get(), get()) }
@@ -132,7 +141,6 @@ val cloudFunctionsModule = module {
 
 val externalServicesModule = module {
     single<FptAiService> { FptAiService(get(), get()) }
-    single<MeterReadingApiService> { MeterReadingApiService(get()) }
 }
 
 val authViewModelModule = module {
@@ -206,6 +214,10 @@ val dashboardViewModelModule = module {
 val tenantViewModelModule = module {
     viewModelOf(::TenantListVM)
     viewModelOf(::TenantInfoVM)
+    viewModelOf(::PersonalInformationVM)
+    viewModelOf(::EditPersonalInformationVM)
+    viewModelOf(::ChangePasswordVM)
+    viewModelOf(::ChatbotViewModel)
 }
 
 val utilityViewModelModule = module {

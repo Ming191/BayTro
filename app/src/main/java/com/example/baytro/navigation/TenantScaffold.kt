@@ -56,7 +56,7 @@ fun TenantScaffold(
                     Screens.TenantBillScreen.route -> "My Bill"
                     Screens.MeterReadingHistory.route -> "Reading History"
                     Screens.AddRequest.route -> "New Request"
-                    Screens.MeterReading.route -> "Meter Reading"
+                    Screens.Chatbot.route -> "Housing law chatbot"
                     else -> "BayTro"
                 }
 
@@ -78,7 +78,8 @@ fun TenantScaffold(
                             Screens.TenantDashboard.route,
                             Screens.BillList.route,
                             Screens.MaintenanceRequestList.route,
-                            Screens.TenantEmptyContract.route
+                            Screens.TenantEmptyContract.route,
+                            Screens.Chatbot.route
                         )
                         if (isMainScreen && currentRoute != Screens.PersonalInformation.route) {
                             val avatarCache = LocalAvatarCache.current

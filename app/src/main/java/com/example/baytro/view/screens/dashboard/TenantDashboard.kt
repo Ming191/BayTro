@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Water
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -87,7 +88,8 @@ fun TenantDashboard(
     onNavigateToRequestList: () -> Unit = {},
     onNavigateToMeterReading: (String, String, String, String, String, String) -> Unit = { _, _, _, _, _, _ -> },
     onNavigateToMeterHistory: (String) -> Unit = {},
-    onNavigateToPayment: () -> Unit = {}
+    onNavigateToPayment: () -> Unit = {},
+    onNavigateToChatbot: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -146,7 +148,8 @@ fun TenantDashboard(
                 onNavigateToPayment = {
                     Log.d("TenantDashboard", "Navigating to payment screen")
                     onNavigateToPayment()
-                }
+                },
+                onNavigateToChatbot = onNavigateToChatbot
             )
         }
     }
@@ -161,7 +164,8 @@ fun TenantDashboardContent(
     onRequestMaintenanceClick: () -> Unit = {},
     onMeterReadingClick: () -> Unit = {},
     onMeterHistoryClick: () -> Unit = {},
-    onNavigateToPayment: () -> Unit = {}
+    onNavigateToPayment: () -> Unit = {},
+    onNavigateToChatbot: () -> Unit = {}
 ) {
     var isVisible by remember { mutableStateOf(false) }
 
@@ -252,7 +256,8 @@ fun TenantDashboardContent(
                 ActionButtonsSection(
                     onMeterReadingClick = onMeterReadingClick,
                     onMeterHistoryClick = onMeterHistoryClick,
-                    onNavigateToPayment = onNavigateToPayment
+                    onNavigateToPayment = onNavigateToPayment,
+                    onNavigateToChatbot = onNavigateToChatbot
                 )
             }
         }
@@ -845,7 +850,8 @@ fun FixedServiceCard(
 fun ActionButtonsSection(
     onMeterReadingClick: () -> Unit = {},
     onMeterHistoryClick: () -> Unit = {},
-    onNavigateToPayment: () -> Unit = {}
+    onNavigateToPayment: () -> Unit = {},
+    onNavigateToChatbot: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -893,6 +899,33 @@ fun ActionButtonsSection(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     "History",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            FilledTonalButton(
+                onClick = onNavigateToChatbot,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(vertical = 18.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SmartToy,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "AI Assistant",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleSmall
                 )

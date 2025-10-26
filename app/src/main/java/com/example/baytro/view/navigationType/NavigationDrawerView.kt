@@ -36,6 +36,7 @@ fun NavigationDrawerView(
     onBillClicked: () -> Unit = {},
     onContractClicked: () -> Unit = {},
     onServiceClicked: () -> Unit = {},
+    onChatbotClicked: () -> Unit = {},
     isTenant: Boolean = false
 ) {
     val selectedItem = remember(currentRoute) {
@@ -47,6 +48,7 @@ fun NavigationDrawerView(
                 currentRoute == Screens.MaintenanceRequestList.route -> Screens.MaintenanceRequestList
                 currentRoute == Screens.BillList.route -> Screens.BillList
                 currentRoute == Screens.ContractList.route -> Screens.ContractList
+                currentRoute == Screens.Chatbot.route -> Screens.Chatbot
                 else -> Screens.Dashboard
             }
         )
@@ -155,6 +157,15 @@ fun NavigationDrawerView(
                 onClick = {
                     onBillClicked()
                     selectedItem.value = Screens.BillList
+                },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+            NavigationDrawerItem(
+                label = { Text(text = "AI Assistant") },
+                selected = selectedItem.value == Screens.Chatbot,
+                onClick = {
+                    onChatbotClicked()
+                    selectedItem.value = Screens.Chatbot
                 },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
             )

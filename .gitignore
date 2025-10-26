@@ -14,3 +14,15 @@
 .cxx
 local.properties
 .idea/
+
+.env
+backend/.env
+venv/
+backend/venv/
+chromadb_law_improved/
+backend/chromadb_law_improved/
+backend/chromadb_law_v2/
+
+**/__pycache__/
+**/*.pyc
+app/build/

@@ -15,6 +15,7 @@ import com.example.baytro.view.screens.dashboard.TenantDashboard
 import com.example.baytro.view.screens.request.RequestListScreen
 import com.example.baytro.view.screens.tenant.TenantInfoScreen
 import com.example.baytro.view.screens.tenant.TenantListScreen
+import com.example.baytro.view.screens.chatbot.ChatbotScreen
 
 fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     composable(Screens.Dashboard.route) {
@@ -108,6 +109,11 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
                 navController.navigate(Screens.TenantBillScreen.route) {
                     launchSingleTop = true
                 }
+            },
+            onNavigateToChatbot = {
+                navController.navigate(Screens.Chatbot.route) {
+                    launchSingleTop = true
+                }
             }
         )
     }
@@ -195,6 +201,15 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
 
         MeterReadingHistoryScreen(
             contractId = contractId
+        )
+    }
+
+    composable(Screens.Chatbot.route) {
+        ChatbotScreen(
+            viewModel = org.koin.androidx.compose.koinViewModel<com.example.baytro.viewModel.chatbot.ChatbotViewModel>(),
+            onNavigateBack = {
+                navController.popBackStack()
+            }
         )
     }
 }

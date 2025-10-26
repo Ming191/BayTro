@@ -146,6 +146,16 @@ fun LandlordMainScreen() {
                             drawerState.close()
                         }
                     },
+                    onChatbotClicked = {
+                        navController.navigate(Screens.Chatbot.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        }
+                        scope.launch {
+                            drawerState.close()
+                        }
+                    },
                 )
             }
         },

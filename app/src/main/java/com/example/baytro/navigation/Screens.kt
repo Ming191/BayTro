@@ -209,6 +209,7 @@ sealed class Screens(val route: String, val title: String) {
         )
         fun createRoute(tenantId: String) = "billing_history/$tenantId"
     }
+    object Chatbot : Screens("chatbot_screen", "Trợ lý Pháp luật")
 
     object TenantInfo : Screens("tenant_info_screen/{$ARG_TENANT_ID}", "Tenant Info") {
         val arguments = listOf(
