@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.request
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -46,6 +47,7 @@ import com.example.baytro.viewModel.request.AddRequestVM
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddRequestScreen(
@@ -93,21 +95,6 @@ fun AddRequestScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(text = "Add Request")
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                    }
-                )
-            },
             bottomBar = {
                 AnimatedVisibility(
                     visible = buttonsVisible,
@@ -144,11 +131,10 @@ fun AddRequestScreen(
                     }
                 }
             }
-        ) { innerPadding ->
+        ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .padding(16.dp)
             ) {
                 item {
