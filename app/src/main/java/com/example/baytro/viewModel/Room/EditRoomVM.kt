@@ -146,7 +146,7 @@
                 try {
                     val roomId = room.value?.id
                     if (roomId != null) {
-                        roomRepository.removeExtraServiceFromRoom(roomId,service.id)
+                        roomRepository. removeExtraServiceFromRoom(roomId,service.id)
                         Log.d("RoomDetailsVM", "Service deleted successfully.")
                     }
                 } catch (e: Exception) {

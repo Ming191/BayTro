@@ -13,6 +13,7 @@ import com.example.baytro.view.screens.dashboard.MeterReadingScreen
 import com.example.baytro.view.screens.dashboard.PendingMeterReadingsScreen
 import com.example.baytro.view.screens.dashboard.TenantDashboard
 import com.example.baytro.view.screens.request.RequestListScreen
+import com.example.baytro.view.screens.tenant.TenantInfoScreen
 import com.example.baytro.view.screens.tenant.TenantListScreen
 
 fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
@@ -122,8 +123,21 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
     }
 
     composable(Screens.TenantList.route) {
-        TenantListScreen(navController = navController)
+        TenantListScreen(
+            onViewTenantInfoClick = { tenantId ->
+                navController.navigate(Screens.TenantInfo.createRoute(tenantId))
+            },
+            navController = navController
+        )
     }
+
+    composable(
+        route = Screens.TenantInfo.route,
+        arguments = Screens.TenantInfo.arguments
+    ) {
+        TenantInfoScreen()
+    }
+
 
     composable(Screens.BillList.route) {
         LandlordBillsScreen(

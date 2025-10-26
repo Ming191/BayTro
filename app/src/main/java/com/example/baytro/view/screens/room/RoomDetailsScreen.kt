@@ -202,11 +202,13 @@ fun RoomDetailsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         buildingServices.forEach { service ->
-                            ServiceCard(
-                                service = service,
-                                onEdit = null,
-                                onDelete = null
-                            )
+                            if(service.status.toString() != "DELETE") {
+                                ServiceCard(
+                                    service = service,
+                                    onEdit = null,
+                                    onDelete = null
+                                )
+                            }
                         }
                     }
                 }

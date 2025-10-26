@@ -10,6 +10,7 @@ import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
 import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.MediaRepository
+import com.example.baytro.data.service.Service
 import com.example.baytro.utils.ImageProcessor
 import com.example.baytro.view.screens.UiState
 import kotlinx.coroutines.async
@@ -61,6 +62,10 @@ class EditBuildingVM(
 
     private var originalFormState: EditBuildingFormState? = null
 
+    private val _buildingServices = MutableStateFlow<List<Service>>(emptyList())
+    val buildingServices: StateFlow<List<Service>> = _buildingServices
+
+
     fun load(id: String) {
         viewModelScope.launch {
             try {
@@ -77,6 +82,10 @@ class EditBuildingVM(
                     selectedImages = emptyList(),
                     existingImageUrls = b?.imageUrls ?: emptyList()
                 )
+                if(_buildingServices.value.isNotEmpty()) {
+                    return@launch
+                }
+                _buildingServices.value = buildingRepository.getServicesByBuildingId(id)
                 _formState.value = initialFormState
                 originalFormState = initialFormState
                 _editUIState.value = UiState.Idle
@@ -119,6 +128,14 @@ class EditBuildingVM(
 
     fun updateExistingImages(urls: List<String>) {
         _formState.value = _formState.value.copy(existingImageUrls = urls)
+    }
+
+    fun onBuildingServicesChange(service: Service) {
+        Log.d("AddBuildingVM", "onBuildingServicesChange: $service")
+        val updateBuildingServices = _buildingServices.value.toMutableList()
+        updateBuildingServices.add(service)
+        _buildingServices.value = updateBuildingServices
+        //_formState.value = _formState.value.copy(buildingServices = updateBuildingServices)
     }
 
     private fun validateField(field: String) {
@@ -213,7 +230,6 @@ class EditBuildingVM(
             userId = building.userId,
             imageUrls = state.existingImageUrls
         )
-
         if (state.selectedImages.isNotEmpty()) {
             updateWithImages(updatedBuilding, state.selectedImages)
         } else {
@@ -226,6 +242,9 @@ class EditBuildingVM(
             _editUIState.value = UiState.Loading
             try {
                 buildingRepository.update(building.id, building)
+                _buildingServices.value.forEach { service ->
+                    buildingRepository.addServiceToBuilding(building.id, service)
+                }
                 _editUIState.value = UiState.Success(building)
             } catch (e: Exception) {
                 _editUIState.value = UiState.Error(e.message ?: "Failed to update building")
@@ -285,6 +304,9 @@ class EditBuildingVM(
                 Log.d("EditBuildingVM", "Merged images: existing=${building.imageUrls.size}, new=${urls.size}, total=${mergedImageUrls.size}")
                 
                 buildingRepository.update(building.id, building.copy(imageUrls = mergedImageUrls))
+                _buildingServices.value.forEach { service ->
+                    buildingRepository.addServiceToBuilding(building.id, service)
+                }
                 _editUIState.value = UiState.Success(building)
             } catch (e: Exception) {
                 _editUIState.value = UiState.Error(e.message ?: "Failed to update building")
