@@ -18,7 +18,7 @@ fun NavGraphBuilder.buildingNavGraph(navController: NavHostController) {
     }
 
     composable(Screens.ImportBuildingsRooms.route) {
-        ImportBuildingsRoomsScreen(navController = navController)
+        ImportBuildingsRoomsScreen()
     }
 
     composable(

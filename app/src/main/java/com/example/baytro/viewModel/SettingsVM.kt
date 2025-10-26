@@ -3,26 +3,19 @@ package com.example.baytro.viewModel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.baytro.data.user.PaymentCodeTemplate
 import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRepository
+import com.example.baytro.utils.SingleEvent
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.coroutines.cancellation.CancellationException
@@ -35,8 +28,21 @@ sealed class PrefixCheckState {
     data class Error(val message: String) : PrefixCheckState()
 }
 
-sealed class SettingsEvent {
-    data class ShowToast(val message: String) : SettingsEvent()
+data class SettingsUiState(
+    val prefix: String = "",
+    val suffixLength: String = "",
+    val prefixCheckState: PrefixCheckState = PrefixCheckState.Idle,
+    val isLoading: Boolean = true,
+    val isSaving: Boolean = false,
+    val originalPrefix: String? = null,
+    val errorEvent: SingleEvent<String>? = null
+)
+
+sealed class SettingsUserEvent {
+    data class OnPrefixChange(val newPrefix: String) : SettingsUserEvent()
+    data class OnSuffixLengthChange(val newLength: String) : SettingsUserEvent()
+    object OnSaveClick : SettingsUserEvent()
+    object OnErrorShown : SettingsUserEvent()
 }
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -46,113 +52,132 @@ class SettingsVM(
     private val functions: FirebaseFunctions
 ) : ViewModel() {
 
-    private val _template = MutableStateFlow<PaymentCodeTemplate?>(null)
-    val template: StateFlow<PaymentCodeTemplate?> = _template.asStateFlow()
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
-    private val _events = MutableSharedFlow<SettingsEvent>()
-    val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
-
-    private val _prefixQuery = MutableStateFlow("")
-
-    val prefixCheckState: StateFlow<PrefixCheckState> = _prefixQuery
-        .debounce(400L)
-        .distinctUntilChanged()
-        .flatMapLatest { prefix ->
-            val trimmedPrefix = prefix.trim()
-            if (trimmedPrefix.length < 3) {
-                flowOf(PrefixCheckState.Idle)
-            } else {
-                flow<PrefixCheckState> {
-                    emit(PrefixCheckState.Checking)
-                    try {
-                        val result = functions.getHttpsCallable("isPaymentCodePrefixAvailable")
-                            .call(mapOf("prefix" to trimmedPrefix)).await()
-                        val isAvailable = (result.data as? Map<*, *>)?.get("isAvailable") as? Boolean
-                        emit(if (isAvailable == true) PrefixCheckState.Available else PrefixCheckState.Taken)
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
-                        Log.e("SettingsVM", "Error checking prefix", e)
-                        emit(PrefixCheckState.Error("Could not verify prefix."))
-                    }
-                }
-            }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = PrefixCheckState.Idle
-        )
+    private var checkPrefixJob: Job? = null
+    private val currentUserId = auth.currentUser?.uid
 
     init {
         loadCurrentUserTemplate()
     }
 
+    fun onEvent(event: SettingsUserEvent) {
+        when (event) {
+            is SettingsUserEvent.OnPrefixChange -> onPrefixChange(event.newPrefix)
+            is SettingsUserEvent.OnSuffixLengthChange -> onSuffixLengthChange(event.newLength)
+            is SettingsUserEvent.OnSaveClick -> saveConfiguration()
+            is SettingsUserEvent.OnErrorShown -> _uiState.update { it.copy(errorEvent = null) }
+        }
+    }
+
     private fun loadCurrentUserTemplate() {
         viewModelScope.launch {
-            val userId = auth.currentUser?.uid ?: return@launch
+            _uiState.update { it.copy(isLoading = true) }
+            if (currentUserId == null) {
+                _uiState.update { it.copy(isLoading = false, errorEvent = SingleEvent("User not logged in.")) }
+                return@launch
+            }
             try {
-                val user = userRepository.getById(userId)
+                val user = userRepository.getById(currentUserId)
                 val landlordRole = user?.role as? Role.Landlord
-                val currentTemplate = landlordRole?.paymentCodeTemplate
-                _template.value = currentTemplate
-                currentTemplate?.prefix?.let {
-                    _prefixQuery.value = it
+                val template = landlordRole?.paymentCodeTemplate
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        prefix = template?.prefix ?: "",
+                        suffixLength = template?.suffixLength?.toString() ?: "6",
+                        originalPrefix = template?.prefix
+                    )
                 }
             } catch (e: Exception) {
                 Log.e("SettingsVM", "Failed to load user template", e)
-                _events.emit(SettingsEvent.ShowToast("Failed to load settings."))
+                _uiState.update { it.copy(isLoading = false, errorEvent = SingleEvent("Failed to load settings.")) }
             }
         }
     }
 
-    fun onPrefixQueryChanged(newQuery: String) {
-        _prefixQuery.value = newQuery
+    private fun onPrefixChange(newPrefix: String) {
+        val filteredText = newPrefix.filter { it.isLetterOrDigit() }.uppercase().take(12)
+        _uiState.update { it.copy(prefix = filteredText) }
+
+        checkPrefixJob?.cancel()
+        checkPrefixJob = viewModelScope.launch {
+            delay(400L)
+            checkPrefixAvailability(filteredText)
+        }
     }
 
-    fun savePaymentCodeTemplate(suffixLengthStr: String) {
-        val currentPrefixState = prefixCheckState.value
-        val upperPrefix = _prefixQuery.value.trim().uppercase()
-        val suffixLength = suffixLengthStr.toIntOrNull()
+    private fun onSuffixLengthChange(newLength: String) {
+        if (newLength.all { it.isDigit() } && newLength.length <= 1) {
+            _uiState.update { it.copy(suffixLength = newLength) }
+        }
+    }
 
-        if (currentPrefixState is PrefixCheckState.Checking) {
-            viewModelScope.launch { _events.emit(SettingsEvent.ShowToast("Please wait for prefix check to complete.")) }
+    private suspend fun checkPrefixAvailability(prefix: String) {
+        val trimmedPrefix = prefix.trim()
+        val currentState = _uiState.value
+
+        if (trimmedPrefix.length < 3 || trimmedPrefix.equals(currentState.originalPrefix, ignoreCase = true)) {
+            _uiState.update { it.copy(prefixCheckState = PrefixCheckState.Idle) }
             return
         }
-        if (currentPrefixState is PrefixCheckState.Taken) {
-            viewModelScope.launch { _events.emit(SettingsEvent.ShowToast("This prefix is already in use.")) }
+
+        _uiState.update { it.copy(prefixCheckState = PrefixCheckState.Checking) }
+        try {
+            val result = functions.getHttpsCallable("isPaymentCodePrefixAvailable")
+                .call(mapOf("prefix" to trimmedPrefix)).await()
+            val isAvailable = (result.data as? Map<*, *>)?.get("isAvailable") as? Boolean
+            val newState = if (isAvailable == true) PrefixCheckState.Available else PrefixCheckState.Taken
+            _uiState.update { it.copy(prefixCheckState = newState) }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e("SettingsVM", "Error checking prefix", e)
+            _uiState.update { it.copy(prefixCheckState = PrefixCheckState.Error("Could not verify prefix.")) }
+        }
+    }
+
+    private fun saveConfiguration() {
+        val currentState = _uiState.value
+        val suffixLength = currentState.suffixLength.toIntOrNull()
+
+        if (currentState.isSaving) return
+        if (currentState.prefixCheckState is PrefixCheckState.Checking) {
+            _uiState.update { it.copy(errorEvent = SingleEvent("Please wait for prefix check to complete.")) }
             return
         }
-        if (upperPrefix.isBlank() || suffixLength == null || suffixLength !in 4..8) {
-            viewModelScope.launch { _events.emit(SettingsEvent.ShowToast("Prefix must not be empty and suffix length must be between 4 and 8.")) }
+        if (currentState.prefixCheckState is PrefixCheckState.Taken) {
+            _uiState.update { it.copy(errorEvent = SingleEvent("This prefix is already in use.")) }
+            return
+        }
+        if (currentState.prefix.isBlank() || suffixLength == null || suffixLength !in 4..8) {
+            _uiState.update { it.copy(errorEvent = SingleEvent("Invalid prefix or suffix length.")) }
             return
         }
 
         viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
             try {
                 val data = mapOf(
-                    "prefix" to upperPrefix,
+                    "prefix" to currentState.prefix,
                     "suffixLength" to suffixLength
                 )
-                val result = functions.getHttpsCallable("set_payment_code_template")
-                    .call(data).await()
+                functions.getHttpsCallable("set_payment_code_template").call(data).await()
 
-                val success = (result.data as? Map<*, *>)?.get("success") as? Boolean
-                if (success == true) {
-                    val newTemplate = PaymentCodeTemplate(upperPrefix, suffixLength)
-                    _template.value = newTemplate
-                    _events.emit(SettingsEvent.ShowToast("Settings saved successfully!"))
-                } else {
-                    _events.emit(SettingsEvent.ShowToast("Failed to save settings."))
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        originalPrefix = it.prefix,
+                        prefixCheckState = PrefixCheckState.Idle,
+                        errorEvent = SingleEvent("Settings saved successfully!")
+                    )
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 Log.e("SettingsVM", "Failed to save template", e)
-                val errorMessage = when {
-                    e.message?.contains("ALREADY_EXISTS") == true -> "This prefix is already in use by another user."
-                    e.message?.contains("INVALID_ARGUMENT") == true -> "Invalid prefix or suffix length."
-                    e.message?.contains("UNAUTHENTICATED") == true -> "You must be logged in to save settings."
-                    else -> "Failed to save settings. Please try again."
-                }
-                _events.emit(SettingsEvent.ShowToast(errorMessage))
+                val errorMessage = e.message ?: "An unknown error occurred."
+                _uiState.update { it.copy(isSaving = false, errorEvent = SingleEvent(errorMessage)) }
             }
         }
     }

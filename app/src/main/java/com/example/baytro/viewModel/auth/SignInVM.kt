@@ -1,5 +1,6 @@
 package com.example.baytro.viewModel.auth
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
@@ -11,7 +12,7 @@ import com.example.baytro.data.user.UserRepository
 import com.example.baytro.data.user.UserRoleCache
 import com.example.baytro.utils.ValidationResult
 import com.example.baytro.utils.Validator
-import com.example.baytro.view.AuthUIState
+import com.example.baytro.view.SignInUiState
 import com.google.firebase.auth.FirebaseAuthException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,11 +26,18 @@ class SignInVM(
     private val qrSessionRepository: QrSessionRepository,
     private val roleCache: UserRoleCache
 ) : ViewModel() {
-    private val _signInUIState = MutableStateFlow<AuthUIState>(AuthUIState.Idle)
-    val signInUIState: StateFlow<AuthUIState> = _signInUIState
+    private val _signInUIState = MutableStateFlow<SignInUiState>(SignInUiState.Idle)
+    val signInUIState: StateFlow<SignInUiState> = _signInUIState
 
     private val _signInFormState = MutableStateFlow(SignInFormState())
     val signInFormState: StateFlow<SignInFormState> = _signInFormState
+
+    fun resetState() {
+        Log.d("SignInVM", "resetState() called - Resetting UI state to Idle")
+        _signInUIState.value = SignInUiState.Idle
+        _signInFormState.value = SignInFormState()
+        Log.d("SignInVM", "resetState() completed")
+    }
 
     fun onEmailChange(email: String) {
         _signInFormState.value = _signInFormState.value.copy(email = email, emailError = ValidationResult.Success)
@@ -62,17 +70,16 @@ class SignInVM(
 
     private fun performLogin(email: String, password: String) {
         viewModelScope.launch {
-            _signInUIState.value = AuthUIState.Loading
+            _signInUIState.value = SignInUiState.Loading
             try {
                 val user = authRepository.signIn(email, password)
 
                 if (authRepository.checkVerification()) {
                     val repoUser = userRepository.getById(user.uid)
                     if (repoUser == null || repoUser.role == null) {
-                        // No user doc or no role -> treat as first-time user/onboarding instead of MainScreen
-                        _signInUIState.value = AuthUIState.FirstTimeUser(user)
+                        _signInUIState.value = SignInUiState.FirstTimeUser(user)
                     } else {
-                        repoUser.role?.let { role ->
+                        repoUser.role.let { role ->
                             com.example.baytro.data.user.UserRoleState.setRole(role)
                             roleCache.setRoleType(user.uid, role)
                         }
@@ -80,27 +87,25 @@ class SignInVM(
                         if (repoUser.role is Role.Tenant) {
                             val hasPendingSession = qrSessionRepository.hasScannedSession(user.uid)
                             if (hasPendingSession) {
-                                _signInUIState.value = AuthUIState.TenantPendingSession(user)
+                                _signInUIState.value = SignInUiState.TenantPendingSession(user)
                                 return@launch
                             }
 
                             val isInContract = contractRepository.isUserInAnyContract(user.uid)
                             if (!isInContract) {
-                                _signInUIState.value = AuthUIState.TenantNoContract(user)
+                                _signInUIState.value = SignInUiState.TenantNoContract(user)
                                 return@launch
                             }
 
-                            // Tenant with active contract - redirect to tenant dashboard
-                            _signInUIState.value = AuthUIState.TenantWithContract(user)
+                            _signInUIState.value = SignInUiState.TenantWithContract(user)
                             return@launch
                         }
-                        // Landlord - redirect to main screen
-                        _signInUIState.value = AuthUIState.Success(user)
+                        _signInUIState.value = SignInUiState.Success(user)
                     }
                 } else {
                     authRepository.sendVerificationEmail()
                     authRepository.signOut()
-                    _signInUIState.value = AuthUIState.NeedVerification("Email is not verified. We have sent you a new verification email.")
+                    _signInUIState.value = SignInUiState.NeedVerification("Email is not verified. We have sent you a new verification email.")
                 }
             } catch (e: Exception) {
                 val errorMessage = when (e) {
@@ -112,7 +117,7 @@ class SignInVM(
                     is UnknownHostException -> "No network connection."
                     else -> e.message
                 }
-                _signInUIState.value = AuthUIState.Error(errorMessage ?: "An unknown error occurred")
+                _signInUIState.value = SignInUiState.Error(errorMessage ?: "An unknown error occurred")
             }
         }
     }

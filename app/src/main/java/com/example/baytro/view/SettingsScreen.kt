@@ -1,3 +1,5 @@
+// SettingsScreen.kt
+
 package com.example.baytro.view
 
 import android.annotation.SuppressLint
@@ -22,7 +24,15 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,9 +42,30 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -42,7 +73,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.baytro.viewModel.PrefixCheckState
-import com.example.baytro.viewModel.SettingsEvent
+import com.example.baytro.viewModel.SettingsUserEvent
 import com.example.baytro.viewModel.SettingsVM
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -51,29 +82,17 @@ import org.koin.compose.viewmodel.koinViewModel
 fun SettingsScreen(
     viewModel: SettingsVM = koinViewModel()
 ) {
-    val template by viewModel.template.collectAsState()
-    val prefixState by viewModel.prefixCheckState.collectAsState()
-
-    var prefix by remember(template) { mutableStateOf(template?.prefix ?: "BAYTRO") }
-    var suffixLength by remember(template) { mutableStateOf(template?.suffixLength?.toString() ?: "6") }
-
-    val isSaveEnabled = (prefixState is PrefixCheckState.Available || prefixState is PrefixCheckState.Idle)
-            && prefix.isNotBlank()
-            && suffixLength.toIntOrNull() in 4..8
-
+    val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is SettingsEvent.ShowToast -> {
-                    snackbarHostState.showSnackbar(
-                        message = event.message,
-                        duration = SnackbarDuration.Short
-                    )
-                }
-            }
+    LaunchedEffect(uiState.errorEvent) {
+        uiState.errorEvent?.getContentIfNotHandled()?.let { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.onEvent(SettingsUserEvent.OnErrorShown)
         }
     }
 
@@ -90,75 +109,117 @@ fun SettingsScreen(
             }
         }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Animated entrance for each section
-            AnimatedSection(delayMillis = 0) {
-                HeaderSection()
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
+        } else {
+            val isSaveEnabled = (
+                    (uiState.prefixCheckState is PrefixCheckState.Available ||
+                            uiState.prefix.equals(uiState.originalPrefix, ignoreCase = true)) &&
+                            uiState.prefix.isNotBlank() &&
+                            uiState.suffixLength.toIntOrNull() in 4..8
+                    )
 
-            AnimatedSection(delayMillis = 100) {
-                InstructionsBanner()
-            }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                AnimatedSection(delayMillis = 0) {
+                    InstructionsBanner()
+                }
 
-            AnimatedSection(delayMillis = 200) {
-                ConfigurationProgressCard(
-                    hasValidPrefix = prefixState is PrefixCheckState.Available ||
-                                   (prefixState is PrefixCheckState.Idle && prefix.isNotBlank()),
-                    hasValidSuffix = suffixLength.toIntOrNull() in 4..8,
-                    prefixState = prefixState
-                )
-            }
+                AnimatedSection(delayMillis = 100) {
+                    ConfigurationProgressCard(
+                        hasValidPrefix = (uiState.prefixCheckState is PrefixCheckState.Available ||
+                                (uiState.prefix.isNotBlank() && uiState.prefix.equals(uiState.originalPrefix, ignoreCase = true))),
+                        hasValidSuffix = uiState.suffixLength.toIntOrNull() in 4..8
+                    )
+                }
 
-            AnimatedSection(delayMillis = 300) {
-                PrefixConfigurationCard(
-                    prefix = prefix,
-                    prefixState = prefixState,
-                    onPrefixChange = { newPrefix ->
-                        val filteredText = newPrefix.filter { char -> char.isLetterOrDigit() }
-                            .uppercase()
-                            .take(12)
-                        prefix = filteredText
-                        viewModel.onPrefixQueryChanged(filteredText)
-                    }
-                )
-            }
-
-            AnimatedSection(delayMillis = 400) {
-                SuffixConfigurationCard(
-                    suffixLength = suffixLength,
-                    onSuffixChange = { newLength ->
-                        if (newLength.all { char -> char.isDigit() } && newLength.length <= 1) {
-                            suffixLength = newLength
+                AnimatedSection(delayMillis = 200) {
+                    PrefixConfigurationCard(
+                        prefix = uiState.prefix,
+                        prefixState = uiState.prefixCheckState,
+                        onPrefixChange = { newPrefix ->
+                            viewModel.onEvent(SettingsUserEvent.OnPrefixChange(newPrefix))
                         }
-                    }
-                )
-            }
+                    )
+                }
 
-            AnimatedSection(delayMillis = 500) {
-                ExamplePreviewCard(prefix, suffixLength)
-            }
+                AnimatedSection(delayMillis = 300) {
+                    SuffixConfigurationCard(
+                        suffixLength = uiState.suffixLength,
+                        onSuffixChange = { newLength ->
+                            viewModel.onEvent(SettingsUserEvent.OnSuffixLengthChange(newLength))
+                        }
+                    )
+                }
 
-            AnimatedSection(delayMillis = 600) {
-                SaveButton(
-                    enabled = isSaveEnabled,
-                    onClick = { viewModel.savePaymentCodeTemplate(suffixLength) }
-                )
-            }
+                AnimatedSection(delayMillis = 400) {
+                    ExamplePreviewCard(uiState.prefix, uiState.suffixLength)
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                AnimatedSection(delayMillis = 500) {
+                    SaveButton(
+                        enabled = isSaveEnabled,
+                        isSaving = uiState.isSaving,
+                        onClick = { viewModel.onEvent(SettingsUserEvent.OnSaveClick) }
+                    )
+                }
+            }
         }
     }
 }
 
-// =====================================================================
-//                       ANIMATED SECTION WRAPPER
-// =====================================================================
+@Composable
+private fun SaveButton(
+    enabled: Boolean,
+    isSaving: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled && !isSaving,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp,
+            disabledElevation = 0.dp
+        )
+    ) {
+        AnimatedContent(
+            targetState = isSaving,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(300)) togetherWith
+                        fadeOut(animationSpec = tween(300))
+            },
+            label = "buttonText"
+        ) { saving ->
+            if (saving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                // Giữ nguyên text gốc của bạn, chỉ thay đổi logic lấy text một chút
+                val text = if (enabled) "Save Configuration" else "Complete All Fields"
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun AnimatedSection(
@@ -185,52 +246,6 @@ private fun AnimatedSection(
     }
 }
 
-// =====================================================================
-//                       HEADER SECTION
-// =====================================================================
-
-@Composable
-private fun HeaderSection() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(48.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-
-        Column {
-            Text(
-                text = "Payment Code Setup",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Configure your unique payment identifier",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-// =====================================================================
-//                       INSTRUCTIONS BANNER
-// =====================================================================
-
 @Composable
 private fun InstructionsBanner() {
     Card(
@@ -246,7 +261,6 @@ private fun InstructionsBanner() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Pulsing icon animation
             val infiniteTransition = rememberInfiniteTransition(label = "pulse")
             val scale by infiniteTransition.animateFloat(
                 initialValue = 1f,
@@ -293,21 +307,15 @@ private fun InstructionsBanner() {
     }
 }
 
-// =====================================================================
-//                       PROGRESS CARD
-// =====================================================================
-
 @Composable
 private fun ConfigurationProgressCard(
     hasValidPrefix: Boolean,
-    hasValidSuffix: Boolean,
-    prefixState: PrefixCheckState
+    hasValidSuffix: Boolean
 ) {
     val completedSteps = listOf(hasValidPrefix, hasValidSuffix).count { it }
     val totalSteps = 2
     val targetProgress = completedSteps.toFloat() / totalSteps
 
-    // Animated progress
     val animatedProgress by animateFloatAsState(
         targetValue = targetProgress,
         animationSpec = spring(
@@ -398,7 +406,6 @@ private fun ProgressCheckItem(
     completed: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // Animate completion state
     val scale by animateFloatAsState(
         targetValue = if (completed) 1f else 0.95f,
         animationSpec = spring(
@@ -448,10 +455,6 @@ private fun ProgressCheckItem(
     }
 }
 
-// =====================================================================
-//                       PREFIX CONFIGURATION CARD
-// =====================================================================
-
 @Composable
 private fun PrefixConfigurationCard(
     prefix: String,
@@ -464,11 +467,9 @@ private fun PrefixConfigurationCard(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -494,12 +495,6 @@ private fun PrefixConfigurationCard(
                 }
             }
 
-            Text(
-                text = "Choose a unique identifier for your building or organization",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
             OutlinedTextField(
                 value = prefix,
                 onValueChange = onPrefixChange,
@@ -510,7 +505,6 @@ private fun PrefixConfigurationCard(
                     .animateContentSize(),
                 isError = prefixState is PrefixCheckState.Taken || prefixState is PrefixCheckState.Error,
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = when (prefixState) {
                         is PrefixCheckState.Available -> MaterialTheme.colorScheme.primary
@@ -527,10 +521,6 @@ private fun PrefixConfigurationCard(
     }
 }
 
-// =====================================================================
-//                       SUFFIX CONFIGURATION CARD
-// =====================================================================
-
 @Composable
 private fun SuffixConfigurationCard(
     suffixLength: String,
@@ -542,11 +532,9 @@ private fun SuffixConfigurationCard(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -585,15 +573,14 @@ private fun SuffixConfigurationCard(
                 placeholder = { Text("6") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
                 singleLine = true,
                 isError = suffixLength.toIntOrNull() !in 4..8,
                 supportingText = {
                     val length = suffixLength.toIntOrNull()
                     Text(
                         text = when {
-                            length == null || length !in 4..8 -> "⚠ Please enter a value between 4 and 8"
-                            else -> "✓ Valid length: generates ${length} random characters"
+                            length == null || length !in 4..8 -> "Please enter a value between 4 and 8"
+                            else -> "Valid length: generates ${length} random characters"
                         },
                         color = if (length in 4..8)
                             MaterialTheme.colorScheme.primary
@@ -606,35 +593,23 @@ private fun SuffixConfigurationCard(
     }
 }
 
-// =====================================================================
-//                       PREVIEW CARD
-// =====================================================================
-
 @Composable
 private fun ExamplePreviewCard(prefix: String, suffixLength: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "Preview Example",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-
-            Text(
-                text = "Your payment codes will look like this:",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             val exampleSuffix = "ABC123XYZ".takeLast(suffixLength.toIntOrNull() ?: 6).uppercase()
@@ -663,10 +638,6 @@ private fun ExamplePreviewCard(prefix: String, suffixLength: String) {
         }
     }
 }
-
-// =====================================================================
-//                       PREFIX STATUS COMPONENTS
-// =====================================================================
 
 @Composable
 private fun PrefixStatusIcon(state: PrefixCheckState) {
@@ -705,10 +676,10 @@ private fun PrefixStatusIcon(state: PrefixCheckState) {
 @Composable
 private fun PrefixSupportingText(state: PrefixCheckState, prefix: String) {
     val text = when (state) {
-        is PrefixCheckState.Checking -> "⏳ Checking availability..."
-        is PrefixCheckState.Available -> "✓ This prefix is available"
-        is PrefixCheckState.Taken -> "✗ This prefix is already in use"
-        is PrefixCheckState.Error -> "⚠ ${state.message}"
+        is PrefixCheckState.Checking -> "Checking availability..."
+        is PrefixCheckState.Available -> "This prefix is available"
+        is PrefixCheckState.Taken -> "This prefix is already in use"
+        is PrefixCheckState.Error -> state.message
         is PrefixCheckState.Idle -> if (prefix.isBlank()) "Enter a unique prefix" else ""
     }
 
@@ -724,44 +695,5 @@ private fun PrefixSupportingText(state: PrefixCheckState, prefix: String) {
             color = color,
             style = MaterialTheme.typography.bodySmall
         )
-    }
-}
-
-// =====================================================================
-//                       SAVE BUTTON
-// =====================================================================
-
-@Composable
-private fun SaveButton(
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(12.dp),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 4.dp,
-            disabledElevation = 0.dp
-        )
-    ) {
-        AnimatedContent(
-            targetState = enabled,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(300)) togetherWith
-                fadeOut(animationSpec = tween(300))
-            },
-            label = "buttonText"
-        ) { isEnabled ->
-            Text(
-                text = if (isEnabled) "Save Configuration" else "Complete All Fields",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
     }
 }

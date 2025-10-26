@@ -1,6 +1,8 @@
 package com.example.baytro.view.screens.dashboard
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -17,12 +19,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.example.baytro.data.MeterStatus
 import com.example.baytro.data.meter_reading.MeterReading
+import com.example.baytro.view.components.MeterReadingHistorySkeleton
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.viewModel.meter_reading.MeterReadingHistoryAction
 import com.example.baytro.viewModel.meter_reading.MeterReadingHistoryVM
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+
+private enum class ReadingState {
+    LOADING, CONTENT, EMPTY
+}
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,33 +71,43 @@ fun MeterReadingHistoryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                uiState.readings.isEmpty() -> {
-                    EmptyHistoryState()
-                }
-                else -> {
-                    LazyColumn(
-                        state = lazyListState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        itemsIndexed(
-                            items = uiState.readings,
-                            key = { _, reading -> reading.id }
-                        ) { index, reading ->
-                            HistoryReadingCard(reading = reading)
-                        }
-                        item {
-                            if (uiState.isLoadingNextPage) {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
+            Crossfade(
+                targetState = when {
+                    uiState.isLoading -> ReadingState.LOADING
+                    uiState.readings.isEmpty() -> ReadingState.EMPTY
+                    else -> ReadingState.CONTENT
+                },
+                animationSpec = tween(durationMillis = 300),
+                label = "meterReadingHistoryCrossfade"
+            ) { state ->
+                when (state) {
+                    ReadingState.LOADING -> {
+                        MeterReadingHistorySkeleton()
+                    }
+                    ReadingState.EMPTY -> {
+                        EmptyHistoryState()
+                    }
+                    ReadingState.CONTENT -> {
+                        LazyColumn(
+                            state = lazyListState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            itemsIndexed(
+                                items = uiState.readings,
+                                key = { _, reading -> reading.id }
+                            ) { index, reading ->
+                                HistoryReadingCard(reading = reading)
+                            }
+                            item {
+                                if (uiState.isLoadingNextPage) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
+                                    }
                                 }
                             }
                         }

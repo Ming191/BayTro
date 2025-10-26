@@ -1,5 +1,6 @@
 package com.example.baytro.viewModel.dashboard
 
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.utils.SingleEvent
@@ -13,11 +14,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@Stable
 data class UiRevenueDataPoint(
     val monthLabel: String,
     val revenue: Float
 )
 
+@Stable
 data class LandlordDashboardUiState(
     val isLoading: Boolean = true,
     val username: String = "",

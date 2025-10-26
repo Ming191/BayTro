@@ -1,6 +1,9 @@
 package com.example.baytro.auth
 
 import android.util.Log
+import com.example.baytro.data.user.UserRoleCache
+import com.example.baytro.data.user.UserRoleState
+import com.example.baytro.utils.AvatarCache
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -10,7 +13,9 @@ import kotlinx.coroutines.tasks.await
 
 class FirebaseAuthRepository(
     private val auth: FirebaseAuth,
-    private val functions: FirebaseFunctions
+    private val functions: FirebaseFunctions,
+    private val avatarCache: AvatarCache,
+    private val roleCache: UserRoleCache
 ) : AuthRepository {
 
     override suspend fun signUp(
@@ -66,7 +71,17 @@ class FirebaseAuthRepository(
     }
 
     override suspend fun signOut() {
-        auth.signOut()
+        try {
+            avatarCache.clearCache()
+            roleCache.clearCache()
+            UserRoleState.clearRole()
+            auth.signOut()
+
+            Log.d("FirebaseAuthRepository", "User signed out and all caches cleared")
+        } catch (e: Exception) {
+            Log.e("FirebaseAuthRepository", "Error during sign out", e)
+            auth.signOut()
+        }
     }
 
     override fun checkVerification(): Boolean {

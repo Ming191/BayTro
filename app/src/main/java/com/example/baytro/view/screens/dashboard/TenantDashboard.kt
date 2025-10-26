@@ -65,8 +65,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.baytro.data.Building
 import com.example.baytro.data.contract.Status
 import com.example.baytro.data.meter_reading.MeterReading
+import com.example.baytro.data.service.Metric
+import com.example.baytro.data.service.Service
 import com.example.baytro.utils.Utils
 import com.example.baytro.utils.Utils.formatOrdinal
 import com.example.baytro.view.components.TenantDashboardSkeleton
@@ -235,7 +238,8 @@ fun TenantDashboardContent(
                     rentalFee = uiState.contract?.rentalFee ?: 0,
                     deposit = uiState.contract?.deposit ?: 0,
                     lastReading = uiState.lastApprovedReading,
-                    building = uiState.building
+                    building = uiState.building,
+                    fixedServices = uiState.fixedServices
                 )
             }
         }
@@ -484,21 +488,26 @@ fun PaymentSection(
     rentalFee: Int,
     deposit: Int,
     lastReading: MeterReading? = null,
-    building: com.example.baytro.data.Building? = null
+    building: Building? = null,
+    fixedServices: List<Service> = emptyList()
 ) {
     // Debug logging
     Log.d("PaymentSection", "Building: $building")
     Log.d("PaymentSection", "Services: ${building?.services}")
     Log.d("PaymentSection", "Services size: ${building?.services?.size}")
+    Log.d("PaymentSection", "Fixed Services: $fixedServices")
+    Log.d("PaymentSection", "Fixed Services size: ${fixedServices.size}")
+    fixedServices.forEachIndexed { index, service ->
+        Log.d("PaymentSection", "Fixed Service $index: name=${service.name}, price=${service.price}, metric=${service.metric}")
+    }
 
-    // Extract service rates from building
     val electricityService = building?.services?.find {
         Log.d("PaymentSection", "Checking service: ${it.name}, metric: ${it.metric}, price: ${it.price}")
-        it.metric == com.example.baytro.data.service.Metric.KWH
+        it.metric == Metric.KWH
     }
 
     val waterService = building?.services?.find {
-        it.metric == com.example.baytro.data.service.Metric.M3
+        it.metric == Metric.M3
     }
 
     Log.d("PaymentSection", "Electricity service: $electricityService")
@@ -617,13 +626,24 @@ fun PaymentSection(
                     UtilityCard(
                         icon = Icons.Default.Water,
                         label = "Water",
-                        rate = "${Utils.formatCurrency(electricityRate.toString())}/m³",
+                        rate = "${Utils.formatCurrency(waterRate.toString())}/m³",
                         usage = "${lastReading?.waterConsumption ?: 0} m³",
                         lastUpdate = lastReading?.createdAt?.let { Utils.formatTimestamp(it) } ?: "N/A",
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         iconColor = MaterialTheme.colorScheme.secondary
                     )
+
+                    fixedServices.forEach { service ->
+                        FixedServiceCard(
+                            icon = Icons.Default.Build,
+                            label = service.name,
+                            rate = Utils.formatCurrency(service.price),
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            iconColor = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -757,6 +777,71 @@ fun UtilityCard(
                     color = contentColor.copy(alpha = 0.6f)
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun FixedServiceCard(
+    icon: ImageVector,
+    label: String,
+    rate: String,
+    containerColor: Color,
+    contentColor: Color,
+    iconColor: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    modifier = Modifier.size(40.dp),
+                    color = iconColor
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor
+                    )
+                    Text(
+                        text = "Extra service",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor.copy(alpha = 0.7f)
+                    )
+                }
+            }
+            Text(
+                text = rate,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
+            )
         }
     }
 }

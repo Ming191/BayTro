@@ -14,19 +14,18 @@ fun NavGraphBuilder.serviceNavGraph(navController: NavHostController) {
         ServiceListScreen(navController = navController)
     }
 
-    composable(Screens.AddService.route) {
+    composable(
+        Screens.AddService.route,
+        arguments = Screens.AddService.arguments
+    ) {
         AddServiceScreen(navController = navController)
     }
 
     composable(
-        route = "edit_service_screen/{buildingId}/{serviceId}",
-        arguments = listOf(
-            navArgument("buildingId") { type = NavType.StringType },
-            navArgument("serviceId") { type = NavType.StringType }
-        )
+        route = Screens.EditService.route,
+        arguments = Screens.EditService.arguments
     ) {
         EditServiceScreen(navController = navController)
     }
-
 }
 

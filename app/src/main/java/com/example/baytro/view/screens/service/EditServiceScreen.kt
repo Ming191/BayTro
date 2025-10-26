@@ -50,6 +50,7 @@ import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.service.AddServiceFormState
+import com.example.baytro.viewModel.service.EditServiceFormState
 import com.example.baytro.viewModel.service.EditServiceVM
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
@@ -101,7 +102,7 @@ fun EditServiceScreen(
 @Composable
 fun EditServiceContent(
     uiState: UiState<Service>,
-    formState: AddServiceFormState,
+    formState: EditServiceFormState,
     onNameChange: (String) -> Unit,
     onPriceChange: (String) -> Unit,
     onUnitSelected: (Metric) -> Unit,
@@ -478,4 +479,3 @@ fun EditServiceContent(
         }
     )
 }
-

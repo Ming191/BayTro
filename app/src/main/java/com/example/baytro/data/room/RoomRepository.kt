@@ -3,6 +3,7 @@ package com.example.baytro.data.room
 import android.util.Log
 import com.example.baytro.data.Building
 import com.example.baytro.data.Repository
+import com.example.baytro.data.service.Service
 import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
@@ -118,5 +119,83 @@ class RoomRepository(
 
     fun getRoomFlow(id: String): Flow<Room?> {
         return collection.document(id).snapshots.map { it.data<Room>() }
+    }
+
+    suspend fun getExtraServicesByRoomId(roomId: String): List<Service> {
+        return try {
+            val snapshot = collection.document(roomId)
+                .collection("extraServices")
+                .where { "status" equalTo "ACTIVE" }
+                .get()
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    val service = doc.data<Service>()
+                    service.copy(id = doc.id)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching extra services for room $roomId: ${e.message}")
+            emptyList()
+        }
+    }
+
+    fun listenToRoomExtraServices(roomId: String): Flow<List<Service>> {
+        return collection.document(roomId)
+            .collection("extraServices")
+            .where { "status" equalTo "ACTIVE" }
+            .snapshots
+            .map { querySnapshot ->
+                querySnapshot.documents.mapNotNull { doc ->
+                    try {
+                        val service = doc.data<Service>()
+                        service.copy(id = doc.id) // nếu Service có trường id
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            }
+    }
+
+    suspend fun addExtraServiceToRoom(roomId: String, service: Service): String {
+        val docRef = collection.document(roomId)
+            .collection("extraServices")
+            .add(service)
+        return docRef.id
+    }
+
+    suspend fun getExtraServiceById(roomId: String, serviceId: String): Service? {
+        val snapshot = collection.document(roomId)
+            .collection("extraServices")
+            .document(serviceId)
+            .get()
+
+        return if (snapshot.exists) {
+            val service = snapshot.data<Service>()
+            service.copy(id = serviceId)
+        } else null
+    }
+
+    suspend fun updateExtraServiceInRoom(roomId: String, service: Service) {
+        collection.document(roomId)
+            .collection("extraServices")
+            .document(service.id)
+            .set(service)
+    }
+
+    suspend fun removeExtraServiceFromRoom(roomId: String, serviceId: String) {
+        collection.document(roomId)
+            .collection("extraServices")
+            .document(serviceId)
+            .update("status" to "DELETE")
+    }
+
+    suspend fun hasExtraService(roomId: String, serviceId: String): Boolean {
+        val doc = collection.document(roomId)
+            .collection("extraServices")
+            .document(serviceId)
+            .get()
+        return doc.exists
     }
 }

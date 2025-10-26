@@ -1,10 +1,12 @@
 package com.example.baytro.view.screens.dashboard
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutCubic
@@ -39,7 +41,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ElectricBolt
@@ -51,11 +52,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -81,6 +80,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.baytro.view.components.CameraOnlyPhotoCapture
 import com.example.baytro.view.components.LoadingOverlay
+import com.example.baytro.view.components.MeterReadingFormSkeleton
 import com.example.baytro.viewModel.dashboard.MeterReadingAction
 import com.example.baytro.viewModel.dashboard.MeterReadingEvent
 import com.example.baytro.viewModel.dashboard.MeterReadingUiState
@@ -88,9 +88,18 @@ import com.example.baytro.viewModel.dashboard.MeterReadingVM
 import org.koin.compose.viewmodel.koinViewModel
 
 // =====================================================================
+//                       FORM STATE
+// =====================================================================
+
+private enum class FormState {
+    LOADING, CONTENT
+}
+
+// =====================================================================
 //                       MAIN SCREEN COMPOSABLE
 // =====================================================================
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeterReadingScreen(
@@ -145,25 +154,24 @@ fun MeterReadingScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("Meter Reading") },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+//                CenterAlignedTopAppBar(
+//                    title = { Text("Meter Reading") },
+//                    navigationIcon = {
+//                        IconButton(onClick = onNavigateBack) {
+//                            Icon(
+//                                Icons.AutoMirrored.Filled.ArrowBack,
+//                                contentDescription = "Back"
+//                            )
+//                        }
+//                    },
+//                    modifier = Modifier.fillMaxWidth()
+//                )
             }
-        ) { paddingValues ->
+        ) {
             MeterReadingContent(
                 uiState = uiState,
                 onAction = viewModel::onAction,
                 viewModel = viewModel,
-                modifier = Modifier.padding(paddingValues)
             )
         }
 
@@ -189,53 +197,73 @@ fun MeterReadingContent(
     viewModel: MeterReadingVM,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Animated entrance for each section
-        AnimatedSection(delayMillis = 0) {
-            InstructionsBanner()
-        }
+    val formState = if (uiState.isLoading) FormState.LOADING else FormState.CONTENT
 
-        AnimatedSection(delayMillis = 100) {
-            SubmissionProgressCard(uiState = uiState)
-        }
+    Crossfade(
+        targetState = formState,
+        animationSpec = tween(durationMillis = 300),
+        label = "meterReadingFormCrossfade",
+        modifier = modifier.fillMaxSize()
+    ) { state ->
+        when (state) {
+            FormState.LOADING -> {
+                MeterReadingFormSkeleton(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                )
+            }
+            FormState.CONTENT -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Animated entrance for each section
+                    AnimatedSection(delayMillis = 0) {
+                        InstructionsBanner()
+                    }
 
-        AnimatedSection(delayMillis = 200) {
-            MeterPhotosSection(
-                electricityPhotoUri = uiState.electricityPhotoUri,
-                waterPhotoUri = uiState.waterPhotoUri,
-                isProcessing = uiState.isProcessing,
-                onAction = onAction,
-                viewModel = viewModel
-            )
-        }
+                    AnimatedSection(delayMillis = 100) {
+                        SubmissionProgressCard(uiState = uiState)
+                    }
 
-        AnimatedSection(delayMillis = 300) {
-            MeterReadingsSection(
-                electricityReading = uiState.electricityReading,
-                waterReading = uiState.waterReading,
-                electricityPhotoUri = uiState.electricityPhotoUri,
-                waterPhotoUri = uiState.waterPhotoUri,
-                electricityConfidence = uiState.electricityConfidence,
-                waterConfidence = uiState.waterConfidence,
-                onAction = onAction
-            )
-        }
+                    AnimatedSection(delayMillis = 200) {
+                        MeterPhotosSection(
+                            electricityPhotoUri = uiState.electricityPhotoUri,
+                            waterPhotoUri = uiState.waterPhotoUri,
+                            isProcessing = uiState.isProcessing,
+                            onAction = onAction,
+                            viewModel = viewModel
+                        )
+                    }
 
-        AnimatedSection(delayMillis = 400) {
-            SubmitButton(
-                enabled = !uiState.isSubmitting &&
-                        uiState.electricityReading.isNotBlank() &&
-                        uiState.waterReading.isNotBlank() &&
-                        uiState.electricityPhotoUri != null &&
-                        uiState.waterPhotoUri != null,
-                onClick = { onAction(MeterReadingAction.SubmitReadings) }
-            )
+                    AnimatedSection(delayMillis = 300) {
+                        MeterReadingsSection(
+                            electricityReading = uiState.electricityReading,
+                            waterReading = uiState.waterReading,
+                            electricityPhotoUri = uiState.electricityPhotoUri,
+                            waterPhotoUri = uiState.waterPhotoUri,
+                            electricityConfidence = uiState.electricityConfidence,
+                            waterConfidence = uiState.waterConfidence,
+                            onAction = onAction
+                        )
+                    }
+
+                    AnimatedSection(delayMillis = 400) {
+                        SubmitButton(
+                            enabled = !uiState.isSubmitting &&
+                                    uiState.electricityReading.isNotBlank() &&
+                                    uiState.waterReading.isNotBlank() &&
+                                    uiState.electricityPhotoUri != null &&
+                                    uiState.waterPhotoUri != null,
+                            onClick = { onAction(MeterReadingAction.SubmitReadings) }
+                        )
+                    }
+                }
+            }
         }
     }
 }

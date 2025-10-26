@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class MeterReadingUiState(
+    val isLoading: Boolean = true,
     val isProcessing: Boolean = false,
     val isSubmitting: Boolean = false,
     val electricityReading: String = "",
@@ -95,6 +96,7 @@ class MeterReadingVM(
     ) {
         _uiState.update {
             it.copy(
+                isLoading = false,
                 contractId = contractId,
                 roomId = roomId,
                 buildingId = buildingId,

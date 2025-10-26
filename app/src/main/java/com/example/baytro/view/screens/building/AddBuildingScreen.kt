@@ -1,11 +1,13 @@
 package com.example.baytro.view.screens.building
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,11 +20,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -40,16 +47,22 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.example.baytro.data.BuildingStatus
+import com.example.baytro.data.service.Service
+import com.example.baytro.navigation.Screens
 import com.example.baytro.view.AuthUIState
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.viewModel.building.AddBuildingVM
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +74,20 @@ fun AddBuildingScreen(
     val uiState by viewModel.addBuildingUIState.collectAsState()
     val formState by viewModel.formState.collectAsState()
     val context = LocalContext.current
+
+
+    val buildingServices by viewModel.buildingServices.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(navController) {
+        val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
+        savedStateHandle?.getLiveData<String>("newService")?.observe(lifecycleOwner) { json ->
+            val service = Json.decodeFromString<Service>(json)
+            Log.d("ServiceListScreen", "Received new service: $service")
+            // xử lý thêm service vào danh sách hoặc cập nhật UI
+            viewModel.onBuildingServicesChange(service)
+            savedStateHandle.remove<String>("newService")
+        }
+    }
 
     val nameFocus = remember { FocusRequester() }
     val floorFocus = remember { FocusRequester() }
@@ -432,6 +459,66 @@ fun AddBuildingScreen(
             }
 
             item {
+                DividerWithSubhead(subhead = "Services")
+                if (buildingServices.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        buildingServices.forEach { service ->
+                            ServiceCard(
+                                service = service,
+                                onEdit = null,
+                                onDelete = null
+                            )
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .size(50.dp)
+                                    .clickable {
+                                        navController?.navigate(Screens.AddService.createRoute("","",true))
+                                        //onAddServiceClick("",building?.id.toString())
+                                    }
+                            )
+                            Text("Add service here")
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 8.dp)
+                                .clickable {
+                                    navController?.navigate(Screens.AddService.createRoute("","",true))
+                                    //onAddServiceClick(null.toString(),building?.id.toString())
+                                }
+                        )
+                        Text("Add service here")
+                    }
+                }
+            }
+
+
+            item {
                 AnimatedVisibility(
                     visible = imagesTitleVisible,
                     enter = fadeIn(
@@ -549,4 +636,11 @@ fun AddBuildingScreen(
             }
         }
     }
+}
+
+
+@Preview
+@Composable
+fun AddBuildingScreenPreview() {
+    AddBuildingScreen()
 }

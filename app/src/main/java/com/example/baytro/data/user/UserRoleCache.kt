@@ -51,4 +51,19 @@ class UserRoleCache(private val context: Context) {
             preferences[ROLE_TYPE_KEY] = roleTypeString
         }
     }
+
+    /**
+     * Clear all cached data
+     * Should be called when user signs out
+     */
+    suspend fun clearCache() {
+        try {
+            context.dataStore.edit { preferences ->
+                preferences.clear()
+            }
+            Log.d("UserRoleCache", "Cache cleared successfully")
+        } catch (e: Exception) {
+            Log.e("UserRoleCache", "Failed to clear cache", e)
+        }
+    }
 }

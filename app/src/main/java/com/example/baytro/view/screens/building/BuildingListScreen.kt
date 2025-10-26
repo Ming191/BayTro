@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,8 +43,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,8 +54,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.example.baytro.navigation.Screens
 import com.example.baytro.utils.Utils
@@ -76,14 +84,69 @@ fun BuildingListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(Unit) {
+    val loadingState by remember {
+        derivedStateOf {
+            when {
+                uiState.isLoading -> LoadingState.LOADING
+                uiState.buildings.isNotEmpty() -> LoadingState.CONTENT
+                else -> LoadingState.EMPTY
+            }
+        }
+    }
+
+    val hasActiveFilter by remember {
+        derivedStateOf { uiState.statusFilter != BuildingStatusFilter.ALL }
+    }
+
+    val filterDisplayText by remember {
+        derivedStateOf {
+            "Filter: ${uiState.statusFilter.name.lowercase().replaceFirstChar { it.uppercase() }}"
+        }
+    }
+
+    val onAddBuildingClick = remember {
+        { navController.navigate(Screens.BuildingAdd.route) }
+    }
+
+    val onSearchQueryChange = remember(viewModel) {
+        { query: String -> viewModel.setSearchQuery(query) }
+    }
+
+    val onFilterSelected = remember(viewModel) {
+        { filter: BuildingStatusFilter -> viewModel.setStatusFilter(filter) }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(viewModel) {
         viewModel.errorEvent.collect { event ->
             event.getContentIfNotHandled()?.let { errorMessage ->
                 snackbarHostState.showSnackbar(message = errorMessage)
             }
         }
     }
+
+    LaunchedEffect(viewModel) {
+        viewModel.successEvent.collect { event ->
+            event.getContentIfNotHandled()?.let { successMessage ->
+                snackbarHostState.showSnackbar(message = successMessage)
+            }
+        }
+    }
+
+    val isDeletingBuilding by viewModel.isDeletingBuilding.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -95,26 +158,29 @@ fun BuildingListScreen(
                 CompactSearchBar(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     value = uiState.searchQuery,
-                    onValueChange = { viewModel.setSearchQuery(it) },
+                    onValueChange = onSearchQueryChange,
                     placeholderText = "Search buildings...",
                     trailingIcon = {
                         FilterMenu(
                             selectedFilter = uiState.statusFilter,
-                            onFilterSelected = { viewModel.setStatusFilter(it) },
-                            hasActiveFilter = uiState.statusFilter != BuildingStatusFilter.ALL
+                            onFilterSelected = onFilterSelected,
+                            hasActiveFilter = hasActiveFilter
                         )
                     }
                 )
 
                 AnimatedVisibility(
-                    visible = uiState.statusFilter != BuildingStatusFilter.ALL,
+                    visible = hasActiveFilter,
                     enter = fadeIn() + scaleIn(),
                     exit = fadeOut() + scaleOut()
                 ) {
                     Surface(
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
-                            .padding(bottom = 8.dp),
+                            .padding(bottom = 8.dp)
+                            .semantics {
+                                contentDescription = "Active filter: ${uiState.statusFilter.name}"
+                            },
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.secondaryContainer
                     ) {
@@ -125,12 +191,12 @@ fun BuildingListScreen(
                         ) {
                             Icon(
                                 Icons.Default.FilterList,
-                                contentDescription = null,
+                                contentDescription = "Filter icon",
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Text(
-                                text = "Filter: ${uiState.statusFilter.name.lowercase().replaceFirstChar { it.uppercase() }}",
+                                text = filterDisplayText,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 fontWeight = FontWeight.Medium
@@ -146,23 +212,25 @@ fun BuildingListScreen(
                     .weight(1f)
             ) {
                 Crossfade(
-                    targetState = when {
-                        uiState.isLoading -> LoadingState.LOADING
-                        uiState.buildings.isNotEmpty() -> LoadingState.CONTENT
-                        else -> LoadingState.EMPTY
-                    },
+                    targetState = loadingState,
                     label = "buildingListCrossfade",
                     animationSpec = tween(durationMillis = 300)
                 ) { state ->
                     when (state) {
                         LoadingState.LOADING -> {
-                            Box(modifier = Modifier.padding(16.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .semantics { contentDescription = "Loading buildings" }
+                            ) {
                                 BuildingListSkeleton()
                             }
                         }
                         LoadingState.CONTENT -> {
                             LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .semantics { contentDescription = "Buildings list" },
                                 contentPadding = PaddingValues(
                                     start = 16.dp,
                                     end = 16.dp,
@@ -175,32 +243,33 @@ fun BuildingListScreen(
                                     items = uiState.buildings,
                                     key = { it.building.id }
                                 ) { buildingWithStats ->
+                                    val buildingId = buildingWithStats.building.id
+                                    val onViewClick = remember(buildingId) {
+                                        { navController.navigate(Screens.RoomList.createRoute(buildingId)) }
+                                    }
+                                    val onEditClick = remember(buildingId) {
+                                        { navController.navigate(Screens.BuildingEdit.createRoute(buildingId)) }
+                                    }
+                                    val onDeleteClick = remember(buildingId, viewModel) {
+                                        { viewModel.archiveBuilding(buildingId) }
+                                    }
+
                                     BuildingCard(
                                         name = buildingWithStats.building.name,
                                         address = buildingWithStats.building.address,
                                         imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
                                         roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
                                         revenue = Utils.formatCurrency(buildingWithStats.revenue.toString()),
-                                        onViewClick = {
-                                            navController.navigate(
-                                                Screens.RoomList.createRoute(buildingWithStats.building.id)
-                                            )
-                                        },
-                                        onEditClick = {
-                                            navController.navigate(
-                                                Screens.BuildingEdit.createRoute(buildingWithStats.building.id)
-                                            )
-                                        },
-                                        onDeleteClick = {
-                                            viewModel.archiveBuilding(buildingWithStats.building.id)
-                                        }
+                                        onViewClick = onViewClick,
+                                        onEditClick = onEditClick,
+                                        onDeleteClick = onDeleteClick
                                     )
                                 }
                             }
                         }
                         LoadingState.EMPTY -> {
                             EmptyBuildingState(
-                                onAddBuilding = { navController.navigate(Screens.BuildingAdd.route) }
+                                onAddBuilding = onAddBuildingClick
                             )
                         }
                     }
@@ -215,19 +284,18 @@ fun BuildingListScreen(
             contentAlignment = Alignment.BottomEnd
         ) {
             FloatingActionButton(
-                onClick = {
-                    navController.navigate(Screens.BuildingAdd.route)
-                },
+                onClick = onAddBuildingClick,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 6.dp,
                     pressedElevation = 12.dp
-                )
+                ),
+                modifier = Modifier.semantics { contentDescription = "Add new building" }
             ) {
                 Icon(
                     Icons.Default.Add,
-                    contentDescription = null,
+                    contentDescription = "Add",
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -240,6 +308,37 @@ fun BuildingListScreen(
             contentAlignment = Alignment.BottomCenter
         ) {
             SnackbarHost(snackbarHostState)
+        }
+
+        if (isDeletingBuilding) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Deleting building...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -258,6 +357,9 @@ private fun FilterMenu(
         label = "filterRotation"
     )
 
+    val onIconClick = remember { { showMenu = true } }
+    val onDismissRequest = remember { { showMenu = false } }
+
     Box {
         Surface(
             shape = RoundedCornerShape(12.dp),
@@ -265,7 +367,14 @@ private fun FilterMenu(
                 MaterialTheme.colorScheme.primaryContainer
             else
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            tonalElevation = if (hasActiveFilter) 2.dp else 0.dp
+            tonalElevation = if (hasActiveFilter) 2.dp else 0.dp,
+            modifier = Modifier.semantics {
+                contentDescription = if (hasActiveFilter) {
+                    "Filter menu, active filter applied"
+                } else {
+                    "Filter menu"
+                }
+            }
         ) {
             BadgedBox(
                 badge = {
@@ -278,12 +387,12 @@ private fun FilterMenu(
                 }
             ) {
                 IconButton(
-                    onClick = { showMenu = true },
+                    onClick = onIconClick,
                     modifier = Modifier.size(44.dp)
                 ) {
                     Icon(
                         Icons.Default.FilterList,
-                        contentDescription = "Filter by status",
+                        contentDescription = "Open filter menu",
                         tint = if (hasActiveFilter)
                             MaterialTheme.colorScheme.onPrimaryContainer
                         else
@@ -298,7 +407,7 @@ private fun FilterMenu(
 
         DropdownMenu(
             expanded = showMenu,
-            onDismissRequest = { showMenu = false },
+            onDismissRequest = onDismissRequest,
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.padding(4.dp)
         ) {
@@ -311,23 +420,33 @@ private fun FilterMenu(
             )
 
             BuildingStatusFilter.entries.forEach { filter ->
+                val filterName = remember(filter) {
+                    filter.name.lowercase().replaceFirstChar { it.uppercase() }
+                }
+
+                val onItemClick = remember(filter, onFilterSelected) {
+                    {
+                        onFilterSelected(filter)
+                        showMenu = false
+                    }
+                }
+
+                val isSelected = filter == selectedFilter
+
                 DropdownMenuItem(
                     text = {
                         Text(
-                            text = filter.name.lowercase().replaceFirstChar { it.uppercase() },
+                            text = filterName,
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = if (filter == selectedFilter) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (filter == selectedFilter)
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected)
                                 MaterialTheme.colorScheme.primary
                             else
                                 MaterialTheme.colorScheme.onSurface
                         )
                     },
-                    onClick = {
-                        onFilterSelected(filter)
-                        showMenu = false
-                    },
-                    leadingIcon = if (filter == selectedFilter) {
+                    onClick = onItemClick,
+                    leadingIcon = if (isSelected) {
                         {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
@@ -337,7 +456,7 @@ private fun FilterMenu(
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Default.Check,
-                                        contentDescription = "Selected",
+                                        contentDescription = "Selected filter",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -347,7 +466,15 @@ private fun FilterMenu(
                     } else {
                         { Spacer(modifier = Modifier.size(32.dp)) }
                     },
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .semantics {
+                            contentDescription = if (isSelected) {
+                                "Filter by $filterName, currently selected"
+                            } else {
+                                "Filter by $filterName"
+                            }
+                        }
                 )
             }
         }

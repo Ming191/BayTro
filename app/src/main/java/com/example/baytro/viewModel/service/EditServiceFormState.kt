@@ -4,7 +4,7 @@ import com.example.baytro.data.Building
 import com.example.baytro.data.room.Room
 import com.example.baytro.data.service.Metric
 
-data class AddServiceFormState(
+data class EditServiceFormState(
     val name: String = "",
     val price: String = "",
     val metrics: Metric = Metric.entries[0],
@@ -14,8 +14,5 @@ data class AddServiceFormState(
     val selectedBuilding: Building? = null,
 
     val availableRooms: List<Room> = emptyList(),
-    val selectedRooms: Set<String> = emptySet(),
-
-    val nameError: String? = null,
-    val priceError: String? = null
+    val selectedRooms: Set<String> = emptySet()
 )

@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -18,10 +17,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -38,99 +40,99 @@ fun TenantScaffold(
     navHostController: NavHostController,
 ) {
     val currentRoute = navHostController.currentBackStackEntryAsState().value?.destination?.route
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+    LaunchedEffect(currentRoute) {
+        scrollBehavior.state.heightOffset = 0f
+        scrollBehavior.state.contentOffset = 0f
+    }
 
-    val routesWithOwnScaffold = listOf(
-        Screens.MeterReading.route,
-        Screens.AddRequest.route
-    )
     Box(modifier = Modifier.fillMaxSize()) {
-        if (currentRoute in routesWithOwnScaffold) {
-            AppNavigationController(
-                navHostController = navHostController,
-                startDestination = Screens.TenantDashboard.route
-            )
-        } else {
-            Scaffold(
-                topBar = {
-                    val titleText = when (currentRoute) {
-                        Screens.PersonalInformation.route -> "User profile"
-                        Screens.TenantDashboard.route -> "Dashboard"
-                        Screens.TenantEmptyContract.route -> "Contract"
-                        Screens.ContractDetails.route -> "Contract Details"
-                        Screens.UpdateRequest.route -> "Update Request"
-                        Screens.MaintenanceRequestList.route -> "Maintenance"
-                        Screens.BillList.route -> "Bills"
-                        Screens.TenantBillScreen.route -> "My Bill"
-                        Screens.MeterReadingHistory.route -> "Reading History"
-                        Screens.Chatbot.route -> "Housing law chatbot"
-                        else -> "BayTro"
-                    }
+        Scaffold(
+            topBar = {
+                val titleText = when (currentRoute) {
+                    Screens.PersonalInformation.route -> "User profile"
+                    Screens.TenantDashboard.route -> "Dashboard"
+                    Screens.TenantEmptyContract.route -> "Contract"
+                    Screens.ContractDetails.route -> "Contract Details"
+                    Screens.UpdateRequest.route -> "Update Request"
+                    Screens.MaintenanceRequestList.route -> "Maintenance"
+                    Screens.BillList.route -> "Bills"
+                    Screens.TenantBillScreen.route -> "My Bill"
+                    Screens.MeterReadingHistory.route -> "Reading History"
+                    Screens.AddRequest.route -> "New Request"
+                    Screens.Chatbot.route -> "Housing law chatbot"
+                    else -> "BayTro"
+                }
 
-                    CenterAlignedTopAppBar(
-                        title = { Text(titleText) },
-                        navigationIcon = {
-                            if (navHostController.previousBackStackEntry != null) {
-                                IconButton(onClick = { navHostController.popBackStack() }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                CenterAlignedTopAppBar(
+                    scrollBehavior = scrollBehavior,
+                    title = { Text(titleText) },
+                    colors = TopAppBarDefaults.topAppBarColors().copy(
+                        scrolledContainerColor = TopAppBarDefaults.topAppBarColors().containerColor
+                    ),
+                    navigationIcon = {
+                        if (navHostController.previousBackStackEntry != null) {
+                            IconButton(onClick = { navHostController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    },
+                    actions = {
+                        val isMainScreen = currentRoute in listOf(
+                            Screens.TenantDashboard.route,
+                            Screens.BillList.route,
+                            Screens.MaintenanceRequestList.route,
+                            Screens.TenantEmptyContract.route,
+                            Screens.Chatbot.route
+                        )
+                        if (isMainScreen && currentRoute != Screens.PersonalInformation.route) {
+                            val avatarCache = LocalAvatarCache.current
+                            val uid = FirebaseAuth.getInstance().currentUser?.uid
+
+                            LaunchedEffect(uid) {
+                                if (uid != null) {
+                                    avatarCache.loadAvatar(uid)
+                                } else {
+                                    avatarCache.clearCache()
                                 }
                             }
-                        },
-                        actions = {
-                            val isMainScreen = currentRoute in listOf(
-                                Screens.TenantDashboard.route,
-                                Screens.BillList.route,
-                                Screens.MaintenanceRequestList.route,
-                                Screens.TenantEmptyContract.route,
-                                Screens.Chatbot.route
-                            )
-                            if (isMainScreen && currentRoute != Screens.PersonalInformation.route) {
-                                val avatarCache = LocalAvatarCache.current
-                                val uid = FirebaseAuth.getInstance().currentUser?.uid
 
-                                LaunchedEffect(uid) {
-                                    if (uid != null) {
-                                        avatarCache.loadAvatar(uid)
-                                    } else {
-                                        avatarCache.clearCache()
-                                    }
-                                }
-
-                                IconButton(onClick = { navHostController.navigate(Screens.PersonalInformation.route) }) {
-                                    val url = avatarCache.avatarUrl
-                                    if (!url.isNullOrBlank()) {
-                                        val context = LocalContext.current
-                                        Image(
-                                            painter = rememberAsyncImagePainter(
-                                                model = ImageRequest.Builder(context)
-                                                    .data(url)
-                                                    .crossfade(false)
-                                                    .build()
-                                            ),
-                                            contentDescription = "Profile",
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                                .clip(CircleShape)
-                                        )
-                                    } else {
-                                        Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
-                                    }
+                            IconButton(onClick = { navHostController.navigate(Screens.PersonalInformation.route) }) {
+                                val url = avatarCache.avatarUrl
+                                if (!url.isNullOrBlank()) {
+                                    val context = LocalContext.current
+                                    Image(
+                                        painter = rememberAsyncImagePainter(
+                                            model = ImageRequest.Builder(context)
+                                                .data(url)
+                                                .crossfade(false)
+                                                .build()
+                                        ),
+                                        contentDescription = "Profile",
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                    )
+                                } else {
+                                    Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
                                 }
                             }
                         }
-                    )
-                },
-                containerColor = MaterialTheme.colorScheme.background
-            ) { paddingValues ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                ) {
-                    AppNavigationController(
-                        navHostController = navHostController,
-                        startDestination = Screens.TenantDashboard.route
-                    )
-                }
+                    }
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+            ) {
+                AppNavigationController(
+                    navHostController = navHostController,
+                    startDestination = Screens.TenantDashboard.route
+                )
             }
         }
     }

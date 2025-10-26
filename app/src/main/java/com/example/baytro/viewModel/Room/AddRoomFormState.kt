@@ -24,6 +24,6 @@ data class AddRoomFormState(
     val interior: Furniture = Furniture.UNFURNISHED,
     val interiorError: String? = null,
 
-    val extraServices: List<Service> = emptyList(),
-    val extraServicesError: String? = null
+    val extraService: List<Service> = emptyList(),
+    val extraServiceError: String? = null
 )

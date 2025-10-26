@@ -1,5 +1,6 @@
 package com.example.baytro.view.screens.auth
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +30,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.baytro.auth.SignInFormState
 import com.example.baytro.utils.ValidationResult
-import com.example.baytro.view.AuthUIState
+import com.example.baytro.view.SignInUiState
 import com.example.baytro.view.components.PasswordTextField
 import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
@@ -51,39 +52,64 @@ fun SignInScreen(
     val loginUiState by viewModel.signInUIState.collectAsState()
     val context = LocalContext.current
 
+    Log.d("SignInScreen", "Composing SignInScreen - Current state: ${loginUiState::class.simpleName}")
+
     SignInContent(
         formState = formState,
         loginUiState = loginUiState,
         onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
-        onSignInClicked = viewModel::login,
-        onNavigateToSignUp = onNavigateToSignUp,
-        onNavigateToForgotPassword = onNavigateToForgotPassword
+        onSignInClicked = {
+            Log.d("SignInScreen", "SignIn button clicked")
+            viewModel.login()
+        },
+        onNavigateToSignUp = {
+            Log.d("SignInScreen", "Navigate to SignUp clicked")
+            onNavigateToSignUp()
+        },
+        onNavigateToForgotPassword = {
+            Log.d("SignInScreen", "Navigate to ForgotPassword clicked")
+            onNavigateToForgotPassword()
+        }
     )
     LaunchedEffect(key1 = loginUiState) {
+        Log.d("SignInScreen", "LaunchedEffect triggered - State: ${loginUiState::class.simpleName}")
+//        viewModel.resetState()
         when (val state = loginUiState) {
-            is AuthUIState.Success -> {
+            is SignInUiState.Success -> {
+                Log.d("SignInScreen", "Success state - Navigating to main screen")
                 onSignInSuccess()
             }
-            is AuthUIState.TenantWithContract -> {
+            is SignInUiState.TenantWithContract -> {
+                Log.d("SignInScreen", "TenantWithContract state - Navigating to tenant dashboard")
                 onTenantWithContract()
             }
-            is AuthUIState.FirstTimeUser -> {
+            is SignInUiState.FirstTimeUser -> {
+                Log.d("SignInScreen", "FirstTimeUser state - Navigating to onboarding")
                 onFirstTimeUser()
             }
-            is AuthUIState.TenantNoContract -> {
+            is SignInUiState.TenantNoContract -> {
+                Log.d("SignInScreen", "TenantNoContract state - Navigating to no contract screen")
                 onTenantNoContract()
             }
-            is AuthUIState.TenantPendingSession -> {
+            is SignInUiState.TenantPendingSession -> {
+                Log.d("SignInScreen", "TenantPendingSession state - Navigating to pending session")
                 onTenantPendingSession()
             }
-            is AuthUIState.Error -> {
+            is SignInUiState.Error -> {
+                Log.e("SignInScreen", "Error state: ${state.message}")
                 Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
             }
-            is AuthUIState.NeedVerification -> {
+            is SignInUiState.NeedVerification -> {
+                Log.w("SignInScreen", "NeedVerification state: ${state.message}")
                 Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
             }
-            else -> Unit
+            is SignInUiState.Loading -> {
+                Log.d("SignInScreen", "Loading state")
+            }
+            is SignInUiState.Idle -> {
+                Log.d("SignInScreen", "Idle state")
+            }
         }
     }
 }
@@ -92,7 +118,7 @@ fun SignInScreen(
 @Composable
 fun SignInContent(
     formState: SignInFormState,
-    loginUiState: AuthUIState,
+    loginUiState: SignInUiState,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onSignInClicked: () -> Unit,
@@ -149,7 +175,7 @@ fun SignInContent(
 
             SubmitButton(
                 text = "Sign In",
-                isLoading = loginUiState is AuthUIState.Loading,
+                isLoading = loginUiState is SignInUiState.Loading,
                 onClick = onSignInClicked,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -169,7 +195,7 @@ fun SignInContent(
         }
 
         Text(
-            text = "Made with ❤️ for landlords & tenants © 2025 BayTro",
+            text = "Made with <3 for landlords & tenants © 2025 BayTro",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier

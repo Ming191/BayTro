@@ -13,7 +13,8 @@ enum class Metric {
 
 enum class Status {
     ACTIVE,
-    INACTIVE
+    INACTIVE,
+    DELETE
 }
 
 @Serializable
