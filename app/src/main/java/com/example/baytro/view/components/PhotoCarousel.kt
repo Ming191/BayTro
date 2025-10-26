@@ -308,7 +308,9 @@ fun PhotoCarousel(
     maxResultWidth: Int = 1080,
     maxResultHeight: Int = 1440,
     useCircularFrame: Boolean = false,
-    showDeleteButton: Boolean = true
+    showDeleteButton: Boolean = true,
+    isError: Boolean = false,
+    errorMessage: String? = null
 ) {
     val context = LocalContext.current
     var showPicker by remember { mutableStateOf(false) }
@@ -459,118 +461,129 @@ fun PhotoCarousel(
     val imageShape = if (useCircularFrame) CircleShape else RoundedCornerShape(8.dp)
     val arrangement = Arrangement.spacedBy(8.dp)
 
-    if (orientation == CarouselOrientation.Horizontal) {
-        LazyRow(
-            horizontalArrangement = arrangement,
-        ) {
-            // Existing images from URLs
-            itemsIndexed(
-                items = existingImageUrls,
-                key = { _, imageUrl -> "existing_$imageUrl" }
-            ) { index, imageUrl ->
-                ExistingImageItem(
-                    imageUrl = imageUrl,
-                    imageWidth = imageWidth,
-                    imageHeight = imageHeight,
-                    imageShape = imageShape,
-                    onImageClick = {
-                        selectedImageIndex = index
-                        showImageDetailDialog = true
-                    },
-                    onDelete = {
-                        onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
-                    },
-                    showDeleteButton = showDeleteButton
-                )
-            }
-
-            itemsIndexed(
-                items = selectedPhotos,
-                key = { _, uri -> "new_$uri" }
-            ) { uriIndex, uri ->
-                val index = existingImageUrls.size + uriIndex
-                NewImageItem(
-                    uri = uri,
-                    imageWidth = imageWidth,
-                    imageHeight = imageHeight,
-                    imageShape = imageShape,
-                    onImageClick = {
-                        selectedImageIndex = index
-                        showImageDetailDialog = true
-                    },
-                    onDelete = {
-                        onPhotosSelected(selectedPhotos.filter { it != uri })
-                    },
-                    showDeleteButton = showDeleteButton
-                )
-            }
-
-            if (totalImageCount < maxSelectionCount) {
-                item {
-                    UploadButton(
+    Column {
+        if (orientation == CarouselOrientation.Horizontal) {
+            LazyRow(
+                horizontalArrangement = arrangement,
+            ) {
+                // Existing images from URLs
+                itemsIndexed(
+                    items = existingImageUrls,
+                    key = { _, imageUrl -> "existing_$imageUrl" }
+                ) { index, imageUrl ->
+                    ExistingImageItem(
+                        imageUrl = imageUrl,
                         imageWidth = imageWidth,
                         imageHeight = imageHeight,
                         imageShape = imageShape,
-                        onClick = { showPhotoSourceDialog = true }
+                        onImageClick = {
+                            selectedImageIndex = index
+                            showImageDetailDialog = true
+                        },
+                        onDelete = {
+                            onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
+                        },
+                        showDeleteButton = showDeleteButton
                     )
+                }
+
+                itemsIndexed(
+                    items = selectedPhotos,
+                    key = { _, uri -> "new_$uri" }
+                ) { uriIndex, uri ->
+                    val index = existingImageUrls.size + uriIndex
+                    NewImageItem(
+                        uri = uri,
+                        imageWidth = imageWidth,
+                        imageHeight = imageHeight,
+                        imageShape = imageShape,
+                        onImageClick = {
+                            selectedImageIndex = index
+                            showImageDetailDialog = true
+                        },
+                        onDelete = {
+                            onPhotosSelected(selectedPhotos.filter { it != uri })
+                        },
+                        showDeleteButton = showDeleteButton
+                    )
+                }
+
+                if (totalImageCount < maxSelectionCount) {
+                    item {
+                        UploadButton(
+                            imageWidth = imageWidth,
+                            imageHeight = imageHeight,
+                            imageShape = imageShape,
+                            onClick = { showPhotoSourceDialog = true }
+                        )
+                    }
+                }
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = arrangement,
+            ) {
+                itemsIndexed(
+                    items = existingImageUrls,
+                    key = { _, imageUrl -> "existing_$imageUrl" }
+                ) { index, imageUrl ->
+                    ExistingImageItem(
+                        imageUrl = imageUrl,
+                        imageWidth = imageWidth,
+                        imageHeight = imageHeight,
+                        imageShape = imageShape,
+                        onImageClick = {
+                            selectedImageIndex = index
+                            showImageDetailDialog = true
+                        },
+                        onDelete = {
+                            onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
+                        },
+                        showDeleteButton = showDeleteButton
+                    )
+                }
+
+                itemsIndexed(
+                    items = selectedPhotos,
+                    key = { _, uri -> "new_$uri" }
+                ) { uriIndex, uri ->
+                    val index = existingImageUrls.size + uriIndex
+                    NewImageItem(
+                        uri = uri,
+                        imageWidth = imageWidth,
+                        imageHeight = imageHeight,
+                        imageShape = imageShape,
+                        onImageClick = {
+                            selectedImageIndex = index
+                            showImageDetailDialog = true
+                        },
+                        onDelete = {
+                            onPhotosSelected(selectedPhotos.filter { it != uri })
+                        },
+                        showDeleteButton = showDeleteButton
+                    )
+                }
+
+                if (totalImageCount < maxSelectionCount) {
+                    item {
+                        UploadButton(
+                            imageWidth = imageWidth,
+                            imageHeight = imageHeight,
+                            imageShape = imageShape,
+                            onClick = { showPhotoSourceDialog = true }
+                        )
+                    }
                 }
             }
         }
-    } else {
-        LazyColumn(
-            verticalArrangement = arrangement,
-        ) {
-            itemsIndexed(
-                items = existingImageUrls,
-                key = { _, imageUrl -> "existing_$imageUrl" }
-            ) { index, imageUrl ->
-                ExistingImageItem(
-                    imageUrl = imageUrl,
-                    imageWidth = imageWidth,
-                    imageHeight = imageHeight,
-                    imageShape = imageShape,
-                    onImageClick = {
-                        selectedImageIndex = index
-                        showImageDetailDialog = true
-                    },
-                    onDelete = {
-                        onExistingImagesChanged(existingImageUrls.filter { it != imageUrl })
-                    },
-                    showDeleteButton = showDeleteButton
-                )
-            }
 
-            itemsIndexed(
-                items = selectedPhotos,
-                key = { _, uri -> "new_$uri" }
-            ) { uriIndex, uri ->
-                val index = existingImageUrls.size + uriIndex
-                NewImageItem(
-                    uri = uri,
-                    imageWidth = imageWidth,
-                    imageHeight = imageHeight,
-                    imageShape = imageShape,
-                    onImageClick = {
-                        selectedImageIndex = index
-                        showImageDetailDialog = true
-                    },
-                    onDelete = {
-                        onPhotosSelected(selectedPhotos.filter { it != uri })
-                    },
-                    showDeleteButton = showDeleteButton
-                )
-            }
-
-            if (totalImageCount < maxSelectionCount) {
-                item {
-                    UploadButton(
-                        imageWidth = imageWidth,
-                        imageHeight = imageHeight,
-                        imageShape = imageShape,
-                        onClick = { showPhotoSourceDialog = true }
-                    )
-                }
-            }
+        if (isError && errorMessage != null) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
         }
     }
 }
