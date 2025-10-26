@@ -9,6 +9,7 @@ import com.example.baytro.view.screens.auth.EditPersonalInformationScreen
 import com.example.baytro.view.screens.profile.ProfileScreen
 import com.example.baytro.view.screens.profile.PoliciesAndTermsScreen
 import com.example.baytro.view.screens.profile.ViewPersonalInformationScreen
+import com.example.baytro.view.screens.tenant.TenantInfoScreen
 import com.google.firebase.auth.FirebaseAuth
 
 fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
@@ -65,5 +66,9 @@ fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
                 navController.navigate(Screens.SignOut.route)
             }
         )
+    }
+
+    composable(Screens.TenantInfo.route) {
+        TenantInfoScreen()
     }
 }

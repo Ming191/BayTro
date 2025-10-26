@@ -53,6 +53,7 @@ import com.example.baytro.data.service.Service
 import com.example.baytro.view.components.AddServiceSkeleton
 import com.example.baytro.view.components.CompactSearchBar
 import com.example.baytro.view.components.DropdownSelectField
+import com.example.baytro.view.components.RequiredTextField
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.service.AddServiceFormState
@@ -228,12 +229,14 @@ fun AddServiceContent(
                         initialOffsetY = { -it / 4 }
                     )
                 ) {
-                    OutlinedTextField(
+                    RequiredTextField(
                         value = formState.name,
                         onValueChange = onNameChange,
-                        label = { Text("Service name") },
+                        isError = formState.nameError != null,
+                        errorMessage = formState.nameError,
+                        label = "Service name",
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading
+                        //enabled = !isLoading
                     )
                 }
 
@@ -252,12 +255,14 @@ fun AddServiceContent(
                         initialOffsetY = { -it / 4 }
                     )
                 ) {
-                    OutlinedTextField(
+                    RequiredTextField(
                         value = formState.price,
                         onValueChange = onPriceChange,
-                        label = { Text("Unit price") },
+                        label = "Unit price",
+                        isError = formState.priceError != null,
+                        errorMessage = formState.priceError,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading
+                        //enabled = !isLoading
                     )
                 }
 

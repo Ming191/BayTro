@@ -45,6 +45,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun TenantListScreen(
     navController: NavHostController,
+    onViewTenantInfoClick: (String) -> Unit,
     viewModel: TenantListVM = koinViewModel()
 ) {
     val filteredTenantList by viewModel.filteredTenantList.collectAsState()
@@ -85,11 +86,7 @@ fun TenantListScreen(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant, // màu viền nhạt
                         shape = RoundedCornerShape(12.dp)
-                    )
-                    .clickable {
-                        // Có thể navigate với tenant ID: navController.navigate(Screens.TenantDetail.passId(display.tenant.id))
-                        navController.navigate(Screens.Dashboard.route)
-                    },
+                    ),
                 shape = RoundedCornerShape(12.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -97,7 +94,11 @@ fun TenantListScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp), // Padding bên trong card
+                        .padding(16.dp)
+                        .clickable {
+                            Log.d("TenantListScreen", "Tenant clicked: ${display.tenant.fullName}")
+                            onViewTenantInfoClick(display.tenant.id)
+                        }, // Padding bên trong card
                     verticalAlignment = Alignment.CenterVertically, // Center toàn bộ row theo chiều dọc
                     horizontalArrangement = Arrangement.SpaceBetween // Leading | Center | Trailing
                 ) {
@@ -149,5 +150,5 @@ fun TenantListScreen(
 @Preview
 @Composable
 fun TenantListScreenPreview() {
-    TenantListScreen(navController = NavHostController(LocalContext.current))
+    //TenantListScreen(navController = NavHostController(LocalContext.current))
 }

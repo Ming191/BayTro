@@ -208,4 +208,11 @@ sealed class Screens(val route: String, val title: String) {
         )
         fun createRoute(tenantId: String) = "billing_history/$tenantId"
     }
+
+    object TenantInfo : Screens("tenant_info_screen/{$ARG_TENANT_ID}", "Tenant Info") {
+        val arguments = listOf(
+            navArgument(ARG_TENANT_ID) { type = NavType.StringType }
+        )
+        fun createRoute(tenantId: String) = "tenant_info_screen/$tenantId"
+    }
 }

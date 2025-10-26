@@ -146,13 +146,37 @@ class AddServiceVM(
         }
     }
 
-    fun onNameChange(value: String) { _formState.value = _formState.value.copy(name = value) }
-    fun onPriceChange(value: String) { _formState.value = _formState.value.copy(price = value) }
+    fun onNameChange(value: String) {
+        _formState.value = _formState.value.copy(name = value, nameError = null)
+    }
+    fun onPriceChange(value: String) {
+        _formState.value = _formState.value.copy(price = value, priceError = null)
+    }
+
     fun onUnitChange(value: Metric) { _formState.value = _formState.value.copy(metrics = value) }
 
     fun onSearchTextChange(value: String) {
         _formState.value = _formState.value.copy(searchText = value)
     }
+
+    fun validateServiceName(name: String): String? {
+        return when {
+            name.isBlank() -> "Service name cannot be empty"
+            name.length < 3 -> "Service name must be at least 3 characters long"
+            name.length > 50 -> "Service name is too long"
+            else -> null
+        }
+    }
+
+    fun validatePrice(price: String): String? {
+        return when {
+            price.isBlank() -> "Price cannot be empty"
+            price.toDoubleOrNull() == null -> "Price must be a valid number"
+            price.toDouble() < 0 -> "Price cannot be negative"
+            else -> null
+        }
+    }
+
 
     fun onConfirm() {
         viewModelScope.launch {
@@ -165,10 +189,16 @@ class AddServiceVM(
                     return@launch
                 }
             }
-//            if (state.name.isBlank() || state.price.isBlank() || state.selectedBuilding == null) {
-//                _uiState.value = UiState.Error("Please fill all required fields")
-//                return@launch
-//            }
+
+            val nameError = validateServiceName(state.name)
+            val priceError = validatePrice(state.price)
+
+            _formState.value = state.copy(
+                nameError = nameError,
+                priceError = priceError
+            )
+
+            if (nameError != null || priceError != null) return@launch
 
             Log.d(TAG, "onConfirm: Service name=${state.name}, Building=${state.selectedBuilding?.name}, Selected rooms count=${state.selectedRooms.size}")
             Log.d(TAG, "onConfirm: Selected room IDs=${state.selectedRooms.joinToString()}")

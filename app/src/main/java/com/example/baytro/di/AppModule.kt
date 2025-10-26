@@ -63,6 +63,7 @@ import com.example.baytro.viewModel.splash.NewLandlordUserVM
 import com.example.baytro.viewModel.splash.NewTenantUserVM
 import com.example.baytro.viewModel.splash.SplashScreenVM
 import com.example.baytro.viewModel.splash.UploadIdCardVM
+import com.example.baytro.viewModel.tenant.TenantInfoVM
 import com.example.baytro.viewModel.tenant.TenantListVM
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -204,6 +205,7 @@ val dashboardViewModelModule = module {
 
 val tenantViewModelModule = module {
     viewModelOf(::TenantListVM)
+    viewModelOf(::TenantInfoVM)
 }
 
 val utilityViewModelModule = module {

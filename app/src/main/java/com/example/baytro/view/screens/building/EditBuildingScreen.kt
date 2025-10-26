@@ -1,23 +1,29 @@
 package com.example.baytro.view.screens.building
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -35,17 +42,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingStatus
+import com.example.baytro.data.service.Service
+import com.example.baytro.navigation.Screens
 import com.example.baytro.view.components.DividerWithSubhead
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.view.components.RequiredTextField
+import com.example.baytro.view.components.ServiceCard
 import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.view.screens.UiState
 import com.example.baytro.viewModel.building.EditBuildingVM
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,7 +106,9 @@ fun EditBuildingScreen(
         }
 
         EditBuildingContent(
+            navController = navController,
             viewModel = viewModel,
+            buildingId = buildingId,
             onCancel = {
                 if (viewModel.hasUnsavedChanges()) {
                     showUnsavedChangesDialog = true
@@ -136,12 +150,15 @@ fun EditBuildingScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditBuildingContent(
+    navController: NavHostController?,
+    buildingId: String,
     viewModel: EditBuildingVM,
     onCancel: () -> Unit,
     uiState: UiState<Building>
 ) {
     val formState by viewModel.formState.collectAsState()
     val formErrors by viewModel.formErrors.collectAsState()
+    val buildingServices by viewModel.buildingServices.collectAsState()
 
     val nameFocus = remember { FocusRequester() }
     val floorFocus = remember { FocusRequester() }
@@ -162,6 +179,18 @@ fun EditBuildingContent(
     var imagesTitleVisible by remember { mutableStateOf(false) }
     var imagesFieldVisible by remember { mutableStateOf(false) }
     var buttonsVisible by remember { mutableStateOf(false) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(navController) {
+        val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
+        savedStateHandle?.getLiveData<String>("newService")?.observe(lifecycleOwner) { json ->
+            val service = Json.decodeFromString<Service>(json)
+            Log.d("ServiceListScreen", "Received new service: $service")
+            // xử lý thêm service vào danh sách hoặc cập nhật UI
+            viewModel.onBuildingServicesChange(service)
+            savedStateHandle.remove<String>("newService")
+        }
+    }
 
     // Trigger staggered animations when form is loaded
     LaunchedEffect(formState.name) {
@@ -460,6 +489,67 @@ fun EditBuildingContent(
                                     modifier = Modifier.fillMaxWidth().focusRequester(dueFocus)
                                 )
                             }
+                        }
+                    }
+                }
+
+                item {
+                    DividerWithSubhead(subhead = "Services")
+                    if (buildingServices.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            buildingServices.forEach { service ->
+                                if(service.status.toString() != "DELETE") {
+                                    ServiceCard(
+                                        service = service,
+                                        onEdit = null,
+                                        onDelete = null
+                                    )
+                                }
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .padding(end = 8.dp)
+                                        .size(50.dp)
+                                        .clickable {
+                                            navController?.navigate(Screens.AddService.createRoute("", buildingId,true))
+                                            //onAddServiceClick("",building?.id.toString())
+                                        }
+                                )
+                                Text("Add service here")
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 8.dp)
+                                    .clickable {
+                                        navController?.navigate(Screens.AddService.createRoute("","",true))
+                                        //onAddServiceClick(null.toString(),building?.id.toString())
+                                    }
+                            )
+                            Text("Add service here")
                         }
                     }
                 }
