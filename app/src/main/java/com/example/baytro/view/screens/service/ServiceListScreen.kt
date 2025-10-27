@@ -29,7 +29,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,9 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.example.baytro.data.Building
 import com.example.baytro.data.service.Service
@@ -63,21 +59,19 @@ fun ServiceListScreen(
 ) {
     val uiState by viewModel.serviceListUiState.collectAsState()
     val formState by viewModel.serviceListFormState.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     val showSkeleton = uiState is UiState.Loading && formState.availableServices.isEmpty()
     val showContent = !showSkeleton
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                Log.d("ServiceListScreen", "ON_RESUME - refreshing buildings")
-                viewModel.refresh()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
+    // Listen for results from Add Service operation
+    val currentBackStackEntry = navController.currentBackStackEntry
+    val serviceModified = currentBackStackEntry?.savedStateHandle?.get<Boolean>("service_modified")
+
+    LaunchedEffect(serviceModified) {
+        if (serviceModified == true) {
+            viewModel.refresh()
+            currentBackStackEntry.savedStateHandle.remove<Boolean>("service_modified")
         }
     }
 
@@ -118,7 +112,9 @@ fun ServiceListScreen(
                     onEdit = viewModel::onEditService,
                     onDelete = viewModel::onDeleteService,
                     navController = navController,
-                    isLoading = uiState is UiState.Loading
+                    isLoading = uiState is UiState.Loading,
+                    isRefreshing = isRefreshing,
+                    onRefresh = { viewModel.refresh() }
                 )
             }
 
@@ -140,6 +136,7 @@ fun ServiceListScreen(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ServiceListContent (
     formState: ServiceListFormState,
@@ -147,16 +144,25 @@ fun ServiceListContent (
     onDelete: (Service) -> Unit,
     onBuildingSelected: (Building) -> Unit,
     navController: NavHostController,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     Log.d("ServiceListContent", "Rendering - servicesCount: ${formState.availableServices.size}, " +
             "selectedBuilding: ${formState.selectedBuilding?.name}, isLoading: $isLoading")
 
+    val pullToRefreshState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
+
     Box(Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            state = pullToRefreshState
         ) {
-            LazyColumn(
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -262,6 +268,7 @@ fun ServiceListContent (
                     }
                 }
             }
+        }
         }
     }
 }

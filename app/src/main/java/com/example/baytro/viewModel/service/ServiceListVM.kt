@@ -27,6 +27,9 @@ class ServiceListVM(
     private val _serviceListUiState = MutableStateFlow<UiState<List<Service>>>(UiState.Idle)
     val serviceListUiState: StateFlow<UiState<List<Service>>> = _serviceListUiState
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
     private val _serviceListFormState = MutableStateFlow(ServiceListFormState())
     val serviceListFormState: StateFlow<ServiceListFormState> = _serviceListFormState
 
@@ -157,6 +160,13 @@ class ServiceListVM(
 
     fun refresh() {
         Log.d(TAG, "refresh: re-fetching buildings")
-        fetchBuildings()
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                fetchBuildings()
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
     }
 }

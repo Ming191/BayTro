@@ -135,6 +135,7 @@ class ContractRepository(
         return try {
             val querySnapshot = collection.where {
                 "roomId" equalTo roomId
+                "status" equalTo Status.ACTIVE.name
             }.get()
             querySnapshot.documents.map { doc ->
                 val contract = doc.data<Contract>()
@@ -213,6 +214,7 @@ class ContractRepository(
             doc.data<Contract>().copy(id = doc.id)
         }
     }
+
 
     suspend fun getContractsByLandlordId(landlordId: String): List<Contract> {
         if (landlordId.isBlank()) {

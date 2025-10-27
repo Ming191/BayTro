@@ -2,7 +2,6 @@ package com.example.baytro.data.room
 
 import android.util.Log
 import com.example.baytro.data.service.Service
-import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -91,40 +90,6 @@ class RoomRepository(
         }
     }
 
-    suspend fun getRoomsByIds(roomIds: List<String>): List<Room> {
-        if (roomIds.isEmpty()) {
-            return emptyList()
-        }
-
-        return try {
-            val batches = roomIds.chunked(10)
-            val rooms = mutableListOf<Room>()
-
-            batches.forEach { batch ->
-                val snapshot = collection.where {
-                    all(
-                        FieldPath.documentId inArray batch,
-                        "status" notEqualTo "ARCHIVED"
-                    )
-                }.get()
-
-                snapshot.documents.mapNotNullTo(rooms) { doc ->
-                    try {
-                        val room = doc.data<Room>()
-                        room.copy(id = doc.id)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error deserializing room ${doc.id}: ${e.message}")
-                        null
-                    }
-                }
-            }
-            rooms
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching rooms by IDs: ${e.message}")
-            emptyList()
-        }
-    }
-
     fun getRoomFlow(id: String): Flow<Room?> {
         return collection.document(id).snapshots.map { it.data<Room>() }
     }
@@ -186,10 +151,15 @@ class RoomRepository(
     }
 
     suspend fun updateExtraServiceInRoom(roomId: String, service: Service) {
-        collection.document(roomId)
-            .collection("extraServices")
-            .document(service.id)
-            .set(service)
+        try {
+            collection.document(roomId)
+                .collection("extraServices")
+                .document(service.id)
+                .set(service)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating extra service in room $roomId: ${e.message}")
+            throw e
+        }
     }
 
     suspend fun removeExtraServiceFromRoom(roomId: String, serviceId: String) {
@@ -200,11 +170,21 @@ class RoomRepository(
     }
 
     suspend fun hasExtraService(roomId: String, serviceId: String): Boolean {
-        val doc = collection.document(roomId)
-            .collection("extraServices")
-            .document(serviceId)
-            .get()
-        return doc.exists
+        return try {
+            val doc = collection.document(roomId)
+                .collection("extraServices")
+                .document(serviceId)
+                .get()
+
+            if (!doc.exists) return false
+
+            // Check if service is active (not soft-deleted)
+            val service = doc.data<Service>()
+            service.status != com.example.baytro.data.service.Status.DELETE
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking if room has extra service: ${e.message}")
+            false
+        }
     }
 
     /**
