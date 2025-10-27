@@ -44,7 +44,6 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun TenantListScreen(
-    navController: NavHostController,
     onViewTenantInfoClick: (String) -> Unit,
     viewModel: TenantListVM = koinViewModel()
 ) {
