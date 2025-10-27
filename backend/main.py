@@ -1,7 +1,3 @@
-"""
-BayTro Backend API - Monorepo
-Unified backend for meter reading and GraphRAG chatbot
-"""
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -9,11 +5,11 @@ load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 import logging
 
-# Configure logging FIRST, before any imports
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    force=True  # Override any existing logging configuration
+    force=True
 )
 
 logger = logging.getLogger(__name__)
@@ -24,9 +20,9 @@ from routers import meter, chatbot
 
 # Create FastAPI app
 app = FastAPI(
-    title="BayTro Backend API",
-    description="Unified backend for BayTro app - Meter reading and AI chatbot",
-    version="1.0.0"
+    title="BayTro Backend API - Enhanced",
+    description="Unified backend with Neo4j-powered GraphRAG chatbot",
+    version="2.0.0"
 )
 
 # CORS middleware
@@ -36,6 +32,7 @@ app.add_middleware(
         "http://localhost:8080",
         "http://10.0.2.2:5000",
         "http://127.0.0.1:8080",
+        "*"  # For development - restrict in production
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -59,9 +56,12 @@ app.include_router(
 @app.get("/")
 async def root():
     return {
-        "message": "BayTro Backend API",
-        "version": "1.0.0",
-        "services": ["meter", "chatbot"]
+        "message": "BayTro Backend API - Enhanced",
+        "version": "2.0.0",
+        "services": {
+            "meter": "YOLO-based meter reading",
+            "chatbot": "Neo4j + LangGraph GraphRAG"
+        }
     }
 
 # Health check
@@ -69,19 +69,12 @@ async def root():
 async def health():
     return {
         "status": "ok",
+        "version": "2.0.0",
         "services": {
             "meter": "available",
             "chatbot": "available"
         }
     }
-
-# Legacy endpoint for backward compatibility
-@app.post("/predict_meter")
-async def predict_meter_legacy(file):
-    """Legacy endpoint - redirects to /api/meter/predict"""
-    from routers.meter import predict_meter
-    logger.warning("Using legacy endpoint /predict_meter, please use /api/meter/predict")
-    return await predict_meter(file)
 
 if __name__ == "__main__":
     import uvicorn

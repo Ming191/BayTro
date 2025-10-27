@@ -31,7 +31,7 @@ import java.io.ByteArrayOutputStream
 class BayTroApiService(
     private val httpClient: HttpClient,
 
-    private val baseUrl: String = "https://neediest-kellye-weaklier.ngrok-free.dev"
+    private val baseUrl: String = "http://10.0.2.2:5000"
 ) {
     companion object {
         private const val TAG = "BayTroApiService"
@@ -75,7 +75,9 @@ class BayTroApiService(
             }
             
             if (response.status.value in 200..299) {
-                val responseBody: ChatQueryResponse = response.body()
+                val responseText = response.bodyAsText()
+                Log.d(TAG, "Raw response: $responseText")
+                val responseBody: ChatQueryResponse = json.decodeFromString(responseText)
                 Log.d(TAG, "Query success: ${responseBody.answer.take(50)}...")
                 Result.success(responseBody)
             } else {

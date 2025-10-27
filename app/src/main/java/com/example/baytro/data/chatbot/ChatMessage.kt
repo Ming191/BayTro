@@ -29,7 +29,9 @@ data class ContextNode(
 @Serializable
 data class ChatQueryResponse(
     val answer: String,
-    val context: List<ContextNode>
+    val context: List<ContextNode>,
+    val metadata: JsonElement? = null,  // Optional metadata from Neo4j backend
+    val session_id: String? = null       // Optional session ID
 )
 
 @Serializable
