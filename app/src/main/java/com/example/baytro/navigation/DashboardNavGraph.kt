@@ -64,6 +64,11 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
                 navController.navigate(Screens.ImportBuildingsRooms.route) {
                     launchSingleTop = true
                 }
+            },
+            onNavigateToAiAssistant = {
+                navController.navigate(Screens.Chatbot.route) {
+                    launchSingleTop = true
+                }
             }
         )
     }
