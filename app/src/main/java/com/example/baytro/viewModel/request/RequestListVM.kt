@@ -19,8 +19,11 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 data class RequestListUiState(
     val isLoading: Boolean = true,
@@ -61,6 +64,7 @@ class RequestListVM(
 
         viewModelScope.launch {
             filterFlow.collect { (buildingId, fromDate, toDate) ->
+                Log.d("RequestListVM", "Filter triggered: building=$buildingId, from=$fromDate, to=$toDate")
                 loadRequests(
                     buildingId = buildingId,
                     fromDate = fromDate,
@@ -141,23 +145,30 @@ class RequestListVM(
 
             result.onSuccess { response ->
                 // --- Bắt đầu lọc theo createdAt ---
-                val from = fromDate?.let { Utils.parseDateToDate(it) }
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                dateFormat.timeZone = TimeZone.getTimeZone("UTC")
+                val from = fromDate?.let { dateFormat.parse(it) }
+
                 val to = toDate?.let {
-                    Calendar.getInstance().apply {
-                        time = Utils.parseDateToDate(it)
+                    Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                        time = dateFormat.parse(it)!!
                         set(Calendar.HOUR_OF_DAY, 23)
                         set(Calendar.MINUTE, 59)
                         set(Calendar.SECOND, 59)
                     }.time
                 }
 
+
                 val filteredRequests = response.requests.filter { fullInfo ->
                     val createdAt = fullInfo.request.createdAt?.let { Date(it.seconds * 1000) }
+                    Log.d("RequestListVM", "Request ${fullInfo.request.id} createdAt=$createdAt")
                     if (createdAt == null) return@filter true
 
                     val fromOk = from?.let { createdAt >= it } ?: true
                     val toOk = to?.let { createdAt <= it } ?: true
-                    fromOk && toOk
+                    val ok = fromOk && toOk
+                    Log.d("RequestListVM", "Request ${fullInfo.request.id} passes filter=$ok")
+                    ok
                 }
                 // --- Kết thúc lọc ---
 
