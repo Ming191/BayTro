@@ -69,6 +69,16 @@ object Utils {
             ""
         }
     }
+
+    fun parseDateToDate(dateStr: String): Date {
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            format.parse(dateStr) ?: Date()
+        } catch (_: Exception) {
+            Date()
+        }
+    }
+
     /**
      * Parses FirebaseFunctionsException to extract user-friendly error messages.
      *

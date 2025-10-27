@@ -44,6 +44,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -121,17 +122,17 @@ fun BuildingListScreen(
         { filter: BuildingStatusFilter -> viewModel.setStatusFilter(filter) }
     }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refresh()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
+//    DisposableEffect(lifecycleOwner) {
+//        val observer = LifecycleEventObserver { _, event ->
+//            if (event == Lifecycle.Event.ON_RESUME) {
+//                viewModel.refresh()
+//            }
+//        }
+//        lifecycleOwner.lifecycle.addObserver(observer)
+//        onDispose {
+//            lifecycleOwner.lifecycle.removeObserver(observer)
+//        }
+//    }
 
     LaunchedEffect(viewModel) {
         viewModel.errorEvent.collect { event ->
@@ -252,43 +253,63 @@ fun BuildingListScreen(
                             }
                         }
                         LoadingState.CONTENT -> {
-                            LazyColumn(
+                            PullToRefreshBox(
+                                isRefreshing = uiState.isLoading,
+                                onRefresh = { viewModel.refresh() },
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .semantics { contentDescription = "Buildings list" },
-                                contentPadding = PaddingValues(
-                                    start = 16.dp,
-                                    end = 16.dp,
-                                    top = 8.dp,
-                                    bottom = 100.dp
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                //.padding(paddingValues)
                             ) {
-                                items(
-                                    items = uiState.buildings,
-                                    key = { it.building.id }
-                                ) { buildingWithStats ->
-                                    val buildingId = buildingWithStats.building.id
-                                    val onViewClick = remember(buildingId) {
-                                        { navController.navigate(Screens.RoomList.createRoute(buildingId)) }
-                                    }
-                                    val onEditClick = remember(buildingId) {
-                                        { navController.navigate(Screens.BuildingEdit.createRoute(buildingId)) }
-                                    }
-                                    val onDeleteClick = remember(buildingId, viewModel) {
-                                        { viewModel.archiveBuilding(buildingId) }
-                                    }
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .semantics { contentDescription = "Buildings list" },
+                                    contentPadding = PaddingValues(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        top = 8.dp,
+                                        bottom = 100.dp
+                                    ),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    items(
+                                        items = uiState.buildings,
+                                        key = { it.building.id }
+                                    ) { buildingWithStats ->
+                                        val buildingId = buildingWithStats.building.id
+                                        val onViewClick = remember(buildingId) {
+                                            {
+                                                navController.navigate(
+                                                    Screens.RoomList.createRoute(
+                                                        buildingId
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        val onEditClick = remember(buildingId) {
+                                            {
+                                                navController.navigate(
+                                                    Screens.BuildingEdit.createRoute(
+                                                        buildingId
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        val onDeleteClick = remember(buildingId, viewModel) {
+                                            { viewModel.archiveBuilding(buildingId) }
+                                        }
 
-                                    BuildingCard(
-                                        name = buildingWithStats.building.name,
-                                        address = buildingWithStats.building.address,
-                                        imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
-                                        roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
-                                        revenue = Utils.formatCurrency(buildingWithStats.revenue.toString()),
-                                        onViewClick = onViewClick,
-                                        onEditClick = onEditClick,
-                                        onDeleteClick = onDeleteClick
-                                    )
+                                        BuildingCard(
+                                            name = buildingWithStats.building.name,
+                                            address = buildingWithStats.building.address,
+                                            imageUrl = buildingWithStats.building.imageUrls.firstOrNull(),
+                                            roomStats = "${buildingWithStats.occupiedRooms}/${buildingWithStats.totalRooms}",
+                                            revenue = Utils.formatCurrency(buildingWithStats.revenue.toString()),
+                                            onViewClick = onViewClick,
+                                            onEditClick = onEditClick,
+                                            onDeleteClick = onDeleteClick
+                                        )
+                                    }
                                 }
                             }
                         }

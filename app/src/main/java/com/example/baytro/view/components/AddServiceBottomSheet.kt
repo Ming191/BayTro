@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -122,7 +123,11 @@ fun AddServiceBottomSheet(
                             label = "Service name",
                             isError = showValidation && name.isBlank(),
                             errorMessage = if (showValidation && name.isBlank()) "Service name is required" else null,
-                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                            modifier = if(isDefaultService) {
+                                Modifier.fillMaxWidth().focusRequester(focusRequester).alpha(0.4f)
+                            } else {
+                                Modifier.fillMaxWidth().focusRequester(focusRequester)
+                            },
                             readOnly = isLoading || isDefaultService,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                         )

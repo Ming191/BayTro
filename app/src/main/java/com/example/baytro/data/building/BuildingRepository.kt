@@ -127,6 +127,7 @@ class BuildingRepository(
         return try {
             val snapshot = collection.document(buildingId)
                 .collection("services")
+                .where { "status" equalTo "ACTIVE" }
                 .get()
 
             snapshot.documents.mapNotNull { doc ->

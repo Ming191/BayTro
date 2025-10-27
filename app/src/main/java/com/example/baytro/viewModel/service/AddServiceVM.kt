@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
 import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.service.Metric
 import com.example.baytro.data.service.Service
@@ -67,11 +68,12 @@ class AddServiceVM(
                 }
                 _uiState.value = UiState.Loading
                 val buildings = buildingRepo.getBuildingsByUserId(currentUser.uid)
-                _formState.value = _formState.value.copy(availableBuildings = buildings)
+                val buildingsNoArchived = buildings.filter { it.status != BuildingStatus.ARCHIVED }
+                _formState.value = _formState.value.copy(availableBuildings = buildingsNoArchived)
                 // Auto-select first building if available
-                if (buildings.isNotEmpty() && _formState.value.selectedBuilding == null) {
-                    onBuildingSelected(buildings[0])
-                    Log.d(TAG, "Auto-selected first building: ${buildings[0].name}")
+                if (buildingsNoArchived.isNotEmpty() && _formState.value.selectedBuilding == null) {
+                    onBuildingSelected(buildingsNoArchived[0])
+                    Log.d(TAG, "Auto-selected first building: ${buildingsNoArchived[0].name}")
                 } else {
                     _uiState.value = UiState.Idle
                 }
@@ -223,7 +225,7 @@ class AddServiceVM(
 
                 val allRoomsSelected = state.selectedRooms.size == state.availableRooms.size && state.availableRooms.isNotEmpty()
 
-                if (state.selectedRooms.isEmpty() || allRoomsSelected && roomId == null) {
+                if (state.selectedRooms.isEmpty() || allRoomsSelected) {
                     val serviceId = buildingRepo.addServiceToBuilding(building?.id.toString(), newService)
                     //updatedServices.add(newService)
                     Log.d(TAG, "Service added to building ${building?.name} in subcollection with id=$serviceId")
@@ -241,21 +243,19 @@ class AddServiceVM(
                     var failCount = 0
 
                     state.selectedRooms.forEach { roomId ->
-                        state.selectedRooms.forEach { roomId ->
-                            val room = roomRepo.getById(roomId)
-                            if (room != null) {
-                                try {
-                                    val extraServiceId = roomRepo.addExtraServiceToRoom(roomId, newService)
-                                    Log.d(TAG, "Service added to room ${room.roomNumber} with extraServiceId=$extraServiceId")
-                                    successCount++
-                                } catch (e: Exception) {
-                                    failCount++
-                                    Log.e(TAG, "Error adding extra service to room ${room.roomNumber}: ${e.message}")
-                                }
-                            } else {
+                        val room = roomRepo.getById(roomId)
+                        if (room != null) {
+                            try {
+                                val extraServiceId = roomRepo.addExtraServiceToRoom(roomId, newService)
+                                Log.d(TAG, "Service added to room ${room.roomNumber} with extraServiceId=$extraServiceId")
+                                successCount++
+                            } catch (e: Exception) {
                                 failCount++
-                                Log.e(TAG, "Room not found: $roomId")
+                                Log.e(TAG, "Error adding extra service to room ${room.roomNumber}: ${e.message}")
                             }
+                        } else {
+                            failCount++
+                            Log.e(TAG, "Room not found: $roomId")
                         }
                     }
 

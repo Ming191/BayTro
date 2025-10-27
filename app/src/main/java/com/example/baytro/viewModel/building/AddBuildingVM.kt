@@ -370,10 +370,11 @@ class AddBuildingVM(
                     ?: throw IllegalStateException("No logged in user found")
                 
                 val buildingWithDefaults = building.copy(
-                    userId = currentUser.uid
+                    userId = currentUser.uid,
+                    services = _buildingServices.value
                 )
                 val newId = buildingRepository.add(buildingWithDefaults)
-                buildingServices.value.forEach { services ->
+                _buildingServices.value.forEach { services ->
                     buildingRepository.addServiceToBuilding(newId, services)
                 }
                 // Update the document to include its own ID
@@ -398,7 +399,7 @@ class AddBuildingVM(
                 val buildingWithDefaults = building.copy(
                     userId = currentUser.uid,
                     imageUrls = emptyList(),
-                    services = buildingServices.value
+                    services = _buildingServices.value
                 )
                 val newId = buildingRepository.add(buildingWithDefaults)
 

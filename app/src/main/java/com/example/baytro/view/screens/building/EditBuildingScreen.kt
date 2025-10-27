@@ -249,7 +249,7 @@ fun EditBuildingContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                    .padding(16.dp),
             ) {
                 item {
                     AnimatedVisibility(

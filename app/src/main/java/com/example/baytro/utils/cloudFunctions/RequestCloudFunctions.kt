@@ -25,14 +25,22 @@ class RequestCloudFunctions(
     suspend fun getRequestList(
         buildingIdFilter: String?,
         limit: Int = 10,
-        startAfter: String? = null
+        startAfter: String? = null,
+        fromDate: String? = null,
+        toDate: String? = null
     ): Result<RequestListResponse> {
         return try {
             val data = hashMapOf(
                 "buildingIdFilter" to buildingIdFilter,
                 "limit" to limit,
-                "startAfter" to startAfter
+                "startAfter" to startAfter,
+                "fromDate" to fromDate,   // 👈 thêm vào
+                "toDate" to toDate
             )
+
+            if (fromDate != null) data["fromDate"] = fromDate
+            if (toDate != null) data["toDate"] = toDate
+
             Log.d(TAG, "Calling 'getRequestList' with data: $data")
             val result = functions.getHttpsCallable("getRequestList")
                 .call(data)
