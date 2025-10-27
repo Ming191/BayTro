@@ -20,6 +20,7 @@ import java.time.temporal.ChronoUnit
 
 data class TenantDashboardUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val user: User? = null,
     val contract: Contract? = null,
     val room: Room? = null,
@@ -55,39 +56,50 @@ class TenantDashboardVM(
     fun loadDashboardData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+            fetchDashboardData()
+        }
+    }
 
-            val result = dashboardCloudFunctions.getTenantDashboardData()
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            fetchDashboardData()
+        }
+    }
 
-            result.onSuccess { data ->
-                if (data.contract == null) {
-                    _event.emit(TenantDashboardEvent.NavigateToEmptyContract)
-                    _uiState.update { it.copy(isLoading = false, user = data.user) }
-                } else {
-                    val (months, days) = calculateStayDuration(data.contract.startDate)
+    private suspend fun fetchDashboardData() {
+        val result = dashboardCloudFunctions.getTenantDashboardData()
 
-                    Log.d("TenantDashboardVM", "Room extra services: ${data.room?.extraService}")
-                    Log.d("TenantDashboardVM", "Room extra services size: ${data.room?.extraService?.size}")
+        result.onSuccess { data ->
+            if (data.contract == null) {
+                _event.emit(TenantDashboardEvent.NavigateToEmptyContract)
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false, user = data.user) }
+            } else {
+                val (months, days) = calculateStayDuration(data.contract.startDate)
 
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            user = data.user,
-                            contract = data.contract,
-                            room = data.room,
-                            building = data.building,
-                            lastApprovedReading = data.lastApprovedReading,
-                            currentBill = data.currentBill,
-                            fixedServices = data.room?.extraService ?: emptyList(),
-                            monthsStayed = months,
-                            daysStayed = days
-                        )
-                    }
+                Log.d("TenantDashboardVM", "Room extra services: ${data.room?.extraService}")
+                Log.d("TenantDashboardVM", "Room extra services size: ${data.room?.extraService?.size}")
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        user = data.user,
+                        contract = data.contract,
+                        room = data.room,
+                        building = data.building,
+                        lastApprovedReading = data.lastApprovedReading,
+                        currentBill = data.currentBill,
+                        fixedServices = data.room?.extraService ?: emptyList(),
+                        monthsStayed = months,
+                        daysStayed = days
+                    )
                 }
             }
-            result.onFailure { e ->
-                _errorEvent.emit(SingleEvent("Failed to load dashboard: ${e.message}"))
-                _uiState.update { it.copy(isLoading = false) }
-            }
+        }
+        result.onFailure { e ->
+            _errorEvent.emit(SingleEvent("Failed to load dashboard: ${e.message}"))
+            _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
         }
     }
 

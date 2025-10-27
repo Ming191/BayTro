@@ -21,6 +21,7 @@ import java.util.Date
 
 data class RequestListUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val isLandlord: Boolean = false,
     val buildings: List<BuildingSummary> = emptyList(),
@@ -231,6 +232,62 @@ class RequestListVM(
     }
 
     fun refresh() {
-        loadInitialData()
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true, error = null) }
+
+            if (currentUserId == null) {
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = false,
+                        isLandlord = false,
+                        buildings = emptyList(),
+                        requests = emptyList(),
+                        nextCursor = null
+                    )
+                }
+                return@launch
+            }
+
+            val userResult = runCatching {
+                userRepository.getById(currentUserId)
+            }
+
+            val user = userResult.getOrNull()
+            val isLandlord = user?.role is Role.Landlord
+
+            var buildings = emptyList<BuildingSummary>()
+            if (isLandlord) {
+                val buildingsResult = runCatching {
+                    buildingRepository.getBuildingSummariesByLandlord(currentUserId)
+                }
+                buildings = buildingsResult.getOrElse { emptyList() }
+            }
+
+            _uiState.update { it.copy(isLandlord = isLandlord, buildings = buildings) }
+
+            // Load requests with refresh flag
+            val result = requestCloudFunctions.getRequestList(
+                buildingIdFilter = _uiState.value.selectedBuildingId,
+                limit = 10
+            )
+
+            result.onSuccess { response ->
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = false,
+                        requests = response.requests,
+                        nextCursor = response.nextCursor
+                    )
+                }
+            }
+            result.onFailure { exception ->
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = false,
+                        error = SingleEvent(exception.message ?: "Failed to load requests")
+                    )
+                }
+            }
+        }
     }
 }

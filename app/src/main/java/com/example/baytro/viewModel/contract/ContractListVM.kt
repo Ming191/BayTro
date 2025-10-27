@@ -19,6 +19,7 @@ enum class ContractTab { ACTIVE, PENDING, ENDED }
 @Stable
 data class ContractListUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val buildings: List<BuildingSummary> = emptyList(),
     val selectedBuildingId: String? = null,
     val searchQuery: String = "",
@@ -39,6 +40,7 @@ class ContractListVM(
     private val _selectedBuildingId = MutableStateFlow<String?>(null)
     private val _buildings = MutableStateFlow<List<BuildingSummary>>(emptyList())
     private val _refreshTrigger = MutableStateFlow(0)
+    private val _isRefreshing = MutableStateFlow(false)
 
     private val _errorEvent = MutableSharedFlow<SingleEvent<String>>()
     val errorEvent: SharedFlow<SingleEvent<String>> = _errorEvent.asSharedFlow()
@@ -55,7 +57,8 @@ class ContractListVM(
             debouncedSearchQuery,
             _selectedBuildingId,
             _buildings,
-            _refreshTrigger
+            _refreshTrigger,
+            _isRefreshing
         ) { flows ->
             val tab = flows[0] as ContractTab
             val immediateQuery = flows[1] as String
@@ -63,7 +66,8 @@ class ContractListVM(
             val buildingId = flows[3] as String?
             val buildings = flows[4] as List<BuildingSummary>
             val refreshTrigger = flows[5] as Int
-            SearchFilters(tab, immediateQuery, debouncedQuery, buildingId, buildings, refreshTrigger)
+            val isRefreshing = flows[6] as Boolean
+            SearchFilters(tab, immediateQuery, debouncedQuery, buildingId, buildings, refreshTrigger, isRefreshing)
         }.flatMapLatest { filters ->
             flow {
                 val currentState = uiState.value
@@ -80,6 +84,7 @@ class ContractListVM(
                 if (cachedContractsForTab != null) {
                     emit(currentState.copy(
                         isLoading = false,
+                        isRefreshing = filters.isRefreshing,
                         selectedBuildingId = filters.selectedBuildingId,
                         searchQuery = filters.immediateSearchQuery,
                         selectedTab = filters.selectedTab,
@@ -89,6 +94,7 @@ class ContractListVM(
                 }
                 emit(ContractListUiState(
                     isLoading = true,
+                    isRefreshing = filters.isRefreshing,
                     buildings = filters.buildings,
                     selectedBuildingId = filters.selectedBuildingId,
                     searchQuery = filters.immediateSearchQuery,
@@ -106,6 +112,7 @@ class ContractListVM(
                     val newCache = currentCache + (filters.selectedTab to response.contracts)
                     emit(ContractListUiState(
                         isLoading = false,
+                        isRefreshing = false,
                         buildings = filters.buildings,
                         selectedBuildingId = filters.selectedBuildingId,
                         searchQuery = filters.immediateSearchQuery,
@@ -117,6 +124,7 @@ class ContractListVM(
                     _errorEvent.emit(SingleEvent(exception.message ?: "Failed to load contracts"))
                     emit(ContractListUiState(
                         isLoading = false,
+                        isRefreshing = false,
                         buildings = filters.buildings,
                         selectedBuildingId = filters.selectedBuildingId,
                         searchQuery = filters.immediateSearchQuery,
@@ -138,7 +146,8 @@ class ContractListVM(
         val debouncedSearchQuery: String,
         val selectedBuildingId: String?,
         val buildings: List<BuildingSummary>,
-        val refreshTrigger: Int
+        val refreshTrigger: Int,
+        val isRefreshing: Boolean
     )
 
     private fun loadBuildings() {
@@ -161,6 +170,7 @@ class ContractListVM(
     }
 
     fun refresh() {
+        _isRefreshing.value = true
         val currentState = uiState.value
         _selectedTab.value = currentState.selectedTab
         _refreshTrigger.value += 1

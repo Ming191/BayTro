@@ -11,7 +11,11 @@ import com.example.baytro.view.screens.request.UpdateRequestScreen
 fun NavGraphBuilder.requestNavGraph(navController: NavHostController) {
     composable(Screens.AddRequest.route) {
         AddRequestScreen(
-            onNavigateBack = {
+            onNavigateBack = { requestAdded ->
+                // Set result to indicate if a request was successfully added
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("request_added", requestAdded)
                 navController.popBackStack()
             }
         )

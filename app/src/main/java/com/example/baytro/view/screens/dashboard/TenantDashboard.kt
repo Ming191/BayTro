@@ -51,6 +51,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -149,7 +151,11 @@ fun TenantDashboard(
                     Log.d("TenantDashboard", "Navigating to payment screen")
                     onNavigateToPayment()
                 },
-                onNavigateToChatbot = onNavigateToChatbot
+                onNavigateToChatbot = onNavigateToChatbot,
+                onRefresh = {
+                    Log.d("TenantDashboard", "Refreshing dashboard data")
+                    viewModel.refresh()
+                }
             )
         }
     }
@@ -165,104 +171,112 @@ fun TenantDashboardContent(
     onMeterReadingClick: () -> Unit = {},
     onMeterHistoryClick: () -> Unit = {},
     onNavigateToPayment: () -> Unit = {},
-    onNavigateToChatbot: () -> Unit = {}
+    onNavigateToChatbot: () -> Unit = {},
+    onRefresh: () -> Unit = {}
 ) {
     var isVisible by remember { mutableStateOf(false) }
+    val pullToRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(Unit) {
         isVisible = true
     }
 
-    LazyColumn(
-        modifier = modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+    PullToRefreshBox(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = onRefresh,
+        state = pullToRefreshState
     ) {
-        item {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(600)) + slideInVertically(
-                    initialOffsetY = { -30 },
-                    animationSpec = tween(600, easing = FastOutSlowInEasing)
-                )
-            ) {
-                WelcomeHeader(uiState.user?.fullName ?: "")
+        LazyColumn(
+            modifier = modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            item {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(tween(600)) + slideInVertically(
+                        initialOffsetY = { -30 },
+                        animationSpec = tween(600, easing = FastOutSlowInEasing)
+                    )
+                ) {
+                    WelcomeHeader(uiState.user?.fullName ?: "")
+                }
             }
-        }
 
-        item {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(600, delayMillis = 100)) +
-                        slideInVertically(
-                            initialOffsetY = { 40 },
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        )
-            ) {
-                ContractStatusCard(
-                    month = uiState.monthsStayed,
-                    days = uiState.daysStayed,
-                    status = uiState.contract?.status ?: Status.PENDING,
-                    onViewDetailsClick = {
-                        if (uiState.contract != null) {
-                            onViewDetailsClick(uiState.contract.id)
+            item {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(tween(600, delayMillis = 100)) +
+                            slideInVertically(
+                                initialOffsetY = { 40 },
+                                animationSpec = tween(600, easing = FastOutSlowInEasing)
+                            )
+                ) {
+                    ContractStatusCard(
+                        month = uiState.monthsStayed,
+                        days = uiState.daysStayed,
+                        status = uiState.contract?.status ?: Status.PENDING,
+                        onViewDetailsClick = {
+                            if (uiState.contract != null) {
+                                onViewDetailsClick(uiState.contract.id)
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
-        }
 
-        item {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(600, delayMillis = 200)) +
-                        slideInVertically(
-                            initialOffsetY = { 40 },
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        )
-            ) {
-                QuickActionsSection(onRequestMaintenanceClick = onRequestMaintenanceClick)
+            item {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(tween(600, delayMillis = 200)) +
+                            slideInVertically(
+                                initialOffsetY = { 40 },
+                                animationSpec = tween(600, easing = FastOutSlowInEasing)
+                            )
+                ) {
+                    QuickActionsSection(onRequestMaintenanceClick = onRequestMaintenanceClick)
+                }
             }
-        }
 
-        item {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(600, delayMillis = 300)) +
-                        slideInVertically(
-                            initialOffsetY = { 40 },
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        )
-            ) {
-                PaymentSection(
-                    billPaymentDeadline = uiState.building?.paymentDue ?: 5,
-                    rentalFee = uiState.contract?.rentalFee ?: 0,
-                    deposit = uiState.contract?.deposit ?: 0,
-                    lastReading = uiState.lastApprovedReading,
-                    building = uiState.building,
-                    fixedServices = uiState.fixedServices
-                )
+            item {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(tween(600, delayMillis = 300)) +
+                            slideInVertically(
+                                initialOffsetY = { 40 },
+                                animationSpec = tween(600, easing = FastOutSlowInEasing)
+                            )
+                ) {
+                    PaymentSection(
+                        billPaymentDeadline = uiState.building?.paymentDue ?: 5,
+                        rentalFee = uiState.contract?.rentalFee ?: 0,
+                        deposit = uiState.contract?.deposit ?: 0,
+                        lastReading = uiState.lastApprovedReading,
+                        building = uiState.building,
+                        fixedServices = uiState.fixedServices
+                    )
+                }
             }
-        }
 
-        item {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(600, delayMillis = 400)) +
-                        slideInVertically(
-                            initialOffsetY = { 40 },
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        )
-            ) {
-                ActionButtonsSection(
-                    onMeterReadingClick = onMeterReadingClick,
-                    onMeterHistoryClick = onMeterHistoryClick,
-                    onNavigateToPayment = onNavigateToPayment,
-                    onNavigateToChatbot = onNavigateToChatbot
-                )
+            item {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(tween(600, delayMillis = 400)) +
+                            slideInVertically(
+                                initialOffsetY = { 40 },
+                                animationSpec = tween(600, easing = FastOutSlowInEasing)
+                            )
+                ) {
+                    ActionButtonsSection(
+                        onMeterReadingClick = onMeterReadingClick,
+                        onMeterHistoryClick = onMeterHistoryClick,
+                        onNavigateToPayment = onNavigateToPayment,
+                        onNavigateToChatbot = onNavigateToChatbot
+                    )
+                }
             }
-        }
 
-        item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+        }
     }
 }
 

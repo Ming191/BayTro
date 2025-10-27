@@ -3,9 +3,7 @@ package com.example.baytro.data
 import com.example.baytro.data.service.Service
 import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import dev.gitlive.firebase.firestore.Direction
-import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FirebaseFirestore
-import dev.gitlive.firebase.firestore.where
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

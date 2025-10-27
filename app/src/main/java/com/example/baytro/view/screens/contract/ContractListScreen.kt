@@ -21,8 +21,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -37,9 +38,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.baytro.utils.cloudFunctions.ContractWithRoom
 import com.example.baytro.view.components.CompactSearchBar
 import com.example.baytro.view.components.ContractCard
@@ -68,23 +66,6 @@ fun ContractListScreen(
     onContractClick: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    LaunchedEffect(Unit) {
-        viewModel.refresh() // chạy ngay khi vào
-    }
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refresh()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
 
     ContractListContent(
         viewModel = viewModel,
@@ -104,6 +85,7 @@ private fun ContractListContent(
     onContractClick: (String) -> Unit
 ) {
     var showNoBuildingsDialog by remember { mutableStateOf(false) }
+    val pullToRefreshState = rememberPullToRefreshState()
 
     // Only show dialog when not loading AND buildings are empty
     LaunchedEffect(uiState.buildings, uiState.isLoading) {
@@ -170,58 +152,63 @@ private fun ContractListContent(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            state = pullToRefreshState,
+            modifier = Modifier.padding(paddingValues)
         ) {
-            CompactSearchBar(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .semantics {
-                        contentDescription = "Search contracts by contract number or room details"
-                    },
-                value = uiState.searchQuery,
-                onValueChange = viewModel::setSearchQuery,
-                placeholderText = "Search contracts..."
-            )
-
-            DropdownSelectField(
-                label = "Filter by Building",
-                options = buildingOptions.map { it.second },
-                selectedOption = selectedOption,
-                onOptionSelected = { name ->
-                    val newBuildingId = buildingOptions.find { it.second == name }?.first
-                    viewModel.setSelectedBuildingId(newBuildingId)
-                },
-                enabled = uiState.buildings.isNotEmpty(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .semantics {
-                        contentDescription = "Filter contracts by building. Currently selected: ${selectedOption ?: "All"}"
-                    }
-            )
-
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.weight(1f)
-            ) { page ->
-                val tab = ContractTab.entries[page]
-                val contractsToShow = uiState.contractsByTab[tab] ?: emptyList()
-                val isLoadingForThisTab = uiState.isLoading && uiState.selectedTab == tab
-
-                ContractListPage(
-                    contracts = contractsToShow,
-                    emptyMessage = if (uiState.buildings.isEmpty()) {
-                        "No buildings found. Please add a building first."
-                    } else {
-                        "No ${tab.name.lowercase()} contracts found."
-                    },
-                    onContractClick = onContractClick,
-                    loading = isLoadingForThisTab
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                CompactSearchBar(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .semantics {
+                            contentDescription = "Search contracts by contract number or room details"
+                        },
+                    value = uiState.searchQuery,
+                    onValueChange = viewModel::setSearchQuery,
+                    placeholderText = "Search contracts..."
                 )
+
+                DropdownSelectField(
+                    label = "Filter by Building",
+                    options = buildingOptions.map { it.second },
+                    selectedOption = selectedOption,
+                    onOptionSelected = { name ->
+                        val newBuildingId = buildingOptions.find { it.second == name }?.first
+                        viewModel.setSelectedBuildingId(newBuildingId)
+                    },
+                    enabled = uiState.buildings.isNotEmpty(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .semantics {
+                            contentDescription = "Filter contracts by building. Currently selected: ${selectedOption ?: "All"}"
+                        }
+                )
+
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.weight(1f)
+                ) { page ->
+                    val tab = ContractTab.entries[page]
+                    val contractsToShow = uiState.contractsByTab[tab] ?: emptyList()
+                    val isLoadingForThisTab = (uiState.isLoading || uiState.isRefreshing) && uiState.selectedTab == tab
+
+                    ContractListPage(
+                        contracts = contractsToShow,
+                        emptyMessage = if (uiState.buildings.isEmpty()) {
+                            "No buildings found. Please add a building first."
+                        } else {
+                            "No ${tab.name.lowercase()} contracts found."
+                        },
+                        onContractClick = onContractClick,
+                        loading = isLoadingForThisTab
+                    )
+                }
             }
         }
     }
