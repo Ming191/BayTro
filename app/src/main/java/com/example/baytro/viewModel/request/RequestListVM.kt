@@ -11,6 +11,8 @@ import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.SingleEvent
 import com.example.baytro.utils.Utils
+import com.example.baytro.utils.ValidationResult
+import com.example.baytro.utils.Validator
 import com.example.baytro.utils.cloudFunctions.RequestCloudFunctions
 import com.example.baytro.view.screens.UiState
 import com.google.firebase.auth.FirebaseAuth
@@ -100,11 +102,17 @@ class RequestListVM(
             val isLandlord = user?.role is Role.Landlord
 
             var buildings = emptyList<BuildingSummary>()
+
             if (isLandlord) {
                 val buildingsResult = runCatching {
                     buildingRepository.getBuildingSummariesByLandlord(currentUserId)
                 }
-                buildings = buildingsResult.getOrElse { emptyList() }
+
+                val resultList = buildingsResult.getOrElse { emptyList() }
+
+                buildings = listOf(
+                    BuildingSummary(id = "", name = "All")
+                ) + resultList
             }
 
             _uiState.update { it.copy(isLandlord = isLandlord, buildings = buildings) }
@@ -137,7 +145,7 @@ class RequestListVM(
             }
 
             val result = requestCloudFunctions.getRequestList(
-                buildingIdFilter = buildingId,
+                buildingIdFilter = buildingId.takeUnless { it.isNullOrEmpty() },
                 limit = 10,
                 fromDate = fromDate,
                 toDate = toDate
@@ -246,6 +254,21 @@ class RequestListVM(
     }
 
     fun refresh() {
+        val currentState = _uiState.value
+        val fromDate = currentState.fromDate
+        val toDate = currentState.toDate
+
+        if (!fromDate.isNullOrBlank() && !toDate.isNullOrBlank()) {
+            val validation = Validator.validateStartEndDate(fromDate, toDate)
+            if (validation != ValidationResult.Success) {
+                val message = (validation as? ValidationResult.Error)?.message
+                    ?: "Invalid date range."
+                _uiState.update {
+                    it.copy(error = SingleEvent(message))
+                }
+                return
+            }
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, error = null) }
 
@@ -274,15 +297,28 @@ class RequestListVM(
                 val buildingsResult = runCatching {
                     buildingRepository.getBuildingSummariesByLandlord(currentUserId)
                 }
-                buildings = buildingsResult.getOrElse { emptyList() }
+
+                val resultList = buildingsResult.getOrElse { emptyList() }
+
+                buildings = listOf(
+                    BuildingSummary(id = "", name = "All")
+                ) + resultList
             }
+//            if (isLandlord) {
+//                val buildingsResult = runCatching {
+//                    buildingRepository.getBuildingSummariesByLandlord(currentUserId)
+//                }
+//                buildings = buildingsResult.getOrElse { emptyList() }
+//            }
 
             _uiState.update { it.copy(isLandlord = isLandlord, buildings = buildings) }
 
             // Load requests with refresh flag
             val result = requestCloudFunctions.getRequestList(
-                buildingIdFilter = _uiState.value.selectedBuildingId,
-                limit = 10
+                buildingIdFilter = _uiState.value.selectedBuildingId.takeUnless { it.isNullOrEmpty() },
+                limit = 10,
+                fromDate = fromDate,
+                toDate = toDate
             )
 
             result.onSuccess { response ->
