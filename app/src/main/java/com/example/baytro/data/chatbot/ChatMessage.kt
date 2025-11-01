@@ -9,12 +9,16 @@ data class ChatMessage(
     val content: String,
     val isFromUser: Boolean,
     val timestamp: Long = System.currentTimeMillis(),
-    val context: String? = null
+    val context: String? = null,
+    val isBlocked: Boolean = false  // NEW: Indicates if question was blocked due to role mismatch
 )
 
 @Serializable
 data class ChatQueryRequest(
     val question: String,
+    val user_role: String,  // NEW: "landlord" or "tenant"
+    val session_id: String? = null,
+    val use_history: Boolean = false,
     val top_k: Int = 5,
     val expand_depth: Int = 2
 )
@@ -27,11 +31,21 @@ data class ContextNode(
 )
 
 @Serializable
+data class RoleValidation(
+    val is_valid: Boolean,
+    val action_subject: String,
+    val question_type: String,
+    val reason: String,
+    val suggested_response: String? = null
+)
+
+@Serializable
 data class ChatQueryResponse(
     val answer: String,
     val context: List<ContextNode>,
-    val metadata: JsonElement? = null,  // Optional metadata from Neo4j backend
-    val session_id: String? = null       // Optional session ID
+    val metadata: JsonElement? = null,
+    val session_id: String? = null,
+    val role_validation: RoleValidation? = null  // NEW: Role validation result
 )
 
 @Serializable

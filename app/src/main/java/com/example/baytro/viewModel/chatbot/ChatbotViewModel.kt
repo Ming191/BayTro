@@ -1,10 +1,13 @@
 package com.example.baytro.viewModel.chatbot
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.chatbot.ChatMessage
 import com.example.baytro.data.chatbot.ChatbotRepository
 import com.example.baytro.data.chatbot.SearchResponse
+import com.example.baytro.data.user.Role
+import com.example.baytro.data.user.UserRoleState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +25,22 @@ class ChatbotViewModel(
         observeMessages()
         observeLoading()
         observeConnection()
+        observeUserRole()  // NEW: Observe global user role
+    }
+
+    // NEW: Observe user role from global state
+    private fun observeUserRole() {
+        viewModelScope.launch {
+            UserRoleState.userRole.collect { role ->
+                val apiRole = when (role) {
+                    is Role.Landlord -> "landlord"
+                    is Role.Tenant -> "tenant"
+                    null -> "tenant"  // Default to tenant if not set
+                }
+                Log.d("ChatbotViewModel", "Role changed: $role -> API role: $apiRole")
+                _uiState.value = _uiState.value.copy(userRole = apiRole)
+            }
+        }
     }
 
     private fun checkConnection() {
@@ -58,7 +77,8 @@ class ChatbotViewModel(
         if (question.isBlank()) return
         
         viewModelScope.launch {
-            chatbotRepository.sendMessage(question)
+            Log.d("ChatbotViewModel", "Sending message with role: ${_uiState.value.userRole}")
+            chatbotRepository.sendMessage(question, _uiState.value.userRole)
         }
     }
 
@@ -94,6 +114,10 @@ class ChatbotViewModel(
     fun clearSearchResults() {
         _uiState.value = _uiState.value.copy(searchResults = null)
     }
+
+    fun setUserRole(role: String) {
+        _uiState.value = _uiState.value.copy(userRole = role)
+    }
 }
 
 data class ChatbotUiState(
@@ -101,5 +125,6 @@ data class ChatbotUiState(
     val isLoading: Boolean = false,
     val isConnected: Boolean = false,
     val error: String? = null,
-    val searchResults: SearchResponse? = null
+    val searchResults: SearchResponse? = null,
+    val userRole: String = "tenant"  // NEW: Default role is tenant
 )

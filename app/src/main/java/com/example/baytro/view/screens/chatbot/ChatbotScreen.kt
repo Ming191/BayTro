@@ -29,7 +29,6 @@ fun ChatbotScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
 
     // Auto scroll to bottom when new messages arrive
     LaunchedEffect(uiState.messages.size) {
@@ -43,8 +42,6 @@ fun ChatbotScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        
-
         // Connection Status
         if (!uiState.isConnected) {
             Card(

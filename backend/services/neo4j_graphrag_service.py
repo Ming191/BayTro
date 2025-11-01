@@ -29,6 +29,7 @@ class GraphState(TypedDict):
     final_answer: str
     conversation_history: Annotated[List[Dict[str, str]], add]
     metadata: Dict[str, Any]
+    user_role: Optional[str]  # Add user role to state
 
 
 class Neo4jGraphRAGService:
@@ -581,7 +582,8 @@ NỘI DUNG LUẬT:
     async def query(
         self,
         question: str,
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        user_role: Optional[str] = None
     ) -> Dict[str, Any]:
         """Main query method using LangGraph workflow"""
         initial_state = GraphState(
@@ -592,7 +594,8 @@ NỘI DUNG LUẬT:
             expanded_context=[],
             final_answer="",
             conversation_history=conversation_history or [],
-            metadata={}
+            metadata={},
+            user_role=user_role or "tenant"  # Default to tenant if not specified
         )
 
         # Run workflow
