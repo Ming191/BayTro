@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from services.neo4j_graphrag_service import Neo4jGraphRAGService
+from services.role_validator_service import RoleValidatorService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,13 @@ except Exception as e:
     logger.error(f"Failed to initialize GraphRAG service: {e}")
     graphrag_service = None
 
+try:
+    role_validator = RoleValidatorService()
+    logger.info("Role Validator service initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize Role Validator service: {e}")
+    role_validator = None
+
 
 # In-memory conversation store (in production, use Redis or database)
 conversation_store: Dict[str, List[Dict[str, str]]] = {}
@@ -29,6 +37,7 @@ class ChatRequest(BaseModel):
     question: str = Field(..., description="User's question in Vietnamese")
     session_id: Optional[str] = Field(None, description="Session ID for conversation history")
     use_history: bool = Field(default=False, description="Whether to use conversation history")
+    user_role: str = Field(..., description="User role: 'landlord' or 'tenant'")
 
 
 class ContextNode(BaseModel):
@@ -43,6 +52,7 @@ class ChatResponse(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     session_id: Optional[str] = None
     format: str = Field(default="text", description="Response format type")
+    role_validation: Optional[Dict[str, Any]] = Field(None, description="Role validation result")
 
 
 class HealthResponse(BaseModel):
@@ -56,11 +66,12 @@ class HealthResponse(BaseModel):
 @router.post("/query", response_model=ChatResponse)
 async def query_chatbot(request: ChatRequest):
     """
-    Query the housing law chatbot with advanced GraphRAG
+    Query the housing law chatbot with advanced GraphRAG and role-based validation
 
     - **question**: User's question in Vietnamese
     - **session_id**: Optional session ID for conversation continuity
     - **use_history**: Whether to use conversation history for context
+    - **user_role**: User role ('landlord' or 'tenant') for validation
     """
     if graphrag_service is None:
         raise HTTPException(
@@ -69,21 +80,57 @@ async def query_chatbot(request: ChatRequest):
         )
 
     try:
-        logger.info(f"Chatbot query: {request.question[:100]}...")
+        logger.info(f"Chatbot query from {request.user_role}: {request.question[:100]}...")
 
-        # Get conversation history if requested
+        # STEP 1: Validate role appropriateness FIRST
+        validation_result = None
+        if role_validator:
+            try:
+                validation_result = await role_validator.validate_question(
+                    question=request.question,
+                    user_role=request.user_role
+                )
+                logger.info(f"Role validation: is_valid={validation_result['is_valid']}, "
+                           f"type={validation_result.get('question_type')}")
+
+                # If question is not appropriate for this role, return early with guidance
+                if not validation_result.get("is_valid", True):
+                    guidance_response = role_validator.get_role_mismatch_response(
+                        question=request.question,
+                        user_role=request.user_role,
+                        validation_result=validation_result
+                    )
+
+                    logger.info(f"Question blocked due to role mismatch. Returning guidance.")
+
+                    return ChatResponse(
+                        answer=guidance_response,
+                        context=[],
+                        metadata={
+                            "role_validation": validation_result,
+                            "blocked": True
+                        },
+                        session_id=request.session_id,
+                        role_validation=validation_result
+                    )
+            except Exception as e:
+                logger.warning(f"Role validation error (continuing anyway): {e}")
+                # Continue processing if validation fails
+
+        # STEP 2: Get conversation history if requested
         conversation_history = None
         if request.use_history and request.session_id:
             conversation_history = conversation_store.get(request.session_id, [])
             logger.info(f"Using conversation history with {len(conversation_history)} messages")
 
-        # Query the service
+        # STEP 3: Query the GraphRAG service
         result = await graphrag_service.query(
             question=request.question,
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
+            user_role=request.user_role  # Pass role for context-aware answering
         )
 
-        # Update conversation history
+        # STEP 4: Update conversation history
         if request.session_id:
             if request.session_id not in conversation_store:
                 conversation_store[request.session_id] = []
@@ -108,7 +155,8 @@ async def query_chatbot(request: ChatRequest):
             answer=result['answer'],
             context=[ContextNode(**node) for node in result['context']],
             metadata=result.get('metadata'),
-            session_id=request.session_id
+            session_id=request.session_id,
+            role_validation=validation_result
         )
 
     except Exception as e:

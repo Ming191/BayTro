@@ -40,7 +40,7 @@ class ChatbotRepository(
         }
     }
 
-    suspend fun sendMessage(question: String): Result<ChatMessage> {
+    suspend fun sendMessage(question: String, userRole: String = "tenant"): Result<ChatMessage> {
         return try {
             _isLoading.value = true
 
@@ -52,22 +52,37 @@ class ChatbotRepository(
             )
             addMessage(userMessage)
 
-            // Query the API
-            val request = ChatQueryRequest(question = question)
+            // Query the API with user role
+            val request = ChatQueryRequest(
+                question = question,
+                user_role = userRole
+            )
             val response = bayTroApiService.queryChatbot(request)
 
             if (response.isSuccess) {
                 val queryResponse = response.getOrThrow()
+
+                // Check if question was blocked due to role mismatch
+                val isBlocked = queryResponse.metadata?.toString()?.contains("\"blocked\":true") == true
+
                 val contextText = queryResponse.context.joinToString(separator = "\n\n") { node ->
                     "[${node.type}] ${node.content}"
                 }
+
                 val botMessage = ChatMessage(
                     id = generateId(),
                     content = queryResponse.answer,
                     isFromUser = false,
-                    context = contextText
+                    context = contextText,
+                    isBlocked = isBlocked
                 )
                 addMessage(botMessage)
+
+                // Log role validation result if present
+                queryResponse.role_validation?.let { validation ->
+                    Log.d(TAG, "Role validation: is_valid=${validation.is_valid}, type=${validation.question_type}")
+                }
+
                 Result.success(botMessage)
             } else {
                 val errorMessage = ChatMessage(

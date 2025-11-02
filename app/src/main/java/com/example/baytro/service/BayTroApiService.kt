@@ -25,13 +25,13 @@ import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
 
 /**
- * Unified API Service for BayTro Backend
- * Handles both GraphRAG Chatbot and Meter Reading
+// * Unified API Service for BayTro Backend
+// * Handles both GraphRAG Chatbot and Meter Reading
  */
 class BayTroApiService(
     private val httpClient: HttpClient,
 
-    private val baseUrl: String = "http://10.0.2.2:5000"
+    private val baseUrl: String = "https://neediest-kellye-weaklier.ngrok-free.dev"
 ) {
     companion object {
         private const val TAG = "BayTroApiService"
@@ -127,7 +127,6 @@ class BayTroApiService(
         }
     }
 
-    // ==================== Meter Reading ====================
 
     suspend fun predictMeterReading(bitmap: Bitmap): Result<MeterReadingResponse> {
         return try {
