@@ -25,8 +25,8 @@ import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
 
 /**
- * Unified API Service for BayTro Backend
- * Handles both GraphRAG Chatbot and Meter Reading
+// * Unified API Service for BayTro Backend
+// * Handles both GraphRAG Chatbot and Meter Reading
  */
 class BayTroApiService(
     private val httpClient: HttpClient,

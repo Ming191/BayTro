@@ -1,10 +1,6 @@
-"""
-Role-based Question Validator Service
-Validates if a question is appropriate for the user's role (landlord/tenant)
-based on the intent and perspective of the question.
-"""
 import json
 import logging
+import re
 from typing import Dict, Any, Optional
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
@@ -14,8 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 class RoleValidatorService:
-    """Validates questions based on user role and question intent"""
-
     def __init__(self):
         self.llm = ChatOpenAI(
             model=OPENAI_MODEL,
@@ -30,55 +24,65 @@ class RoleValidatorService:
 NHIỆM VỤ: Phân tích câu hỏi và xác định xem câu hỏi có phù hợp với vai trò của người dùng không.
 
 VAI TRÒ:
-- **CHỦ NHÀ (landlord)**: Người cho thuê nhà, có quyền quản lý tài sản
-- **NGƯỜI THUÊ (tenant)**: Người thuê nhà, có nghĩa vụ thuê và quyền lợi được bảo vệ
+- **CHỦ NHÀ (landlord)**: Người cho thuê nhà, có quyền quản lý tài sản, thu tiền thuê
+- **NGƯỜI THUÊ (tenant)**: Người thuê nhà, trả tiền thuê, có quyền lợi được bảo vệ
 
-PHÂN TÍCH QUAN TRỌNG - HIỂU QUAN ĐIỂM CỦA CÂU HỎI:
+QUY TẮC PHÂN TÍCH - ĐỌC KỸ:
 
-1. **Hành động chủ thể**: Ai đang muốn thực hiện hành động?
-   - "Tôi có thể tăng giá điện không?" → Người hỏi muốn TỰ MÌNH làm
-   - "Chủ nhà có thể tăng giá điện không?" → Hỏi về quyền của NGƯỜI KHÁC
+1. **Xác định chủ thể hành động trong câu hỏi**:
+   - "Tôi có thể..." → Người hỏi muốn TỰ MÌNH làm
+   - "Tôi có quyền yêu cầu [ai đó]..." → Người hỏi muốn yêu cầu người khác
+   - "[Ai đó] có thể..." → Hỏi về quyền của người khác
 
-2. **Mục đích câu hỏi**: Tại sao họ hỏi?
-   - Muốn biết QUYỀN LỢI của mình → Luôn hợp lệ
-   - Muốn biết NGHĨA VỤ của mình → Luôn hợp lệ
-   - Muốn biết QUYỀN/NGHĨA VỤ của bên kia → Luôn hợp lệ
-   - Muốn LÀM MỘT HÀNH ĐỘNG mà chỉ vai trò khác mới được làm → KHÔNG hợp lệ
+2. **Kiểm tra MÂU THUẪN LOGIC**:
+   - CHỦ NHÀ không thể "yêu cầu chủ nhà" (họ chính là chủ nhà!)
+   - CHỦ NHÀ không thể "trả tiền thuê" (họ là người nhận tiền)
+   - NGƯỜI THUÊ không thể "yêu cầu người thuê" (họ chính là người thuê!)
+   - NGƯỜI THUÊ không thể "tăng giá thuê" (không có quyền này)
 
-VÍ DỤ CHO NGƯỜI THUÊ NHÀ (tenant):
-HỢP LỆ:
-- "Chủ nhà có thể tăng giá điện không?" → Hỏi về quyền của chủ nhà, hợp lệ
-- "Tôi có quyền từ chối tăng giá điện không?" → Hỏi về quyền của mình
-- "Chủ nhà có được đuổi tôi ra không?" → Hỏi về quyền của chủ nhà
-- "Tôi phải làm gì khi nhà bị hư hỏng?" → Hỏi về nghĩa vụ của mình
-- "Tôi có thể khiếu nại gì?" → Quyền khiếu nại của người thuê
+3. **Các câu hỏi HỢP LỆ**:
+   - Hỏi về QUYỀN/NGHĨA VỤ của chính mình
+   - Hỏi về QUYỀN/NGHĨA VỤ của bên kia (để biết)
+   - Hỏi về THỦ TỤC, QUY TRÌNH pháp lý
 
- KHÔNG HỢP LỆ:
-- "Tôi có thể tăng giá điện không?" → Người thuê không có quyền tăng giá
-- "Tôi có thể đuổi người ở chung ra không?" → Không có quyền này
-- "Tôi có thể đơn phương chấm dứt hợp đồng mà không báo trước không?" → Vi phạm nghĩa vụ
+4. **Các câu hỏi KHÔNG HỢP LỆ**:
+   - Muốn làm hành động thuộc quyền của vai trò khác
+   - Có mâu thuẫn logic rõ ràng (yêu cầu chính mình)
 
-VÍ DỤ CHỦ NHÀ (landlord):
- HỢP LỆ:
-- "Tôi có thể tăng giá điện không?" → Hỏi về quyền của mình
-- "Người thuê có quyền gì?" → Hỏi về quyền của bên kia
-- "Tôi có thể thu hồi nhà khi nào?" → Hỏi về quyền của mình
-- "Người thuê có thể từ chối tăng giá không?" → Hợp lệ
+VÍ DỤ CHO CHỦ NHÀ:
+* HỢP LỆ:
+- "Tôi có thể tăng giá thuê không?"
+- "Người thuê có quyền gì?"
+- "Tôi có thể thu hồi nhà khi nào?"
+- "Người thuê có thể từ chối tăng giá không?"
 
-KHÔNG HỢP LỆ:
+* KHÔNG HỢP LỆ:
+- "Tôi có quyền yêu cầu chủ nhà giảm tiền không?" → MÂU THUẪN: họ chính là chủ nhà!
 - "Tôi có thể không trả tiền thuê không?" → Chủ nhà không thuê nhà
 - "Tôi có thể yêu cầu chủ nhà sửa chữa không?" → Họ chính là chủ nhà
 
-NGUYÊN TẮC:
-1. Câu hỏi về QUYỀN/NGHĨA VỤ của BẤT KỲ AI → Luôn hợp lệ (học hỏi pháp luật)
-2. Câu hỏi muốn THỰC HIỆN hành động chỉ vai trò khác mới được → Không hợp lệ
-3. Nếu KHÔNG CHẮC CHẮN → Coi là HỢP LỆ (tránh chặn nhầm)
+VÍ DỤ CHO NGƯỜI THUÊ:
+* HỢP LỆ:
+- "Chủ nhà có thể tăng giá điện không?"
+- "Tôi có quyền từ chối tăng giá không?"
+- "Tôi có thể yêu cầu chủ nhà sửa chữa không?"
+- "Chủ nhà có được đuổi tôi ra không?"
 
-Trả về JSON:
+* KHÔNG HỢP LỆ:
+- "Tôi có thể tăng giá thuê không?" → Không có quyền này
+- "Tôi có quyền yêu cầu người thuê làm gì không?" → MÂU THUẪN: họ chính là người thuê!
+
+QUY TẮC QUAN TRỌNG:
+1. Phát hiện MÂU THUẪN LOGIC trước tiên (ví dụ: chủ nhà yêu cầu chủ nhà)
+2. Câu hỏi về QUYỀN/NGHĨA VỤ để BIẾT → Luôn hợp lệ
+3. Câu hỏi muốn THỰC HIỆN hành động không thuộc quyền → Không hợp lệ
+4. Nếu KHÔNG CHẮC → Coi là HỢP LỆ
+
+Trả về JSON THUẦN TÚY (không có markdown):
 {{
     "is_valid": true/false,
     "action_subject": "người hỏi" hoặc "bên thứ ba" hoặc "chung",
-    "question_type": "quyền lợi" hoặc "nghĩa vụ" hoặc "thủ tục" hoặc "hành động",
+    "question_type": "quyền lợi" hoặc "nghĩa vụ" hoặc "thủ tục" hoặc "hành động" hoặc "mâu thuẫn logic",
     "reason": "Giải thích ngắn gọn",
     "suggested_response": "Nếu không hợp lệ, gợi ý câu trả lời phù hợp"
 }}"""),
@@ -124,8 +128,23 @@ Phân tích và trả về JSON.""")
                 )
             )
 
-            # Parse JSON response
-            result = json.loads(response.content)
+            # Log raw response for debugging
+            logger.info(f"Raw LLM response: {response.content[:500]}")
+
+            # Parse JSON response - handle markdown wrapper
+            content = response.content.strip()
+            
+            # Remove markdown code blocks if present
+            if content.startswith('```'):
+                json_match = re.search(r'```(?:json)?\s*({.*?})\s*```', content, re.DOTALL)
+                if json_match:
+                    content = json_match.group(1)
+                else:
+                    json_match = re.search(r'{.*}', content, re.DOTALL)
+                    if json_match:
+                        content = json_match.group(0)
+            
+            result = json.loads(content)
 
             logger.info(f"Validation result: is_valid={result.get('is_valid')}, type={result.get('question_type')}")
 
