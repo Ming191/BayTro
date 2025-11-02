@@ -102,5 +102,9 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         UserRoleState.clearRole()
+
+        if (BuildConfig.DEBUG) {
+            CoverageUtils.dumpCoverage(this)
+        }
     }
 }
