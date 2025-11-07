@@ -37,6 +37,8 @@ import com.example.baytro.view.components.SubmitButton
 import com.example.baytro.viewModel.auth.SignInVM
 import org.koin.compose.viewmodel.koinViewModel
 
+import androidx.compose.ui.platform.testTag
+
 @Composable
 fun SignInScreen(
     viewModel: SignInVM = koinViewModel(),
@@ -155,14 +157,14 @@ fun SignInContent(
                 keyboardActions = KeyboardActions(
                     onNext = { passwordFocus.requestFocus() }
                 ),
-                modifier = Modifier.fillMaxWidth().focusRequester(emailFocus)
+                modifier = Modifier.fillMaxWidth().focusRequester(emailFocus).testTag("emailField")
             )
 
             PasswordTextField(
                 value = formState.password,
                 onValueChange = onPasswordChange,
                 label = "Password",
-                modifier = Modifier.fillMaxWidth().focusRequester(passwordFocus),
+                modifier = Modifier.fillMaxWidth().focusRequester(passwordFocus).testTag("passwordField"),
                 isError = formState.passwordError is ValidationResult.Error,
                 errorMessage = formState.passwordError.let {
                     if (it is ValidationResult.Error) it.message else null
@@ -180,6 +182,7 @@ fun SignInContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
+                    .testTag("signInButton")
             )
 
             TextButton(onClick = onNavigateToForgotPassword) {
