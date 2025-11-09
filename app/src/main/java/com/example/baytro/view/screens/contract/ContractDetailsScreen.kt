@@ -309,7 +309,7 @@ fun ContractDetailsContent(
                     AnimatedVisibility(
                         visible = formState.shouldShowAddFirstTenantPrompt(
                             pendingSessions, confirmingIds, decliningIds, isLandlord
-                        ) && formState.isActiveContract,
+                        ),
                         enter = fadeIn() + slideInVertically(),
                         exit = fadeOut() + slideOutVertically()
                     ) {

@@ -96,11 +96,11 @@ fun AddFirstTenantPrompt(onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Contract is pending activation", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
-            Text("Add the first tenant to activate this contract, manage invoices, and track payments.", textAlign = TextAlign.Center)
+            Text("No Tenants Yet", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+            Text("Add a tenant to this contract to manage invoices and track payments.", textAlign = TextAlign.Center)
             Button(onClick = onClick) {
                 Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Invite First Tenant")
+                Text("Invite Tenant")
             }
         }
     }

@@ -29,10 +29,29 @@ object Validator {
     private const val ERROR_PHONE_EMPTY = "Please enter your phone number."
     private const val ERROR_PHONE_INVALID = "Invalid phone number."
 
-    fun validateEmail(email: String): ValidationResult = when {
-        email.isBlank() -> ValidationResult.Error(ERROR_EMAIL_EMPTY)
-        !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> ValidationResult.Error(ERROR_EMAIL_INVALID)
-        else -> ValidationResult.Success
+    fun validateEmail(email: String): ValidationResult {
+        val trimmedEmail = email.trim()
+        android.util.Log.d("Validator", "validateEmail called")
+        android.util.Log.d("Validator", "Original email: '$email'")
+        android.util.Log.d("Validator", "Original email length: ${email.length}")
+        android.util.Log.d("Validator", "Trimmed email: '$trimmedEmail'")
+        android.util.Log.d("Validator", "Trimmed email length: ${trimmedEmail.length}")
+
+        return when {
+            trimmedEmail.isBlank() -> {
+                android.util.Log.d("Validator", "Email is blank")
+                ValidationResult.Error(ERROR_EMAIL_EMPTY)
+            }
+            !android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches() -> {
+                android.util.Log.d("Validator", "Email pattern match failed")
+                android.util.Log.d("Validator", "Email bytes: ${trimmedEmail.toByteArray().joinToString()}")
+                ValidationResult.Error(ERROR_EMAIL_INVALID)
+            }
+            else -> {
+                android.util.Log.d("Validator", "Email validation SUCCESS")
+                ValidationResult.Success
+            }
+        }
     }
 
     fun validatePassword(password: String): ValidationResult =

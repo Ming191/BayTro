@@ -16,7 +16,6 @@ data class ContractDetailsFormState(
     val status: Status = Status.PENDING,
     val tenantList: List<User> = emptyList()
 ) {
-    // --- Các thuộc tính tiện ích ---
     val tenantCount: Int
         get() = tenantList.size
 
@@ -35,15 +34,13 @@ data class ContractDetailsFormState(
     val formattedDeposit: String
         get() = Utils.formatCurrency(deposit)
 
-    // --- HÀM LOGIC ĐÃ ĐƯỢC CHUYỂN VÀO ĐÂY ---
     fun shouldShowAddFirstTenantPrompt(
         pendingSessions: List<PendingQrSession>,
         confirmingIds: Set<String>,
         decliningIds: Set<String>,
         isLandlord: Boolean
     ): Boolean {
-        return isPendingContract &&
-                !hasActiveTenants &&
+        return !hasActiveTenants &&
                 pendingSessions.isEmpty() &&
                 confirmingIds.isEmpty() &&
                 decliningIds.isEmpty() &&

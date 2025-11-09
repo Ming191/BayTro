@@ -225,7 +225,7 @@ fun RoomDetailsScreen(
                     } else {
                         EmptyStateCard(
                             icon = Icons.Filled.Description,
-                            message = "No active contract",
+                            message = "No contract",
                             actionText = "Add Contract",
                             onActionClick = { onAddContractClick(room?.id.toString()) }
                         )

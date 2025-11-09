@@ -103,7 +103,16 @@ class RoomDetailsVM(
             try {
                 val contracts = contractRepository.getContractsByRoomId(roomId)
                 Log.d("RoomDetailsVM", "ContractsInRoomDetailsVM: ${contracts.size}")
-                val filteredContracts = contracts.filter { it.status != Status.ENDED }
+                val filteredContracts = contracts
+                    .filter { it.status != Status.ENDED }
+                    .sortedBy { contract ->
+                        when (contract.status) {
+                            Status.ACTIVE -> 0
+                            Status.PENDING -> 1
+                            Status.OVERDUE -> 2
+                            Status.ENDED -> 3
+                        }
+                    }
                 _contract.value = filteredContracts
             } catch (e: Exception) {
                 e.printStackTrace()

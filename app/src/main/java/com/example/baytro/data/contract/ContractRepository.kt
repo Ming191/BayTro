@@ -135,11 +135,15 @@ class ContractRepository(
         return try {
             val querySnapshot = collection.where {
                 "roomId" equalTo roomId
-                "status" equalTo Status.ACTIVE.name
             }.get()
-            querySnapshot.documents.map { doc ->
-                val contract = doc.data<Contract>()
-                contract.copy(id = doc.id)
+            querySnapshot.documents.mapNotNull { doc ->
+                try {
+                    val contract = doc.data<Contract>()
+                    contract.copy(id = doc.id)
+                } catch (e: Exception) {
+                    Log.e("ContractRepository", "Error parsing contract document ${doc.id}", e)
+                    null
+                }
             }
         } catch (e: Exception) {
             Log.e("ContractRepository", "Error fetching contracts by room ID", e)
