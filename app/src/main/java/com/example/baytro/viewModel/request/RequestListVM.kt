@@ -4,15 +4,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.data.BuildingSummary
-import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.request.FullRequestInfo
 import com.example.baytro.data.request.RequestRepository
 import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRepository
 import com.example.baytro.utils.SingleEvent
-import com.example.baytro.utils.Utils
 import com.example.baytro.utils.cloudFunctions.RequestCloudFunctions
-import com.example.baytro.view.screens.UiState
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -144,7 +142,6 @@ class RequestListVM(
             )
 
             result.onSuccess { response ->
-                // --- Bắt đầu lọc theo createdAt ---
                 val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                 dateFormat.timeZone = TimeZone.getTimeZone("UTC")
                 val from = fromDate?.let { dateFormat.parse(it) }
@@ -209,7 +206,7 @@ class RequestListVM(
                     buildingIdFilter = currentState.selectedBuildingId,
                     limit = 10,
                     startAfter = cursor,
-                    fromDate = currentState.fromDate, // ⬅️ giữ filter khi load thêm
+                    fromDate = currentState.fromDate,
                     toDate = currentState.toDate
                 )
 
@@ -308,7 +305,7 @@ class RequestListVM(
     fun completeRequest(requestId: String) {
         viewModelScope.launch {
             try {
-                val currentDate = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                val currentDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                     .format(Date())
 
                 val updateFields = mapOf(
@@ -319,7 +316,6 @@ class RequestListVM(
                 requestRepository.updateFields(requestId, updateFields)
                 Log.d("RequestListVM", "Request $requestId marked as complete")
 
-                // Refresh the list to show updated status
                 refresh()
 
             } catch (e: Exception) {

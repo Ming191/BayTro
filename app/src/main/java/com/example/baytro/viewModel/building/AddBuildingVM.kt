@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
-import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.service.Metric

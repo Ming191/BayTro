@@ -2,7 +2,7 @@ package com.example.baytro.di
 
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.auth.FirebaseAuthRepository
-import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.TimestampTypeAdapter
 import com.example.baytro.data.billing.BillRepository

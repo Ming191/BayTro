@@ -1,6 +1,10 @@
-package com.example.baytro.data
+package com.example.baytro.data.building
 
+import com.example.baytro.data.Building
+import com.example.baytro.data.BuildingSummary
+import com.example.baytro.data.Repository
 import com.example.baytro.data.service.Service
+import com.example.baytro.data.toSummary
 import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.FirebaseFirestore

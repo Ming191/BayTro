@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.map
 private const val TAG = "BillRepository"
 
 class BillRepository(
-    private val db: FirebaseFirestore
+    db: FirebaseFirestore
 ) : Repository<Bill> {
     private val collection = db.collection("bills")
 
@@ -149,24 +149,5 @@ class BillRepository(
                     bill
                 }
             }
-    }
-
-    suspend fun getCurrentBillByContract(contractId: String): Result<Bill?> = runCatching {
-        val snapshot = collection
-            .where { "contractId" equalTo contractId }
-            .where { "status" inArray listOf(BillStatus.UNPAID, BillStatus.OVERDUE) }
-            .orderBy("issuedDate", Direction.DESCENDING)
-            .limit(1)
-            .get()
-
-        val doc = snapshot.documents.firstOrNull()
-        if (doc == null) return@runCatching null
-
-        try {
-            doc.data<Bill>().copy(id = doc.id)
-        } catch (e: Exception) {
-            Log.e(TAG, "Deserialization failed for bill doc ${doc.id}", e)
-            null
-        }
     }
 }

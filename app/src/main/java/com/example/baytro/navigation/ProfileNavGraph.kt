@@ -8,15 +8,14 @@ import com.example.baytro.auth.AuthRepository
 import com.example.baytro.view.screens.auth.ChangePasswordScreen
 import com.example.baytro.view.screens.auth.EditPersonalInformationScreen
 import com.example.baytro.view.screens.profile.PaymentSettingsScreen
-import com.example.baytro.view.screens.profile.ProfileScreen
 import com.example.baytro.view.screens.profile.PoliciesAndTermsScreen
+import com.example.baytro.view.screens.profile.ProfileScreen
 import com.example.baytro.view.screens.profile.ViewPersonalInformationScreen
+import com.example.baytro.view.screens.tenant.TenantInfoScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import com.example.baytro.view.screens.tenant.TenantInfoScreen
-import com.google.firebase.auth.FirebaseAuth
 
 fun NavGraphBuilder.profileNavGraph(navController: NavHostController) {
     composable(Screens.PersonalInformation.route) {

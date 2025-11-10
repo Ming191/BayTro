@@ -9,11 +9,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 
-/**
- * Persistent cache for user role TYPE using DataStore
- * Survives app restarts and process death
- * Note: This only caches the role type (Tenant/Landlord), not the full role data
- */
 class UserRoleCache(private val context: Context) {
 
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_role_cache")
@@ -23,10 +18,6 @@ class UserRoleCache(private val context: Context) {
         private val ROLE_TYPE_KEY = stringPreferencesKey("cached_role_type")
     }
 
-    /**
-     * Get the cached role type for a user
-     * Returns "Tenant", "Landlord", or null if not cached
-     */
     suspend fun getRoleType(userId: String): String? {
         return try {
             val preferences = context.dataStore.data.first()
@@ -52,10 +43,6 @@ class UserRoleCache(private val context: Context) {
         }
     }
 
-    /**
-     * Clear all cached data
-     * Should be called when user signs out
-     */
     suspend fun clearCache() {
         try {
             context.dataStore.edit { preferences ->

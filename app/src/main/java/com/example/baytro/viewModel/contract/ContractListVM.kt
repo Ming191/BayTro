@@ -4,7 +4,7 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
-import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.BuildingSummary
 import com.example.baytro.utils.SingleEvent
 import com.example.baytro.utils.cloudFunctions.ContractCloudFunctions
@@ -72,7 +72,6 @@ class ContractListVM(
             flow {
                 val currentState = uiState.value
 
-                // Clear cache if refresh was triggered
                 val currentCache = if (filters.refreshTrigger > 0) {
                     emptyMap()
                 } else {

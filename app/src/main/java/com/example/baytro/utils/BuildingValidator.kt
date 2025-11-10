@@ -9,25 +9,14 @@ data class FieldError(
     val message: String?
 ) {
     companion object {
-        /**
-         * Creates a successful validation result.
-         */
         fun success(): FieldError = FieldError(isError = false, message = null)
-
-        /**
-         * Creates a failed validation result with an error message.
-         */
         fun error(message: String): FieldError = FieldError(isError = true, message = message)
     }
 }
 
-/**
- * Validator object for building-related fields.
- * Contains validation logic for all building form fields with consistent error messages.
- */
+
 object BuildingValidator {
 
-    // Error messages as constants for consistency and easy maintenance
     private const val ERROR_NAME_REQUIRED = "Building name is required"
     private const val ERROR_ADDRESS_REQUIRED = "Address is required"
     private const val ERROR_FLOOR_REQUIRED = "Floor is required"
@@ -125,10 +114,6 @@ object BuildingValidator {
         )
     }
 
-    /**
-     * Private helper function to validate day of month fields with consistent logic.
-     * DRY principle - avoiding code duplication for similar validation logic.
-     */
     private fun validateDayOfMonth(
         value: String,
         requiredError: String,

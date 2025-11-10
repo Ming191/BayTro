@@ -123,7 +123,7 @@ class RoomRepository(
                 querySnapshot.documents.mapNotNull { doc ->
                     try {
                         val service = doc.data<Service>()
-                        service.copy(id = doc.id) // nếu Service có trường id
+                        service.copy(id = doc.id)
                     } catch (_: Exception) {
                         null
                     }
@@ -136,18 +136,6 @@ class RoomRepository(
             .collection("extraServices")
             .add(service)
         return docRef.id
-    }
-
-    suspend fun getExtraServiceById(roomId: String, serviceId: String): Service? {
-        val snapshot = collection.document(roomId)
-            .collection("extraServices")
-            .document(serviceId)
-            .get()
-
-        return if (snapshot.exists) {
-            val service = snapshot.data<Service>()
-            service.copy(id = serviceId)
-        } else null
     }
 
     suspend fun updateExtraServiceInRoom(roomId: String, service: Service) {
@@ -169,27 +157,6 @@ class RoomRepository(
             .update("status" to "DELETE")
     }
 
-    suspend fun hasExtraService(roomId: String, serviceId: String): Boolean {
-        return try {
-            val doc = collection.document(roomId)
-                .collection("extraServices")
-                .document(serviceId)
-                .get()
-
-            if (!doc.exists) return false
-
-            // Check if service is active (not soft-deleted)
-            val service = doc.data<Service>()
-            service.status != com.example.baytro.data.service.Status.DELETE
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking if room has extra service: ${e.message}")
-            false
-        }
-    }
-
-    /**
-     * Updates room data and manages its services in a batch operation
-     */
     suspend fun updateRoomAndServices(
         roomId: String,
         updatedRoomData: Room,
@@ -198,24 +165,20 @@ class RoomRepository(
         servicesToDelete: List<Service>
     ) {
         try {
-            // Update room data
             update(roomId, updatedRoomData)
 
-            // Delete services
             servicesToDelete.forEach { service ->
                 removeExtraServiceFromRoom(roomId, service.id)
             }
 
-            // Add new services
             servicesToAdd.forEach { service ->
                 val serviceToAdd = service.copy(
-                    id = "", // Clear temp ID
+                    id = "",
                     status = com.example.baytro.data.service.Status.ACTIVE
                 )
                 addExtraServiceToRoom(roomId, serviceToAdd)
             }
 
-            // Update existing services
             servicesToUpdate.forEach { service ->
                 updateExtraServiceInRoom(roomId, service)
             }

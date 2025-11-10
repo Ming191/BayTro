@@ -6,11 +6,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
-import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.MediaRepository
 import com.example.baytro.data.contract.Contract
 import com.example.baytro.data.contract.ContractRepository
-import com.example.baytro.data.contract.Status
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.service.Service
 import com.example.baytro.utils.ImageProcessor
@@ -133,11 +132,6 @@ class EditContractVM(
     fun onDepositChange(deposit: String) {
         Log.d(TAG, "onDepositChange: deposit=$deposit")
         _editContractFormState.value = _editContractFormState.value.copy(deposit = deposit)
-    }
-
-    fun onStatusChange(status: Status) {
-        Log.d(TAG, "onStatusChange: status=$status")
-        _editContractFormState.value = _editContractFormState.value.copy(status = status)
     }
 
     fun onPhotosChange(photos: List<Uri>) {

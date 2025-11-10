@@ -59,7 +59,7 @@ object Utils {
 
     fun formatVND(amount: String): String {
         return try {
-            val numericAmount = amount.replace("[^\\d]".toRegex(), "").toLongOrNull() ?: 0L
+            val numericAmount = amount.replace("\\D".toRegex(), "").toLongOrNull() ?: 0L
             if (numericAmount == 0L) return ""
             val formatter = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"))
             "${formatter.format(numericAmount)} VND"
@@ -69,11 +69,10 @@ object Utils {
     }
 
     fun parseVND(formattedAmount: String): String {
-        return formattedAmount.replace("[^\\d]".toRegex(), "")
+        return formattedAmount.replace("\\D".toRegex(), "")
     }
 
     fun getMonthName(month: Int, short: Boolean = false): String {
-        // Calendar.MONTH is 0-based, so we subtract 1
         if (month < 1 || month > 12) return "Invalid Month"
 
         val calendar = Calendar.getInstance()
@@ -91,15 +90,6 @@ object Utils {
             formatter.format(date)
         } catch (_: Exception) {
             ""
-        }
-    }
-
-    fun parseDateToDate(dateStr: String): Date {
-        return try {
-            val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            format.parse(dateStr) ?: Date()
-        } catch (_: Exception) {
-            Date()
         }
     }
 

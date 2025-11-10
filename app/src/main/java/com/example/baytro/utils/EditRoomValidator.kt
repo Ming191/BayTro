@@ -11,7 +11,6 @@ object EditRoomValidator {
         existingRooms : List<Room>,
         currentRoomId: String? = null
     ): String? {
-        // Exclude the current room being edited from the duplicate check
         val existingRoom = existingRooms.find {
             it.roomNumber == roomNumber && it.id != currentRoomId
         }

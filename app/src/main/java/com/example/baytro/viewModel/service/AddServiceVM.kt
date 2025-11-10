@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.Building
-import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.BuildingStatus
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.service.Metric
@@ -21,7 +21,7 @@ class AddServiceVM(
     private val buildingRepo: BuildingRepository,
     private val roomRepo: RoomRepository,
     private val auth: AuthRepository,
-    private val savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     companion object {

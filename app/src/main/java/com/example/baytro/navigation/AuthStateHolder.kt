@@ -5,10 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 
 class AuthStateHolder {
-    var currentUser by mutableStateOf<FirebaseUser?>(FirebaseAuth.getInstance().currentUser)
+    var currentUser by mutableStateOf(FirebaseAuth.getInstance().currentUser)
         private set
 
     init {

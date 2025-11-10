@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baytro.auth.AuthRepository
 import com.example.baytro.data.MediaRepository
-import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.contract.ContractRepository
 import com.example.baytro.data.room.RoomRepository
 import com.example.baytro.data.user.User
@@ -59,7 +59,6 @@ class PersonalInformationVM (
                 val dbUser = userRepository.getById(currentUser.uid)
                 _user.value = dbUser
 
-                // Compute header summary in parallel
                 when (dbUser?.role) {
                     is Role.Landlord -> {
                         val buildingsDeferred = async { runCatching { buildingRepository.getBuildingsByUserId(currentUser.uid) }.getOrDefault(emptyList()) }
@@ -115,7 +114,6 @@ class PersonalInformationVM (
         }
     }
 
-    // uCrop handles the cropping, so we just need the basic upload method
     fun updateProfileImage(imageUri: Uri) {
         viewModelScope.launch {
             try {
@@ -129,19 +127,4 @@ class PersonalInformationVM (
         }
     }
 
-    fun removeProfileImage() {
-        viewModelScope.launch {
-            try {
-                val uid = authRepository.getCurrentUser()?.uid ?: return@launch
-                val existing = _user.value?.profileImgUrl
-                if (!existing.isNullOrBlank()) {
-                    mediaRepository.deleteImage(existing)
-                }
-                userRepository.updateFields(uid, mapOf("profileImgUrl" to null))
-                _user.value = userRepository.getById(uid)
-            } catch (e: Exception) {
-                Log.e("PersonalInformationVM", "removeProfileImage error", e)
-            }
-        }
-    }
 }

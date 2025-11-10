@@ -90,7 +90,7 @@ class UserRepository(
         }
         return collection
             .where { FieldPath.documentId inArray ids }
-            .snapshots // Lắng nghe thay đổi real-time
+            .snapshots
             .map { querySnapshot ->
                 querySnapshot.documents.mapNotNull { doc ->
                     runCatching {

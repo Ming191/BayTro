@@ -1,6 +1,5 @@
 package com.example.baytro.navigation
 
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect

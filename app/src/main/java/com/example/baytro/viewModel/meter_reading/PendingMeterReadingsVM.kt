@@ -2,7 +2,7 @@ package com.example.baytro.viewModel.meter_reading
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.BuildingSummary
 import com.example.baytro.data.MeterStatus
 import com.example.baytro.data.meter_reading.MeterReading

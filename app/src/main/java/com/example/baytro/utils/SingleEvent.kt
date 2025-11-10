@@ -1,7 +1,5 @@
 package com.example.baytro.utils
 
-import androidx.lifecycle.Observer
-
 /**
  * A wrapper for data that should be consumed only once.
  *
@@ -23,21 +21,5 @@ class SingleEvent<out T>(private val content: T) {
         }
     }
 
-    /**
-     * Returns the content, even if it has been handled.
-     */
-    fun peekContent(): T = content
 }
 
-/**
- * An [Observer] for [SingleEvent]s, simplifying the boilerplate of checking if the event has been handled.
- *
- * [onEventUnhandledContent] is *only* called if the [SingleEvent]'s content has not been handled.
- */
-class EventObserver<T>(private val onEventUnhandledContent: (T) -> Unit) : Observer<SingleEvent<T>> {
-    override fun onChanged(value: SingleEvent<T>) {
-        value.getContentIfNotHandled()?.let {
-            onEventUnhandledContent(it)
-        }
-    }
-}

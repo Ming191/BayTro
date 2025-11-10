@@ -3,9 +3,8 @@ package com.example.baytro.viewModel.contract
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.baytro.data.BuildingRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.contract.ContractRepository
-import com.example.baytro.data.contract.Status
 import com.example.baytro.data.qr_session.PendingQrSession
 import com.example.baytro.data.qr_session.QrSessionRepository
 import com.example.baytro.data.room.RoomRepository

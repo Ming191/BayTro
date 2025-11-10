@@ -2,7 +2,6 @@ package com.example.baytro.data.billing
 
 import kotlinx.serialization.Serializable
 
-// Represents a single line item within a bill (e.g., Rent, Electricity).
 @Serializable
 data class BillLineItem(
     val description: String = "",

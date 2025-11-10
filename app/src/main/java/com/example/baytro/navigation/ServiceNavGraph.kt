@@ -2,12 +2,10 @@ package com.example.baytro.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
-import com.example.baytro.view.screens.service.ServiceListScreen
 import com.example.baytro.view.screens.service.AddServiceScreen
 import com.example.baytro.view.screens.service.EditServiceScreen
+import com.example.baytro.view.screens.service.ServiceListScreen
 
 fun NavGraphBuilder.serviceNavGraph(navController: NavHostController) {
     composable(Screens.ServiceList.route) {

@@ -4,8 +4,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.baytro.data.BuildingRepository
-import com.example.baytro.data.room.RoomRepository
+import com.example.baytro.data.building.BuildingRepository
 import com.example.baytro.data.service.Metric
 import com.example.baytro.data.service.Service
 import com.example.baytro.view.screens.UiState
@@ -15,8 +14,7 @@ import kotlinx.coroutines.launch
 
 class EditServiceVM(
     private val buildingRepo: BuildingRepository,
-    private val roomRepo: RoomRepository,
-    private val savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val serviceId: String? = savedStateHandle["serviceId"]

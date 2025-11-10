@@ -1,6 +1,5 @@
 package com.example.baytro.data.meter_reading
 
-import android.util.Log
 import com.example.baytro.data.MeterStatus
 import com.example.baytro.data.Repository
 import dev.gitlive.firebase.firestore.Direction
@@ -10,11 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class MeterReadingRepository(
-    private val db: FirebaseFirestore
+    db: FirebaseFirestore
 ) : Repository<MeterReading> {
-    companion object {
-        private const val TAG = "MeterReadingRepository"
-    }
     private val collection = db.collection("meter_readings")
 
     override suspend fun getAll(): List<MeterReading> {
@@ -54,7 +50,6 @@ class MeterReadingRepository(
         collection.document(id).update(fields)
     }
 
-    // Listen for pending readings by building (for landlord dashboard with building filter)
     fun listenForPendingReadingsByBuilding(
         landlordId: String,
         buildingId: String
@@ -76,7 +71,6 @@ class MeterReadingRepository(
             }
     }
 
-    // Listen for readings by status (for all buildings)
     fun listenForReadingsByStatus(
         landlordId: String,
         status: MeterStatus
@@ -97,30 +91,6 @@ class MeterReadingRepository(
             }
     }
 
-    // Listen for readings by building and status
-    fun listenForReadingsByBuildingAndStatus(
-        landlordId: String,
-        buildingId: String,
-        status: MeterStatus
-    ): Flow<List<MeterReading>> {
-        return collection
-            .where {
-                all(
-                    "landlordId" equalTo landlordId,
-                    "buildingId" equalTo buildingId,
-                    "status" equalTo status
-                )
-            }
-            .orderBy("createdAt", Direction.DESCENDING)
-            .snapshots
-            .map { snapshot ->
-                snapshot.documents.map { doc ->
-                    doc.data<MeterReading>().copy(id = doc.id)
-                }
-            }
-    }
-
-    // Get readings by contract with pagination
     suspend fun getReadingsByContractPaginated(
         contractId: String,
         pageSize: Long,
@@ -142,24 +112,6 @@ class MeterReadingRepository(
         val snapshot = query.get()
         return snapshot.documents.map {
             it.data<MeterReading>().copy(id = it.id)
-        }
-    }
-
-    suspend fun getLastApprovedReading(contractId: String): Result<MeterReading?> = runCatching {
-        val snapshot = collection
-            .where { "contractId" equalTo contractId }
-            .where { "status" equalTo MeterStatus.APPROVED }
-            .orderBy("createdAt", Direction.DESCENDING)
-            .limit(1)
-            .get()
-
-        snapshot.documents.firstOrNull()?.let { doc ->
-            try {
-                doc.data<MeterReading>()?.copy(id = doc.id)
-            } catch (e: Exception) {
-                Log.e(TAG, "Deserialization failed for doc ${doc.id}", e)
-                null
-            }
         }
     }
 }

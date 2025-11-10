@@ -24,10 +24,6 @@ import io.ktor.http.contentType
 import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
 
-/**
-// * Unified API Service for BayTro Backend
-// * Handles both GraphRAG Chatbot and Meter Reading
- */
 class BayTroApiService(
     private val httpClient: HttpClient,
 
@@ -43,27 +39,6 @@ class BayTroApiService(
         isLenient = true
         prettyPrint = true
     }
-
-
-    suspend fun healthCheck(): Result<Boolean> {
-        return try {
-            Log.d(TAG, "Health check: $baseUrl/health")
-            val response: HttpResponse = httpClient.get {
-                url("$baseUrl/health")
-            }
-            
-            Log.d(TAG, "Response status: ${response.status.value}")
-            if (response.status.value in 200..299) {
-                Result.success(true)
-            } else {
-                Result.failure(Exception("Health check failed: ${response.status}"))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Health check error: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
 
     suspend fun queryChatbot(request: ChatQueryRequest): Result<ChatQueryResponse> {
         return try {
@@ -162,15 +137,4 @@ class BayTroApiService(
         }
     }
 
-    suspend fun meterHealth(): Result<Boolean> {
-        return try {
-            val response: HttpResponse = httpClient.get {
-                url("$baseUrl/api/meter/health")
-            }
-            Result.success(response.status.value in 200..299)
-        } catch (e: Exception) {
-            Log.e(TAG, "Meter health error: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
 }

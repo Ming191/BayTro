@@ -80,31 +80,6 @@ class ContractRepository(
             }
     }
 
-    suspend fun getContractsByStatus(landlordId: String, statuses: List<Status>): List<Contract> {
-        if (landlordId.isBlank() || statuses.isEmpty()) {
-            Log.d("ContractRepository", "Query skipped: landlordId is blank or statuses is empty")
-            return emptyList()
-        }
-        Log.d("ContractRepository", "Querying for landlordId: '$landlordId', statuses: ${statuses.map { it.name }}")
-        try {
-            val querySnapshot = collection.where {
-                all(
-                    "landlordId" equalTo landlordId,
-                    "status" inArray statuses.map { it.name }
-                )
-            }.get()
-            Log.d("ContractRepository", "Found ${querySnapshot.documents.size} documents for landlordId: '$landlordId', statuses: ${statuses.map { it.name }}")
-            return querySnapshot.documents.map { doc ->
-                val contract = doc.data<Contract>()
-                Log.d("ContractRepository", "Fetched contract: ${contract.contractNumber}, landlordId: ${contract.landlordId}, status: ${contract.status}")
-                contract.copy(id = doc.id)
-            }
-        } catch (e: Exception) {
-            Log.e("ContractRepository", "Error fetching contracts by status", e)
-            throw e
-        }
-    }
-
     suspend fun getContractsByBuildingId(buildingId: String): List<Contract> {
         if (buildingId.isBlank()) {
             Log.d("ContractRepository", "Query skipped: buildingId is blank")

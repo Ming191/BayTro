@@ -9,12 +9,10 @@ import com.example.baytro.view.screens.billing.TenantBillScreen
 
 fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
 
-    // Tenant Bill Screen (no parameters - viewModel fetches current user)
     composable(Screens.TenantBillScreen.route) {
         TenantBillScreen(navController = navController)
     }
 
-    // Landlord Bills Dashboard
     composable(
         route = Screens.LandlordBills.route,
         arguments = Screens.LandlordBills.arguments
@@ -26,7 +24,6 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
         )
     }
 
-    // Tenant Bill View
     composable(
         route = Screens.TenantBill.route,
         arguments = Screens.TenantBill.arguments
@@ -38,7 +35,6 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
         )
     }
 
-    // Bill Details (shared between landlord and tenant)
     composable(
         route = Screens.BillDetails.route,
         arguments = Screens.BillDetails.arguments
@@ -48,7 +44,6 @@ fun NavGraphBuilder.billingNavGraph(navController: NavHostController) {
         )
     }
 
-    // Billing History for Tenant
     composable(
         route = Screens.BillingHistory.route,
         arguments = Screens.BillingHistory.arguments
