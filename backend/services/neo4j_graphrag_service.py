@@ -395,7 +395,8 @@ class Neo4jGraphRAGService:
         workflow.add_edge("expand_context", "generate_answer")
         workflow.add_edge("generate_answer", END)
 
-        return workflow.compile()
+        # Compile without checkpointer to avoid checkpoint issues
+        return workflow.compile(checkpointer=None)
 
     async def _analyze_query(self, state: GraphState) -> GraphState:
         """Analyze user query to understand intent and extract key entities"""
