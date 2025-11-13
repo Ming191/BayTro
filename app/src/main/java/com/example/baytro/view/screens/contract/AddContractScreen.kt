@@ -310,39 +310,35 @@ fun AddContractContent(
 
             item {
                 AnimatedItem(visible = showInitialMeterReadings) {
-                    Card(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "Record meter readings at move-in",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Text(
+                            text = "Record meter readings at move-in",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-                            RequiredTextField(
-                                modifier = Modifier.fillMaxWidth(),
-                                value = formState.initialElectricityReading,
-                                onValueChange = onInitialElectricityChange,
-                                label = "Initial Electricity Reading (kWh)",
-                                isError = !formState.initialElectricityError.isSuccess,
-                                errorMessage = (formState.initialElectricityError as? ValidationResult.Error)?.message,
-                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
-                            )
+                        RequiredTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = formState.initialElectricityReading,
+                            onValueChange = onInitialElectricityChange,
+                            label = "Initial Electricity Reading (kWh)",
+                            isError = !formState.initialElectricityError.isSuccess,
+                            errorMessage = (formState.initialElectricityError as? ValidationResult.Error)?.message,
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+                        )
 
-                            RequiredTextField(
-                                modifier = Modifier.fillMaxWidth(),
-                                value = formState.initialWaterReading,
-                                onValueChange = onInitialWaterChange,
-                                label = "Initial Water Reading (m³)",
-                                isError = !formState.initialWaterError.isSuccess,
-                                errorMessage = (formState.initialWaterError as? ValidationResult.Error)?.message,
-                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
-                            )
-                        }
+                        RequiredTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = formState.initialWaterReading,
+                            onValueChange = onInitialWaterChange,
+                            label = "Initial Water Reading (m³)",
+                            isError = !formState.initialWaterError.isSuccess,
+                            errorMessage = (formState.initialWaterError as? ValidationResult.Error)?.message,
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+                        )
                     }
                 }
             }

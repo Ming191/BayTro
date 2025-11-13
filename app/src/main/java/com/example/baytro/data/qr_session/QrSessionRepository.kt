@@ -148,24 +148,25 @@ class QrSessionRepository(
         return query.snapshots
             .map { querySnapshot ->
                 Log.d("QrSessionRepository", "Session snapshot received for tenant $tenantId, docs: ${querySnapshot.documents.size}")
-                // If there are no more SCANNED sessions for this tenant, it means it was approved or rejected
                 if (querySnapshot.documents.isEmpty()) {
-                    // Check if there's an APPROVED session
-                    val approvedSnapshot = collection.where {
+                    Log.d("QrSessionRepository", "No SCANNED sessions found, checking for CONFIRMED session")
+                    val confirmedSnapshot = collection.where {
                         all(
                             "scannedByTenantId" equalTo tenantId,
-                            "status" equalTo QrSessionStatus.APPROVED
+                            "status" equalTo QrSessionStatus.CONFIRMED
                         )
                     }.get()
 
-                    if (approvedSnapshot.documents.isNotEmpty()) {
-                        val session = approvedSnapshot.documents.first().data<QrSession>()
-                        Log.d("QrSessionRepository", "Session approved! Contract ID: ${session.contractId}")
+                    if (confirmedSnapshot.documents.isNotEmpty()) {
+                        val session = confirmedSnapshot.documents.first().data<QrSession>()
+                        Log.d("QrSessionRepository", "Session CONFIRMED! Contract ID: ${session.contractId}")
                         session.contractId
                     } else {
+                        Log.d("QrSessionRepository", "No CONFIRMED session found either")
                         null
                     }
                 } else {
+                    Log.d("QrSessionRepository", "SCANNED session still exists, waiting for landlord approval")
                     null
                 }
             }

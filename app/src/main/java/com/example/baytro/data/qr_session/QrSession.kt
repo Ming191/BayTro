@@ -2,15 +2,14 @@ package com.example.baytro.data.qr_session
 
 import com.google.firebase.firestore.DocumentId
 import dev.gitlive.firebase.firestore.Timestamp
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 enum class QrSessionStatus {
     PENDING,
     SCANNED,
-    APPROVED,
-    REJECTED,
+    CONFIRMED,
+    DECLINED,
     EXPIRED
 }
 
