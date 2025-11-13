@@ -266,7 +266,6 @@ class AddContractVM (
                     contractNumber = UUID.randomUUID().toString().take(8),
                     initialElectricityReading = formState.initialElectricityReading.toIntOrNull() ?: 0,
                     initialWaterReading = formState.initialWaterReading.toIntOrNull() ?: 0,
-                    initialMeterPhotosURL = emptyList()
                 )
 
                 Log.d(TAG, "onSubmit: creating contract without photos")
