@@ -109,6 +109,8 @@ fun AddContractScreen(
         onEndDateSelected = viewModel::onEndDateChange,
         onDepositChange = viewModel::onDepositChange,
         onRentalFeeChange = viewModel::onRentalFeeChange,
+        onInitialElectricityChange = viewModel::onInitialElectricityChange,
+        onInitialWaterChange = viewModel::onInitialWaterChange,
         onPhotosSelected = viewModel::onPhotosChange,
         onSubmit = viewModel::onSubmit,
         onStatusChange = viewModel::onStatusChange,
@@ -126,26 +128,29 @@ fun AddContractContent(
     onEndDateSelected: (String) -> Unit = {},
     onDepositChange: (String) -> Unit = {},
     onRentalFeeChange: (String) -> Unit = {},
+    onInitialElectricityChange: (String) -> Unit = {},
+    onInitialWaterChange: (String) -> Unit = {},
     onPhotosSelected: (List<Uri>) -> Unit = {},
     onSubmit: () -> Unit = {},
     onStatusChange: (Status) -> Unit = {},
     uiState: UiState<Contract> = UiState.Idle,
 ) {
-    // Animation states for each section
     var showContractDetails by remember { mutableStateOf(false) }
     var showContractPeriod by remember { mutableStateOf(false) }
     var showFinancialDetails by remember { mutableStateOf(false) }
+    var showInitialMeterReadings by remember { mutableStateOf(false) }
     var showBuildingServices by remember { mutableStateOf(false) }
     var showExtraServices by remember { mutableStateOf(false) }
     var showPhotos by remember { mutableStateOf(false) }
 
-    // Staggered animation trigger
     LaunchedEffect(Unit) {
         showContractDetails = true
         delay(100)
         showContractPeriod = true
         delay(100)
         showFinancialDetails = true
+        delay(100)
+        showInitialMeterReadings = true
         delay(100)
         showBuildingServices = true
         delay(100)
@@ -184,7 +189,6 @@ fun AddContractContent(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Contract Details Section
             item {
                 AnimatedItem(visible = showContractDetails) {
                     SectionTitle(
@@ -213,7 +217,6 @@ fun AddContractContent(
                 }
             }
 
-            // Contract Period Section
             item {
                 AnimatedItem(visible = showContractPeriod) {
                     SectionTitle(
@@ -297,7 +300,53 @@ fun AddContractContent(
                 }
             }
 
-            // Building Services Section
+            item {
+                AnimatedItem(visible = showInitialMeterReadings) {
+                    SectionTitle(
+                        title = "Initial Meter Readings"
+                    )
+                }
+            }
+
+            item {
+                AnimatedItem(visible = showInitialMeterReadings) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Record meter readings at move-in",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            RequiredTextField(
+                                modifier = Modifier.fillMaxWidth(),
+                                value = formState.initialElectricityReading,
+                                onValueChange = onInitialElectricityChange,
+                                label = "Initial Electricity Reading (kWh)",
+                                isError = !formState.initialElectricityError.isSuccess,
+                                errorMessage = (formState.initialElectricityError as? ValidationResult.Error)?.message,
+                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+                            )
+
+                            RequiredTextField(
+                                modifier = Modifier.fillMaxWidth(),
+                                value = formState.initialWaterReading,
+                                onValueChange = onInitialWaterChange,
+                                label = "Initial Water Reading (m³)",
+                                isError = !formState.initialWaterError.isSuccess,
+                                errorMessage = (formState.initialWaterError as? ValidationResult.Error)?.message,
+                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+                            )
+                        }
+                    }
+                }
+            }
+
             item {
                 AnimatedItem(visible = showBuildingServices) {
                     SectionTitle(
@@ -332,7 +381,6 @@ fun AddContractContent(
                 }
             }
 
-            // Extra Services Section
             item {
                 AnimatedItem(visible = showExtraServices) {
                     SectionTitle(
@@ -367,7 +415,6 @@ fun AddContractContent(
                 }
             }
 
-            // Contract Photos Section
             item {
                 AnimatedItem(visible = showPhotos) {
                     SectionTitle(

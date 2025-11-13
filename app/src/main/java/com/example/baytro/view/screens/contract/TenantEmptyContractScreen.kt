@@ -58,7 +58,6 @@ fun TenantEmptyContractView(
                 Log.d("TenantEmptyContract", "Success state triggered")
                 Toast.makeText(context, (state as UiState.Success<String>).data, Toast.LENGTH_LONG).show()
                 onContractConfirmed()
-                viewModel.clearState()
             }
             is UiState.Error -> {
                 Log.d("TenantEmptyContract", "Error state triggered: ${(state as UiState.Error).message}")
@@ -113,7 +112,6 @@ private fun QrScanInterface(
 
     Log.d("TenantEmptyContract", "QrScanInterface composed with showOptionsDialog: $showOptionsDialog")
 
-    // Create launchers only in this composable
     val cameraScannerLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
         Log.d("TenantEmptyContract", "Camera scanner result: ${result.contents}")
 

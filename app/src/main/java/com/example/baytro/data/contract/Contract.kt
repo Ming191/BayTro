@@ -26,4 +26,7 @@ data class Contract(
     val deposit: Int,
     val status: Status,
     val photosURL: List<String> = emptyList(),
+    val initialElectricityReading: Int = 0,
+    val initialWaterReading: Int = 0,
+    val initialMeterPhotosURL: List<String> = emptyList()
 )

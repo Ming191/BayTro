@@ -2,24 +2,11 @@ package com.example.baytro.view.screens.dashboard
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.EaseInOut
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,13 +58,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.example.baytro.data.meter_reading.MeterReading
+import com.example.baytro.view.components.AnimatedItem
 import com.example.baytro.view.components.DropdownSelectField
 import com.example.baytro.view.components.PhotoCarousel
 import com.example.baytro.viewModel.meter_reading.PendingMeterReadingsAction
@@ -86,10 +73,6 @@ import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-// =====================================================================
-//                       MAIN SCREEN COMPOSABLE
-// =====================================================================
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,7 +84,6 @@ fun PendingMeterReadingsScreen(
     var showDeclineDialog by remember { mutableStateOf<MeterReading?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Error handling
     LaunchedEffect(Unit) {
         viewModel.errorEvent.collect { event ->
             event.getContentIfNotHandled()?.let {
@@ -113,7 +95,6 @@ fun PendingMeterReadingsScreen(
         }
     }
 
-    // Initialize ViewModel
     LaunchedEffect(Unit) {
         viewModel.initialize()
     }
@@ -142,53 +123,41 @@ fun PendingMeterReadingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-                AnimatedContent(
-                    targetState = when {
-                        uiState.isLoading -> "loading"
-                        uiState.readings.isEmpty() -> "empty"
-                        else -> "content"
-                    },
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(300)) togetherWith
-                                fadeOut(animationSpec = tween(300))
-                    },
-                    label = "content_state"
-                ) { state ->
-                    when (state) {
-                        "loading" -> LoadingState(modifier = Modifier.fillMaxSize().padding(32.dp))
-                        "empty" -> EmptyState()
-                        else -> {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(
-                                    items = uiState.readings,
-                                    key = { it.id }
-                                ) { reading ->
-                                    val isDismissing = uiState.dismissingReadingIds.contains(reading.id)
+            AnimatedContent(
+                targetState = when {
+                    uiState.isLoading -> "loading"
+                    uiState.readings.isEmpty() -> "empty"
+                    else -> "content"
+                },
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300)) togetherWith
+                            fadeOut(animationSpec = tween(300))
+                },
+                label = "content_state"
+            ) { state ->
+                when (state) {
+                    "loading" -> LoadingState(modifier = Modifier.fillMaxSize().padding(32.dp))
+                    "empty" -> EmptyState()
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(
+                                items = uiState.readings,
+                                key = { it.id }
+                            ) { reading ->
+                                val isDismissing = uiState.dismissingReadingIds.contains(reading.id)
+                                val isVisible = !isDismissing
 
-                                    AnimatedVisibility(
-                                        visible = !isDismissing,
-                                        enter = fadeIn(animationSpec = tween(400)) +
-                                                slideInVertically(
-                                                    initialOffsetY = { it / 2 },
-                                                    animationSpec = tween(400)
-                                                ),
-                                        exit = fadeOut(animationSpec = tween(300)) +
-                                                slideOutHorizontally(
-                                                    targetOffsetX = { -it },
-                                                    animationSpec = tween(300)
-                                                )
-                                    ) {
-                                        PendingReadingCard(
-                                            reading = reading,
-                                            isProcessing = uiState.processingReadingIds.contains(reading.id),
-                                            onApprove = { viewModel.onAction(PendingMeterReadingsAction.ApproveReading(reading.id)) },
-                                            onDecline = { showDeclineDialog = reading }
-                                        )
-                                    }
+                                AnimatedItem(visible = isVisible) {
+                                    PendingReadingCard(
+                                        reading = reading,
+                                        isProcessing = uiState.processingReadingIds.contains(reading.id),
+                                        onApprove = { viewModel.onAction(PendingMeterReadingsAction.ApproveReading(reading.id)) },
+                                        onDecline = { showDeclineDialog = reading }
+                                    )
                                 }
                             }
                         }
@@ -196,33 +165,20 @@ fun PendingMeterReadingsScreen(
                 }
             }
         }
-        AnimatedVisibility(
-            visible = showDeclineDialog != null,
-            enter = fadeIn(animationSpec = tween(200)) + scaleIn(
-                initialScale = 0.9f,
-                animationSpec = tween(200)
-            ),
-            exit = fadeOut(animationSpec = tween(150)) + scaleOut(
-                targetScale = 0.9f,
-                animationSpec = tween(150)
-            )
-        ) {
-            showDeclineDialog?.let { reading ->
-                DeclineReasonDialog(
-                    onDismiss = { showDeclineDialog = null },
-                    onConfirm = { reason ->
+
+        if (showDeclineDialog != null) {
+            DeclineReasonDialog(
+                onDismiss = { showDeclineDialog = null },
+                onConfirm = { reason ->
+                    showDeclineDialog?.let { reading ->
                         viewModel.onAction(PendingMeterReadingsAction.DeclineReading(reading.id, reason))
-                        showDeclineDialog = null
+                    }
+                    showDeclineDialog = null
                 }
             )
         }
     }
 }
-
-
-// =====================================================================
-//                       PENDING READING CARD
-// =====================================================================
 
 @Composable
 fun PendingReadingCard(
@@ -242,7 +198,6 @@ fun PendingReadingCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header with Icon and Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -291,7 +246,6 @@ fun PendingReadingCard(
 
             HorizontalDivider()
 
-            // Meter Readings Section
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -313,7 +267,6 @@ fun PendingReadingCard(
                 )
             }
 
-            // Photo Carousel
             val images = listOfNotNull(
                 reading.electricityImageUrl,
                 reading.waterImageUrl
@@ -357,7 +310,6 @@ fun PendingReadingCard(
 
             HorizontalDivider()
 
-            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -385,33 +337,21 @@ fun PendingReadingCard(
     }
 }
 
-// =====================================================================
-//                       ANIMATED ACTION BUTTON
-// =====================================================================
-
 @Composable
 fun AnimatedActionButton(
     onClick: () -> Unit,
     enabled: Boolean,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String,
     modifier: Modifier = Modifier,
     isOutlined: Boolean = false,
     isError: Boolean = false,
     isLoading: Boolean = false
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (enabled) 1f else 0.95f,
-        animationSpec = tween(200),
-        label = "button_scale"
-    )
-
-    val buttonModifier = modifier.scale(scale)
-
     if (isOutlined) {
         OutlinedButton(
             onClick = onClick,
-            modifier = buttonModifier,
+            modifier = modifier,
             enabled = enabled,
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -428,7 +368,7 @@ fun AnimatedActionButton(
     } else {
         Button(
             onClick = onClick,
-            modifier = buttonModifier,
+            modifier = modifier,
             enabled = enabled
         ) {
             Crossfade(
@@ -456,13 +396,9 @@ fun AnimatedActionButton(
     }
 }
 
-// =====================================================================
-//                       METER READING ITEM
-// =====================================================================
-
 @Composable
 fun MeterReadingItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     value: Int,
     unit: String,
@@ -515,28 +451,12 @@ fun MeterReadingItem(
     }
 }
 
-// =====================================================================
-//                       STATUS BADGE
-// =====================================================================
-
 @Composable
 fun StatusBadge(status: String) {
-    val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = EaseInOut),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "badge_alpha"
-    )
-
     Surface(
         color = MaterialTheme.colorScheme.secondaryContainer,
         shape = RoundedCornerShape(6.dp),
-        tonalElevation = 1.dp,
-        modifier = Modifier.alpha(alpha)
+        tonalElevation = 1.dp
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -558,10 +478,6 @@ fun StatusBadge(status: String) {
         }
     }
 }
-
-// =====================================================================
-//                       DECLINE DIALOG
-// =====================================================================
 
 @Composable
 fun DeclineReasonDialog(
@@ -605,11 +521,7 @@ fun DeclineReasonDialog(
                     enabled = !isConfirming
                 )
 
-                AnimatedVisibility(
-                    visible = reason.isBlank(),
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
+                AnimatedItem(visible = reason.isBlank()) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -672,18 +584,15 @@ fun DeclineReasonDialog(
     )
 }
 
-// =====================================================================
-//                       LOADING & EMPTY STATES
-// =====================================================================
-
 @Composable
 fun LoadingState(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.Center
     ) {
         CircularProgressIndicator()
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Loading readings...",
             style = MaterialTheme.typography.bodyMedium,
@@ -704,22 +613,10 @@ fun EmptyState() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val scale by rememberInfiniteTransition(label = "empty_scale").animateFloat(
-                initialValue = 1f,
-                targetValue = 1.1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(2000, easing = EaseInOut),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "icon_scale"
-            )
-
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier
-                    .size(80.dp)
-                    .scale(scale)
+                modifier = Modifier.size(80.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(

@@ -17,6 +17,9 @@ data class AddContractFormState(
     val availableBuildings: Building? = null,
     val availableRooms: Room? = null,
     val selectedPhotos: List<Uri> = emptyList(),
+    val initialElectricityReading: String = "",
+    val initialWaterReading: String = "",
+    val initialMeterPhotos: List<Uri> = emptyList(),
 
     val buildingIdError: ValidationResult = ValidationResult.Success,
     val roomIdError: ValidationResult = ValidationResult.Success,
@@ -24,4 +27,6 @@ data class AddContractFormState(
     val endDateError: ValidationResult = ValidationResult.Success,
     val rentalFeeError: ValidationResult = ValidationResult.Success,
     val depositError: ValidationResult = ValidationResult.Success,
+    val initialElectricityError: ValidationResult = ValidationResult.Success,
+    val initialWaterError: ValidationResult = ValidationResult.Success,
 )

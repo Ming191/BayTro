@@ -164,6 +164,16 @@ class AddContractVM (
         _addContractFormState.value = _addContractFormState.value.copy(selectedPhotos = photos)
     }
 
+    fun onInitialElectricityChange(value: String) {
+        Log.d(TAG, "onInitialElectricityChange: value=$value")
+        _addContractFormState.value = _addContractFormState.value.copy(initialElectricityReading = value)
+    }
+
+    fun onInitialWaterChange(value: String) {
+        Log.d(TAG, "onInitialWaterChange: value=$value")
+        _addContractFormState.value = _addContractFormState.value.copy(initialWaterReading = value)
+    }
+
     private fun validateInput() : Boolean {
         Log.d(TAG, "validateInput: start")
         val formState = _addContractFormState.value
@@ -179,11 +189,16 @@ class AddContractVM (
         }
         val rentalFeeValidator = Validator.validateInteger(formState.rentalFee, "Rental Fee")
         val depositValidator = Validator.validateInteger(formState.deposit, "Deposit")
+        val initialElectricityValidator = Validator.validateInteger(formState.initialElectricityReading, "Initial Electricity Reading")
+        val initialWaterValidator = Validator.validateInteger(formState.initialWaterReading, "Initial Water Reading")
+
         val allResults = listOf(
             startDateValidator,
             endDateValidator,
             rentalFeeValidator,
             depositValidator,
+            initialElectricityValidator,
+            initialWaterValidator,
         )
 
         val isValid = allResults.all { it == ValidationResult.Success }
@@ -194,6 +209,8 @@ class AddContractVM (
                 if (endDateValidator != ValidationResult.Success) add("endDate=$endDateValidator")
                 if (rentalFeeValidator != ValidationResult.Success) add("rentalFee=$rentalFeeValidator")
                 if (depositValidator != ValidationResult.Success) add("deposit=$depositValidator")
+                if (initialElectricityValidator != ValidationResult.Success) add("initialElectricity=$initialElectricityValidator")
+                if (initialWaterValidator != ValidationResult.Success) add("initialWater=$initialWaterValidator")
             }
             Log.w(TAG, "validateInput: validation failed -> ${errors.joinToString(", ")}")
         }
@@ -204,6 +221,8 @@ class AddContractVM (
             endDateError = endDateValidator,
             rentalFeeError = rentalFeeValidator,
             depositError = depositValidator,
+            initialElectricityError = initialElectricityValidator,
+            initialWaterError = initialWaterValidator,
         )
         return isValid
     }
@@ -244,7 +263,10 @@ class AddContractVM (
                     photosURL = emptyList(),
                     buildingId = formState.availableBuildings?.id.toString(),
                     landlordId = currentUser.uid,
-                    contractNumber = UUID.randomUUID().toString().take(8)
+                    contractNumber = UUID.randomUUID().toString().take(8),
+                    initialElectricityReading = formState.initialElectricityReading.toIntOrNull() ?: 0,
+                    initialWaterReading = formState.initialWaterReading.toIntOrNull() ?: 0,
+                    initialMeterPhotosURL = emptyList()
                 )
 
                 Log.d(TAG, "onSubmit: creating contract without photos")
