@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "question": "Làm thế nào để đầu tư chứng khoán hiệu quả?",
+    "ground_truth_node_ids": [],
+    "reference_answer": "",
+    "question_type": "irrelevant"
+  },
+  {
+    "id": 2,
+    "question": "Thời tiết hôm nay như thế nào?",
+    "ground_truth_node_ids": [],
+    "reference_answer": "",
+    "question_type": "irrelevant"
+  },
+  {
+    "id": 3,
+    "question": "nhà ở là gì",
+    "ground_truth_node_ids": ["Điều_2_Khoản_1"],
+    "reference_answer": "Theo điều 2, khoản 1, Nhà ở là công trình xây dựng với mục đích để ở và phục vụ nhu cầu sinh hoạt của gia đình, cá nhân. Nhà ở được sử dụng vào mục đích để ở và mục đích không phải để ở mà pháp luật không cấm là nhà ở có mục đích sử dụng hỗn hợp.",
+    "question_type": "direct"
+  },
+  {
+    "id": 4,
+    "question": "Nhà ở công vụ là gì",
+    "ground_truth_node_ids": ["Điều_2_Khoản_5"],
+    "reference_answer": "Theo điều 2, khoản 5 Nhà ở công vụ là nhà ở được dùng để bố trí cho đối tượng thuộc trường hợp được ở nhà ở công vụ thuê trong thời gian đảm nhận chức vụ, công tác theo quy định.",
+    "question_type": "direct"
+  }
+]

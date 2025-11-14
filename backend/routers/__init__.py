@@ -1,4 +1,3 @@
-"""Routers package"""
-from . import chatbot, meter
+from . import meter, chatbot, evaluation
 
-__all__ = ['chatbot', 'meter']
+__all__ = ['meter', 'chatbot', 'evaluation']

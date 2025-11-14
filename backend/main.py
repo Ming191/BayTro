@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import meter, chatbot
+from routers import meter, chatbot, evaluation
 
 # Create FastAPI app
 app = FastAPI(
@@ -52,6 +52,12 @@ app.include_router(
     tags=["chatbot"]
 )
 
+app.include_router(
+    evaluation.router,
+    prefix="/api/evaluation",
+    tags=["evaluation"]
+)
+
 # Root endpoint
 @app.get("/")
 async def root():
@@ -60,7 +66,8 @@ async def root():
         "version": "2.0.0",
         "services": {
             "meter": "YOLO-based meter reading",
-            "chatbot": "Neo4j + LangGraph GraphRAG"
+            "chatbot": "Neo4j + LangGraph GraphRAG",
+            "evaluation": "Chatbot quality evaluation"
         }
     }
 
@@ -72,7 +79,8 @@ async def health():
         "version": "2.0.0",
         "services": {
             "meter": "available",
-            "chatbot": "available"
+            "chatbot": "available",
+            "evaluation": "available"
         }
     }
 
@@ -81,6 +89,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=5000,
+        port=8000,
         reload=True
     )
