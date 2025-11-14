@@ -36,7 +36,6 @@ object NotificationHelper {
             pendingIntentFlag
         )
 
-        // Bước 3: Xây dựng thông báo
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.logo)
             .setContentTitle(title)
