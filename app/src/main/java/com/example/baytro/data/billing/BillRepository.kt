@@ -16,17 +16,41 @@ class BillRepository(
     private val collection = db.collection("bills")
 
     override suspend fun getAll(): List<Bill> {
-        val snapshot = collection.get()
-        return snapshot.documents.map {
-            it.data<Bill>().copy(id = it.id)
+        return try {
+            val snapshot = collection.get()
+            Log.d(TAG, "getAll: Retrieved ${snapshot.documents.size} bill documents")
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.data<Bill>().copy(id = doc.id)
+                } catch (e: Exception) {
+                    Log.e(TAG, "✗ Error decoding bill in getAll: ${doc.id}", e)
+                    Log.e(TAG, "  Error type: ${e.javaClass.simpleName}")
+                    Log.e(TAG, "  Error message: ${e.message}")
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "✗ Error in getAll", e)
+            emptyList()
         }
     }
 
     override suspend fun getById(id: String): Bill? {
-        val snapshot = collection.document(id).get()
-        return if (snapshot.exists) {
-            snapshot.data<Bill>().copy(id = snapshot.id)
-        } else {
+        return try {
+            val snapshot = collection.document(id).get()
+            if (snapshot.exists) {
+                Log.d(TAG, "getById: Decoding bill $id")
+                val bill = snapshot.data<Bill>().copy(id = snapshot.id)
+                Log.d(TAG, "getById: ✓ Successfully decoded bill $id")
+                bill
+            } else {
+                Log.d(TAG, "getById: Bill $id not found")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "✗ Error in getById for bill $id", e)
+            Log.e(TAG, "  Error type: ${e.javaClass.simpleName}")
+            Log.e(TAG, "  Error message: ${e.message}")
             null
         }
     }
@@ -56,9 +80,24 @@ class BillRepository(
         Log.d(TAG, "observeById: id=$id")
         return collection.document(id).snapshots.map { snapshot ->
             if (snapshot.exists) {
-                val bill = snapshot.data<Bill>().copy(id = snapshot.id)
-                Log.d(TAG, "observeById: Bill updated - status=${bill.status}, totalAmount=${bill.totalAmount}")
-                bill
+                try {
+                    Log.d(TAG, "  Decoding bill by id: $id")
+                    val bill = snapshot.data<Bill>().copy(id = snapshot.id)
+                    Log.d(TAG, "  ✓ observeById: Bill updated - status=${bill.status}, totalAmount=${bill.totalAmount}")
+                    bill
+                } catch (e: Exception) {
+                    Log.e(TAG, "✗ Error decoding bill by id: $id", e)
+                    Log.e(TAG, "  Error type: ${e.javaClass.simpleName}")
+                    Log.e(TAG, "  Error message: ${e.message}")
+                    try {
+                        val rawData = snapshot.data<Map<String, Any>>()
+                        Log.e(TAG, "  Document data keys: ${rawData.keys}")
+                        Log.e(TAG, "  Document data: $rawData")
+                    } catch (logError: Exception) {
+                        Log.e(TAG, "  Could not log document data: ${logError.message}")
+                    }
+                    null
+                }
             } else {
                 Log.d(TAG, "observeById: Bill not found")
                 null
@@ -87,21 +126,37 @@ class BillRepository(
             .snapshots
             .map { snapshot ->
                 Log.d(TAG, "listenForBillsByBuildingAndMonth: received ${snapshot.documents.size} documents")
-                snapshot.documents.map { doc ->
-                    val bill = doc.data<Bill>().copy(id = doc.id)
+                snapshot.documents.mapNotNull { doc ->
+                    try {
+                        Log.d(TAG, "  Decoding bill document: ${doc.id}")
+                        val bill = doc.data<Bill>().copy(id = doc.id)
+                        Log.d(TAG, "  ✓ Successfully decoded bill: ${doc.id}")
 
-                    val buildingName = buildings.find { it.id == bill.buildingId }?.name ?: "Unknown Building"
+                        val buildingName = buildings.find { it.id == bill.buildingId }?.name ?: "Unknown Building"
 
-                    BillSummary(
-                        id = bill.id,
-                        roomName = bill.roomName,
-                        buildingName = buildingName,
-                        totalAmount = bill.totalAmount,
-                        status = bill.status,
-                        month = bill.month,
-                        year = bill.year,
-                        paymentDueDate = bill.paymentDueDate
-                    )
+                        BillSummary(
+                            id = bill.id,
+                            roomName = bill.roomName,
+                            buildingName = buildingName,
+                            totalAmount = bill.totalAmount,
+                            status = bill.status,
+                            month = bill.month,
+                            year = bill.year,
+                            paymentDueDate = bill.paymentDueDate
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "✗ Error decoding bill document ${doc.id}", e)
+                        Log.e(TAG, "  Error type: ${e.javaClass.simpleName}")
+                        Log.e(TAG, "  Error message: ${e.message}")
+                        try {
+                            val rawData = doc.data<Map<String, Any>>()
+                            Log.e(TAG, "  Document data keys: ${rawData.keys}")
+                            Log.e(TAG, "  Document data: $rawData")
+                        } catch (logError: Exception) {
+                            Log.e(TAG, "  Could not log document data: ${logError.message}")
+                        }
+                        null
+                    }
                 }
             }
     }
@@ -144,9 +199,24 @@ class BillRepository(
             .map { snapshot ->
                 Log.d(TAG, "listenForCurrentBillByContract: received ${snapshot.documents.size} documents")
                 snapshot.documents.firstOrNull()?.let { doc ->
-                    val bill = doc.data<Bill>().copy(id = doc.id)
-                    Log.d(TAG, "  Current bill: id=${bill.id}, status=${bill.status}, month=${bill.month}, year=${bill.year}")
-                    bill
+                    try {
+                        Log.d(TAG, "  Decoding current bill document: ${doc.id}")
+                        val bill = doc.data<Bill>().copy(id = doc.id)
+                        Log.d(TAG, "  ✓ Successfully decoded current bill: id=${bill.id}, status=${bill.status}, month=${bill.month}, year=${bill.year}")
+                        bill
+                    } catch (e: Exception) {
+                        Log.e(TAG, "✗ Error decoding current bill document ${doc.id}", e)
+                        Log.e(TAG, "  Error type: ${e.javaClass.simpleName}")
+                        Log.e(TAG, "  Error message: ${e.message}")
+                        try {
+                            val rawData = doc.data<Map<String, Any>>()
+                            Log.e(TAG, "  Document data keys: ${rawData.keys}")
+                            Log.e(TAG, "  Document data: $rawData")
+                        } catch (logError: Exception) {
+                            Log.e(TAG, "  Could not log document data: ${logError.message}")
+                        }
+                        null
+                    }
                 }
             }
     }
