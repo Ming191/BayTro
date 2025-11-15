@@ -11,7 +11,7 @@ import com.example.baytro.data.billing.PaymentMethod
 import com.example.baytro.data.user.Role
 import com.example.baytro.data.user.UserRoleState
 import com.example.baytro.utils.SingleEvent
-import com.google.firebase.functions.FirebaseFunctions
+import com.example.baytro.utils.cloudFunctions.BillingCloudFunctions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.URL
@@ -34,6 +33,7 @@ data class BillDetailsUiState(
     val error: String? = null,
     val isLandlord: Boolean = false,
     val showManualChargeDialog: Boolean = false,
+    val showReminderDialog: Boolean = false,
 
     val bankApps: List<BankAppInfo> = emptyList()
 )
@@ -45,7 +45,9 @@ sealed interface BillDetailsEvent {
 
 sealed interface BillDetailsAction {
     data object MarkAsPaid : BillDetailsAction
-    data object SendReminder : BillDetailsAction
+    data object ShowReminderDialog : BillDetailsAction
+    data object HideReminderDialog : BillDetailsAction
+    data class SendReminder(val customMessage: String = "") : BillDetailsAction
     data object ShowManualChargeDialog : BillDetailsAction
     data object HideManualChargeDialog : BillDetailsAction
     data class AddManualCharge(val description: String, val amount: Double) : BillDetailsAction
@@ -53,7 +55,7 @@ sealed interface BillDetailsAction {
 
 class BillDetailsViewModel(
     private val billRepository: BillRepository,
-    private val functions: FirebaseFunctions,
+    private val billingCloudFunctions: BillingCloudFunctions,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -112,7 +114,9 @@ class BillDetailsViewModel(
     fun onAction(action: BillDetailsAction) {
         when (action) {
             is BillDetailsAction.MarkAsPaid -> markBillAsPaidManually()
-            is BillDetailsAction.SendReminder -> sendPaymentReminder()
+            is BillDetailsAction.ShowReminderDialog -> showReminderDialog()
+            is BillDetailsAction.HideReminderDialog -> hideReminderDialog()
+            is BillDetailsAction.SendReminder -> sendPaymentReminder(action.customMessage)
             is BillDetailsAction.ShowManualChargeDialog -> showManualChargeDialog()
             is BillDetailsAction.HideManualChargeDialog -> hideManualChargeDialog()
             is BillDetailsAction.AddManualCharge -> addManualCharge(action.description, action.amount)
@@ -177,39 +181,48 @@ class BillDetailsViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isActionInProgress = true) }
-            try {
-                val data = hashMapOf(
-                    "billId" to billId,
-                    "paidAmount" to currentBill.totalAmount,
-                    "paymentMethod" to PaymentMethod.CASH.name
-                )
-                functions.getHttpsCallable("markBillAsPaid").call(data).await()
+
+            billingCloudFunctions.markBillAsPaid(
+                billId = billId,
+                paidAmount = currentBill.totalAmount,
+                paymentMethod = PaymentMethod.CASH.name
+            ).onSuccess { response ->
                 _uiState.update { it.copy(isActionInProgress = false) }
-                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar("Bill marked as paid successfully!")))
-            } catch (e: Exception) {
-                Log.e("BillDetailsVM", "Error marking bill as paid", e)
+                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar(response.message)))
+            }.onFailure { error ->
+                Log.e("BillDetailsVM", "Error marking bill as paid", error)
                 _uiState.update { it.copy(isActionInProgress = false) }
-                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar("Error: ${e.message}")))
+                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar("Error: ${error.message}")))
             }
         }
     }
 
-    private fun sendPaymentReminder() {
+    private fun sendPaymentReminder(customMessage: String = "") {
         if (_uiState.value.isActionInProgress) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isActionInProgress = true) }
-            try {
-                val data = hashMapOf("billId" to billId)
-                functions.getHttpsCallable("sendPaymentReminder").call(data).await()
+            _uiState.update { it.copy(isActionInProgress = true, showReminderDialog = false) }
+
+            billingCloudFunctions.sendBillPaymentReminder(
+                billId = billId,
+                customMessage = customMessage
+            ).onSuccess { response ->
                 _uiState.update { it.copy(isActionInProgress = false) }
-                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar("Reminder sent successfully!")))
-            } catch (e: Exception) {
-                Log.e("BillDetailsVM", "Error sending reminder", e)
+                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar(response.message)))
+            }.onFailure { error ->
+                Log.e("BillDetailsVM", "Error sending reminder", error)
                 _uiState.update { it.copy(isActionInProgress = false) }
-                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar("Error: ${e.message}")))
+                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar("Error: ${error.message}")))
             }
         }
+    }
+
+    private fun showReminderDialog() {
+        _uiState.update { it.copy(showReminderDialog = true) }
+    }
+
+    private fun hideReminderDialog() {
+        _uiState.update { it.copy(showReminderDialog = false) }
     }
 
     private fun showManualChargeDialog() {
@@ -230,19 +243,18 @@ class BillDetailsViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isActionInProgress = true, showManualChargeDialog = false) }
-            try {
-                val data = hashMapOf(
-                    "billId" to billId,
-                    "description" to description,
-                    "amount" to amount
-                )
-                functions.getHttpsCallable("addManualChargeToBill").call(data).await()
+
+            billingCloudFunctions.addManualChargeToBill(
+                billId = billId,
+                description = description,
+                amount = amount
+            ).onSuccess { response ->
                 _uiState.update { it.copy(isActionInProgress = false) }
-                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar("Manual charge added successfully!")))
-            } catch (e: Exception) {
-                Log.e("BillDetailsVM", "Error adding manual charge", e)
+                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar(response.message)))
+            }.onFailure { error ->
+                Log.e("BillDetailsVM", "Error adding manual charge", error)
                 _uiState.update { it.copy(isActionInProgress = false) }
-                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar("Error: ${e.message}")))
+                _events.emit(SingleEvent(BillDetailsEvent.ShowSnackbar("Error: ${error.message}")))
             }
         }
     }

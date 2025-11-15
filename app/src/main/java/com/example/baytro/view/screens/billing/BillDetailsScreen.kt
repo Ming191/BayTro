@@ -5,12 +5,12 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.baytro.data.billing.*
 import com.example.baytro.utils.Utils
+import com.example.baytro.view.components.AnimatedItem
 import com.example.baytro.viewModel.billing.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -113,6 +114,16 @@ fun BillDetailsScreen(
                 onDismiss = { viewModel.onAction(BillDetailsAction.HideManualChargeDialog) },
                 onConfirm = { description, amount ->
                     viewModel.onAction(BillDetailsAction.AddManualCharge(description, amount))
+                }
+            )
+        }
+
+        if (uiState.showReminderDialog) {
+            SendReminderDialog(
+                bill = uiState.bill,
+                onDismiss = { viewModel.onAction(BillDetailsAction.HideReminderDialog) },
+                onConfirm = { customMessage ->
+                    viewModel.onAction(BillDetailsAction.SendReminder(customMessage))
                 }
             )
         }
@@ -220,53 +231,32 @@ fun BillContentView(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        item {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(600)) + slideInVertically(
-                    initialOffsetY = { 40 },
-                    animationSpec = tween(600, easing = FastOutSlowInEasing)
-                )
-            ) {
+        item(key = "bill_status") {
+            AnimatedItem(visible = isVisible) {
                 BillStatusCard(bill = bill)
             }
         }
-        item {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(600, delayMillis = 100)) +
-                        slideInVertically(
-                            initialOffsetY = { 40 },
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        )
-            ) {
+
+        item(key = "bill_summary") {
+            AnimatedItem(visible = isVisible) {
                 BillSummaryCard(bill = bill)
             }
         }
-        item {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(600, delayMillis = 200)) +
-                        slideInVertically(
-                            initialOffsetY = { 40 },
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        )
-            ) {
-                LineItemsSection(bill.lineItems)
+
+        item(key = "line_items") {
+            AnimatedItem(visible = isVisible) {
+                LineItemsSection(lineItems = bill.lineItems)
             }
         }
-        item {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(600, delayMillis = 300)) +
-                        slideInVertically(
-                            initialOffsetY = { 40 },
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        )
-            ) {
+
+        item(key = "actions") {
+            AnimatedItem(visible = isVisible) {
                 when {
-                    bill.status == BillStatus.PAID -> PaidInfoSection(bill)
-                    isLandlord -> LandlordActions(isInProgress = isActionInProgress, onAction = onAction)
+                    bill.status == BillStatus.PAID -> PaidInfoSection(bill = bill)
+                    isLandlord -> LandlordActions(
+                        isInProgress = isActionInProgress,
+                        onAction = onAction
+                    )
                     else -> TenantPaymentView(
                         qrCodeUrl = qrCodeUrl,
                         paymentCode = bill.paymentCode,
@@ -277,7 +267,10 @@ fun BillContentView(
                 }
             }
         }
-        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        item(key = "spacer") {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 
@@ -617,7 +610,7 @@ fun LandlordActions(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
-                onClick = { onAction(BillDetailsAction.SendReminder) },
+                onClick = { onAction(BillDetailsAction.ShowReminderDialog) },
                 enabled = !isInProgress,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -824,6 +817,156 @@ fun ManualChargeDialog(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Add Charge")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun SendReminderDialog(
+    bill: Bill?,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var customMessage by remember { mutableStateOf("") }
+    var useCustomMessage by remember { mutableStateOf(false) }
+
+    val defaultMessage = bill?.let {
+        "Reminder: Your bill for ${it.roomName} (${it.month}/${it.year}) is due on ${it.paymentDueDate}. " +
+        "Total amount: ${Utils.formatCurrency(it.totalAmount.toString())}. Payment code: ${it.paymentCode}. " +
+        "Please make payment at your earliest convenience."
+    } ?: ""
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Send Payment Reminder",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = if (useCustomMessage) "Custom Message:" else "Default Message:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = if (useCustomMessage && customMessage.isNotBlank()) customMessage else defaultMessage,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Toggle for custom message
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Use custom message",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Switch(
+                        checked = useCustomMessage,
+                        onCheckedChange = { useCustomMessage = it }
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = useCustomMessage,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    OutlinedTextField(
+                        value = customMessage,
+                        onValueChange = { customMessage = it },
+                        label = { Text("Custom Message") },
+                        placeholder = { Text("Enter your custom reminder message...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false,
+                        maxLines = 5,
+                        minLines = 3,
+                        leadingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null)
+                        },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "This reminder will be sent to all tenants associated with this bill.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val messageToSend = if (useCustomMessage) customMessage else ""
+                    onConfirm(messageToSend)
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Send Reminder")
             }
         },
         dismissButton = {

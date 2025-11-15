@@ -34,7 +34,6 @@ class ContractListVM(
     private val buildingRepository: BuildingRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
-
     private val _selectedTab = MutableStateFlow(ContractTab.ACTIVE)
     private val _searchQuery = MutableStateFlow("")
     private val _selectedBuildingId = MutableStateFlow<String?>(null)

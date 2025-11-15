@@ -60,7 +60,7 @@ class AddContractVM (
     private fun fetchBuildings() {
         val currentUser = auth.getCurrentUser()
         if (currentUser == null) {
-                        Log.e(TAG, "fetchBuildings: currentUser is null. Possible reasons: user not logged in, session expired, or authentication error.")
+            Log.e(TAG, "fetchBuildings: currentUser is null. Possible reasons: user not logged in, session expired, or authentication error.")
             _addContractUiState.value = UiState.Error("Authentication error: No user is currently logged in. Please log in again. If the problem persists, check your network connection or contact support.")
             return
         }
@@ -272,7 +272,6 @@ class AddContractVM (
                 val contractId = contractRepo.add(newContract)
                 Log.d(TAG, "onSubmit: contract created with ID: $contractId")
 
-                // Upload and compress photos with actual contract ID
                 val photoUrls = mutableListOf<String>()
                 formState.selectedPhotos.forEachIndexed { index, photoUri ->
                     Log.d(TAG, "onSubmit: processing photo $index")

@@ -19,6 +19,7 @@ import com.example.baytro.service.FptAiService
 import com.example.baytro.service.BayTroApiService
 import com.example.baytro.data.chatbot.ChatbotRepository
 import com.example.baytro.utils.AvatarCache
+import com.example.baytro.utils.cloudFunctions.BillingCloudFunctions
 import com.example.baytro.utils.cloudFunctions.BuildingCloudFunctions
 import com.example.baytro.utils.cloudFunctions.ContractCloudFunctions
 import com.example.baytro.utils.cloudFunctions.DashboardCloudFunctions
@@ -132,6 +133,7 @@ val dataModule = module {
 }
 
 val cloudFunctionsModule = module {
+    single<BillingCloudFunctions> { BillingCloudFunctions(get()) }
     single<BuildingCloudFunctions> { BuildingCloudFunctions(get(), get()) }
     single<ContractCloudFunctions> { ContractCloudFunctions(get(), get()) }
     single<DashboardCloudFunctions> { DashboardCloudFunctions(get(), get()) }
