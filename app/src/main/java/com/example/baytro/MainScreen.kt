@@ -109,9 +109,10 @@ fun LandlordMainScreen() {
                     },
                     onDashboardClicked = {
                         navController.navigate(Screens.Dashboard.route) {
+                            popUpTo(Screens.Dashboard.route) {
+                                inclusive = true
+                            }
                             launchSingleTop = true
-                            restoreState = true
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
                         }
                         scope.launch {
                             drawerState.close()

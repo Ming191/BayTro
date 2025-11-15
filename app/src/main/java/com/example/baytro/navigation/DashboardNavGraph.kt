@@ -22,41 +22,26 @@ fun NavGraphBuilder.dashboardNavGraph(navController: NavHostController) {
         LandlordDashboard(
             onNavigateToPendingReadings = {
                 navController.navigate(Screens.PendingMeterReadings.route) {
-                    popUpTo(Screens.Dashboard.route) {
-                        inclusive = true
-                    }
                     launchSingleTop = true
                 }
             },
             onNavigateToTenantList = {
                 navController.navigate(Screens.TenantList.route) {
-                    popUpTo(Screens.Dashboard.route) {
-                        inclusive = true
-                    }
                     launchSingleTop = true
                 }
             },
             onNavigateToBills = {
                 navController.navigate(Screens.BillList.route) {
-                    popUpTo(Screens.Dashboard.route) {
-                        inclusive = true
-                    }
                     launchSingleTop = true
                 }
             },
             onNavigateToBuildings = {
                 navController.navigate(Screens.BuildingList.route) {
-                    popUpTo(Screens.Dashboard.route) {
-                        inclusive = true
-                    }
                     launchSingleTop = true
                 }
             },
             onNavigateToMaintenance = {
                 navController.navigate(Screens.MaintenanceRequestList.route) {
-                    popUpTo(Screens.Dashboard.route) {
-                        inclusive = true
-                    }
                     launchSingleTop = true
                 }
             },
