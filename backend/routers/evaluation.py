@@ -205,6 +205,17 @@ async def evaluate_complete(request: CompleteEvalRequest):
             retrieved_contexts = [node['content'] for node in result.get('context', [])]
 
             logger.info(f"Generated answer with {len(retrieved_node_ids)} retrieved nodes")
+            logger.info(f"Retrieved node IDs: {retrieved_node_ids}")
+            logger.info(f"Ground truth node IDs: {request.ground_truth_node_ids}")
+
+        # Log comparison for debugging hit rate issues
+        if request.ground_truth_node_ids and retrieved_node_ids:
+            logger.info("="*60)
+            logger.info("RETRIEVAL DEBUG INFO:")
+            logger.info(f"Expected (Ground Truth): {request.ground_truth_node_ids}")
+            logger.info(f"Retrieved: {retrieved_node_ids}")
+            logger.info(f"Match found: {any(gt in retrieved_node_ids for gt in request.ground_truth_node_ids)}")
+            logger.info("="*60)
 
         # Run complete evaluation
         results = await evaluation_service.evaluate_complete(
@@ -216,6 +227,10 @@ async def evaluate_complete(request: CompleteEvalRequest):
             reference_answer=request.reference_answer,
             question_type=request.question_type
         )
+
+        # Add retrieved info to response for debugging
+        results["retrieved_node_ids"] = retrieved_node_ids
+        results["retrieved_contexts"] = retrieved_contexts
 
         return results
     except HTTPException:

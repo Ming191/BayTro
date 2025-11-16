@@ -27,7 +27,8 @@ class EvaluationService:
         self,
         retrieved_node_ids: List[str],
         ground_truth_node_ids: List[str],
-        k: int = None
+        k: int = None,
+        only_hit_rate: bool = False
     ) -> Dict[str, float]:
         """
         Evaluate retrieval quality using Precision@k, Recall@k, F1-score, and Hit Rate
@@ -36,34 +37,43 @@ class EvaluationService:
             retrieved_node_ids: List of retrieved node IDs
             ground_truth_node_ids: List of ground truth relevant node IDs
             k: Number of top results to consider (if None, use all retrieved)
+            only_hit_rate: If True, only calculate hit rate (for direct questions with single ground truth)
 
         Returns:
-            Dict with precision@k, recall@k, f1_score, hit_rate
+            Dict with precision@k, recall@k, f1_score, hit_rate (or only hit_rate if only_hit_rate=True)
         """
         if not retrieved_node_ids:
-            return {
-                "precision": 0.0,
-                "recall": 0.0,
-                "f1_score": 0.0,
+            base_result = {
                 "hit_rate": 0.0,
                 "retrieved_count": 0,
                 "ground_truth_count": len(ground_truth_node_ids),
                 "relevant_retrieved": 0,
                 "k": k
             }
+            if not only_hit_rate:
+                base_result.update({
+                    "precision": 0.0,
+                    "recall": 0.0,
+                    "f1_score": 0.0
+                })
+            return base_result
 
         if not ground_truth_node_ids:
             logger.warning("No ground truth provided for retrieval evaluation")
-            return {
-                "precision": 0.0,
-                "recall": 0.0,
-                "f1_score": 0.0,
+            base_result = {
                 "hit_rate": 0.0,
                 "retrieved_count": len(retrieved_node_ids),
                 "ground_truth_count": 0,
                 "relevant_retrieved": 0,
                 "k": k
             }
+            if not only_hit_rate:
+                base_result.update({
+                    "precision": 0.0,
+                    "recall": 0.0,
+                    "f1_score": 0.0
+                })
+            return base_result
 
         # Use top-k results if k is specified
         if k is not None and k > 0:
@@ -77,6 +87,20 @@ class EvaluationService:
         relevant_retrieved = retrieved_set.intersection(ground_truth_set)
         num_relevant_retrieved = len(relevant_retrieved)
 
+        # Hit Rate@k: whether at least one relevant document was retrieved in top-k
+        hit_rate = 1.0 if num_relevant_retrieved > 0 else 0.0
+
+        # If only_hit_rate is True (for direct questions), return only hit rate
+        if only_hit_rate:
+            return {
+                "hit_rate": round(hit_rate, 4),
+                "retrieved_count": len(retrieved_set),
+                "ground_truth_count": len(ground_truth_set),
+                "relevant_retrieved": num_relevant_retrieved,
+                "k": k if k else len(retrieved_node_ids)
+            }
+
+        # Calculate full metrics for other question types
         # Precision@k: TP / (TP + FP) = relevant_retrieved / total_retrieved
         precision = num_relevant_retrieved / len(retrieved_set) if len(retrieved_set) > 0 else 0.0
 
@@ -85,9 +109,6 @@ class EvaluationService:
 
         # F1-score: harmonic mean of precision and recall
         f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
-
-        # Hit Rate@k: whether at least one relevant document was retrieved in top-k
-        hit_rate = 1.0 if num_relevant_retrieved > 0 else 0.0
 
         return {
             "precision": round(precision, 4),
@@ -481,9 +502,12 @@ Hãy đánh giá xem chatbot có từ chối trả lời đúng cách không."""
 
 
         if ground_truth_node_ids:
+            # For direct questions, only calculate hit rate (single ground truth node)
+            only_hit_rate = (question_type == "direct")
             results["retrieval_metrics"] = self.evaluate_retrieval(
                 retrieved_node_ids=retrieved_node_ids,
-                ground_truth_node_ids=ground_truth_node_ids
+                ground_truth_node_ids=ground_truth_node_ids,
+                only_hit_rate=only_hit_rate
             )
 
         if reference_answer:
@@ -524,7 +548,12 @@ Hãy đánh giá xem chatbot có từ chối trả lời đúng cách không."""
 
         # Retrieval summary
         if results["retrieval_metrics"]:
-            summary["retrieval_score"] = results["retrieval_metrics"].get("f1_score", 0.0)
+            # Use hit_rate if f1_score is not available (direct questions)
+            if "f1_score" in results["retrieval_metrics"]:
+                summary["retrieval_score"] = results["retrieval_metrics"].get("f1_score", 0.0)
+            else:
+                # For direct questions, use hit_rate as retrieval score
+                summary["retrieval_score"] = results["retrieval_metrics"].get("hit_rate", 0.0)
 
         # Generation summary
         if results["generation_metrics"]:

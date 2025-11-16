@@ -402,13 +402,28 @@ class Neo4jGraphRAGService:
         """Analyze user query to understand intent and extract key entities"""
         analysis_prompt = ChatPromptTemplate.from_messages([
             ("system", """Bạn là chuyên gia phân tích câu hỏi về luật nhà ở Việt Nam.
-Nhiệm vụ: Phân tích câu hỏi và tạo 2-3 truy vấn tìm kiếm tối ưu để tìm thông tin liên quan.
+Nhiệm vụ: Phân tích câu hỏi và tạo 3-5 truy vấn tìm kiếm tối ưu để tìm thông tin liên quan.
+
+QUAN TRỌNG:
+- Tạo các query từ nhiều góc độ khác nhau
+- Bao gồm cả thuật ngữ pháp lý và ngôn ngữ thông thường
+- Tách các khái niệm chính thành query riêng
 
 Hãy trả về JSON với format:
 {{
     "analysis": "Phân tích ngắn gọn về câu hỏi",
-    "search_queries": ["truy vấn 1", "truy vấn 2", "truy vấn 3"]
-}}"""),
+    "search_queries": ["truy vấn 1", "truy vấn 2", "truy vấn 3", "truy vấn 4", "truy vấn 5"]
+}}
+
+VÍ DỤ:
+Câu hỏi: "nhà lưu trú công nhân trong khu công nghiệp được xây dựng như nào?"
+→ Queries:
+1. "nhà lưu trú công nhân khu công nghiệp" (chính)
+2. "điều kiện xây dựng nhà lưu trú công nhân" (góc độ điều kiện)
+3. "quy hoạch nhà lưu trú công nhân" (góc độ quy hoạch)
+4. "tiêu chuẩn kỹ thuật nhà lưu trú công nhân" (góc độ kỹ thuật)
+5. "dự án đầu tư xây dựng nhà lưu trú" (góc độ dự án)
+"""),
             ("user", "Câu hỏi: {question}")
         ])
 
@@ -420,7 +435,11 @@ Hãy trả về JSON với format:
         try:
             result = json.loads(response.content)
             state["query_analysis"] = result.get("analysis", "")
-            state["search_queries"] = result.get("search_queries", [state["question"]])
+            # Ensure at least 3 queries
+            queries = result.get("search_queries", [state["question"]])
+            if len(queries) < 3:
+                queries.extend([state["question"]] * (3 - len(queries)))
+            state["search_queries"] = queries[:5]  # Max 5 queries
         except:
             state["query_analysis"] = "Phân tích đơn giản"
             state["search_queries"] = [state["question"]]
@@ -433,7 +452,8 @@ Hãy trả về JSON với format:
         seen_ids = set()
 
         for query in state["search_queries"]:
-            results = self.vector_index.similarity_search_with_score(query, k=3)
+            # Increase k from 5 to 10 to retrieve more candidate nodes
+            results = self.vector_index.similarity_search_with_score(query, k=10)
 
             for doc, score in results:
                 node_id = doc.metadata.get("id")
@@ -446,37 +466,50 @@ Hãy trả về JSON với format:
                         "score": float(1.0 - score)  # ChromaDB uses distance, convert to similarity
                     })
 
-        # Sort by score and take top results
+        # Sort by score and increase from 8 to 12 nodes for better coverage
         retrieved_nodes.sort(key=lambda x: x["score"], reverse=True)
-        state["retrieved_nodes"] = retrieved_nodes[:5]
+        state["retrieved_nodes"] = retrieved_nodes[:12]
 
         return state
 
     async def _expand_context(self, state: GraphState) -> GraphState:
-        """Expand context using graph traversal"""
+        """Expand context using graph traversal with deeper and wider exploration"""
         expanded_context = []
         visited = set()
 
         for node in state["retrieved_nodes"]:
             node_id = node["id"]
 
-            # Use simple Cypher query (no APOC needed)
             cypher_query = """
             MATCH (start {id: $node_id})
-            OPTIONAL MATCH path1 = (start)-[:CONTAINS*0..2]->(child)
+
+            OPTIONAL MATCH path1 = (start)-[:CONTAINS*0..3]->(child)
+
             OPTIONAL MATCH path2 = (start)-[:REFERENCES]->(ref)
-            OPTIONAL MATCH path3 = (parent)-[:CONTAINS]->(start)
+            OPTIONAL MATCH path3 = (ref)-[:CONTAINS*0..2]->(ref_child)
+
+            OPTIONAL MATCH path4 = (parent)-[:CONTAINS*1..2]->(start)
+
+            OPTIONAL MATCH (parent)-[:CONTAINS]->(sibling)
+            WHERE sibling <> start
+
+            OPTIONAL MATCH (referencing)-[:REFERENCES]->(start)
+
             WITH start,
                  collect(DISTINCT child) as children,
                  collect(DISTINCT ref) as references,
-                 collect(DISTINCT parent) as parents
-            UNWIND (children + references + parents + [start]) as n
+                 collect(DISTINCT ref_child) as ref_children,
+                 collect(DISTINCT parent) as parents,
+                 collect(DISTINCT sibling) as siblings,
+                 collect(DISTINCT referencing) as referencing_nodes
+
+            UNWIND (children + references + ref_children + parents + siblings + referencing_nodes + [start]) as n
             WITH DISTINCT n
             WHERE n IS NOT NULL
             RETURN n.id as id, n.text as text, n.title as title,
                    labels(n)[0] as type, n.level as level
             ORDER BY n.level
-            LIMIT 15
+            LIMIT 25
             """
 
             try:
@@ -507,9 +540,8 @@ Hãy trả về JSON với format:
 
     async def _generate_answer(self, state: GraphState) -> GraphState:
         """Generate final answer using LLM"""
-        # Format context
         context_parts = []
-        for idx, node in enumerate(state["expanded_context"][:10], 1):
+        for idx, node in enumerate(state["expanded_context"][:15], 1):
             context_parts.append(f"{idx}. [{node['type']}] {node['id']}: {node['content']}")
 
         context_text = "\n".join(context_parts)
@@ -517,45 +549,50 @@ Hãy trả về JSON với format:
         answer_prompt = ChatPromptTemplate.from_messages([
             ("system", """Bạn là trợ lý tư vấn luật nhà ở chuyên nghiệp của Việt Nam.
 
-NHIỆM VỤ:
-1. Dựa vào NỘI DUNG LUẬT được cung cấp, trả lời câu hỏi một cách chính xác và chi tiết
+PHẠM VI TRẢ LỜI:
+- CHỈ trả lời các câu hỏi liên quan đến Luật Nhà ở 2023 và các quy định pháp luật về nhà ở tại Việt Nam
+- KHÔNG trả lời các câu hỏi về: giá nhà, địa điểm mua/thuê nhà, đánh giá thị trường, tư vấn đầu tư, thủ tục hành chính cụ thể, quy trình ngân hàng, hoặc bất kỳ vấn đề nào NGOÀI nội dung pháp luật
+
+NẾU CÂU HỎI NGOÀI PHẠM VI:
+Trả lời ngắn gọn: "Xin lỗi, tôi chỉ có thể tư vấn về các quy định pháp luật trong Luật Nhà ở 2023. Câu hỏi của bạn nằm ngoài phạm vi chuyên môn của tôi."
+→ KHÔNG đưa ra thêm bất cứ gợi ý nào hoặc hướng dẫn khác
+
+NHIỆM VỤ KHI CÂU HỎI ĐÚNG PHẠM VI:
+1. Dựa vào TẤT CẢ NỘI DUNG LUẬT được cung cấp, tổng hợp thông tin từ NHIỀU ĐIỀU KHOẢN để trả lời đầy đủ
 2. LUÔN TRÍCH DẪN cụ thể Điều, Khoản, Điểm khi trả lời
 3. Giải thích rõ ràng, dễ hiểu cho người không chuyên
-4. Nếu thông tin không đủ, hãy nói rõ và gợi ý tìm kiếm thêm
-5. KHÔNG bịa đặt thông tin không có trong nội dung được cung cấp
+4. TỔ CHỨC thông tin thành các phần logic (định nghĩa, quy hoạch, yêu cầu, tiêu chuẩn, v.v.)
+5. KHÔNG bỏ qua thông tin quan trọng có trong context
+6. KHÔNG bịa đặt thông tin không có trong nội dung được cung cấp
 
-CÁCH TRẢ LỜI:
-- Trả lời trực tiếp, rõ ràng
+ĐỊNH DẠNG TRẢ LỜI:
+- KHÔNG dùng Markdown formatting (KHÔNG dùng **, *, _, #, v.v.)
+- Dùng CHỮ HOA cho tiêu đề các phần
+- Dùng dấu gạch đầu dòng (•, -, hoặc số) cho danh sách
+- Dùng xuống dòng để phân tách các phần
+- Text thuần túy, dễ đọc
+
+CÁCH TRẢ LỜI CHO CÂU HỎI ĐÚNG PHẠM VI:
+- Trả lời trực tiếp, rõ ràng và ĐẦY ĐỦ
 - Dùng ngôn ngữ thân thiện, dễ hiểu
 - Chia nhỏ thành các phần để dễ đọc
+- Trích dẫn Điều/Khoản/Điểm cụ thể cho MỌI thông tin
+- Tổng hợp thông tin từ nhiều điều khoản nếu cần
 
-VÍ DỤ:
-Câu hỏi: "Điều kiện mua nhà ở xã hội là gì?"
+VÍ DỤ ĐỊNH DẠNG ĐÚNG:
+I. ĐỊNH NGHĨA (không dùng **ĐỊNH NGHĨA**)
+Nhà lưu trú công nhân là...
 
-Trả lời:
-Để được mua nhà ở xã hội theo Luật Nhà ở 2023, bạn cần đáp ứng các điều kiện sau:
+YÊU CẦU:
+- Điều kiện thứ nhất (không dùng **Điều kiện thứ nhất**)
+- Điều kiện thứ hai
 
-ĐIỀU KIỆN VỀ ĐỐI TƯỢNG (Điều 60, Khoản 1):
-Bạn phải thuộc một trong các nhóm sau:
-• Công chức, viên chức
-• Người lao động làm việc tại khu công nghiệp
-• Người có thu nhập thấp
-• Sinh viên
-• Lực lượng vũ trang
-
-ĐIỀU KIỆN VỀ THU NHẬP:
-Thu nhập của gia đình không vượt quá mức quy định tại địa phương (thường là 15 triệu/tháng tại TP.HCM, 11 triệu/tháng tại Hà Nội)
-
-ĐIỀU KIỆN VỀ NHÀ Ở HIỆN TẠI:
-• Chưa có nhà ở, hoặc
-• Diện tích nhà ở hiện tại dưới 15m²/người
-
-LƯU Ý QUAN TRỌNG:
-- Mỗi địa phương có thể có quy định cụ thể riêng
-- Cần có giấy tờ chứng minh thu nhập và tình trạng nhà ở
-- Ưu tiên người có hoàn cảnh khó khăn
-
-Bạn nên liên hệ Sở Xây dựng hoặc UBND địa phương để biết thêm chi tiết!
+VÍ DỤ CÂU HỎI NGOÀI PHẠM VI (Từ chối ngắn gọn):
+- "Mua nhà ở đâu giá rẻ?" → TỪ CHỐI
+- "Thuê nhà giá rẻ ở đâu?" → TỪ CHỐI
+- "Phí công chứng bao nhiêu?" → TỪ CHỐI
+- "Thủ tục vay ngân hàng như nào?" → TỪ CHỐI
+- "Giá nhà sẽ tăng hay giảm?" → TỪ CHỐI
 
 ---
 

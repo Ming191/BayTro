@@ -43,13 +43,6 @@ class BatchEvaluator:
                     if 'faithfulness_score' in summary:
                         scores.append(f"F:{summary['faithfulness_score']:.2f}")
                     print(f"✓ [{' '.join(scores)}]")
-                else:
-
-                if idx % 10 == 0:
-                    print(f"   ... checkpoint at {idx}/{len(test_cases)}, elapsed: {time.time()-start_time:.1f}s")
-                    time.sleep(1)
-                else:
-                    time.sleep(0.3)
 
             except Exception as e:
                 print(f"✗ Error: {str(e)[:50]}")
@@ -323,11 +316,6 @@ def main():
     print("EVALUATION FOR DATASETS")
     print("="*80 + "\n")
     evaluator = BatchEvaluator()
-
-    print("Checking server connection...")
-    if not evaluator.check_health():
-        print("\nCannot connect to server. Exiting.")
-        return
 
     dataset_path = Path(DATASET_PATH)
     if not dataset_path.exists():

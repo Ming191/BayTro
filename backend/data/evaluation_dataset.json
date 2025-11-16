@@ -1,30 +1,94 @@
 [
+
   {
-    "id": 1,
-    "question": "Làm thế nào để đầu tư chứng khoán hiệu quả?",
+    "id": 30,
+    "question": "Thuê nhà giá rẻ ở đâu?",
     "ground_truth_node_ids": [],
     "reference_answer": "",
     "question_type": "irrelevant"
   },
   {
-    "id": 2,
-    "question": "Thời tiết hôm nay như thế nào?",
+    "id": 31,
+    "question": "Liệu trí tuệ nhân tạo có thể được ứng dụng như thế nào trong việc quản lý, vận hành các tòa nhà chung cư hiện đại để tối ưu chi phí và nâng cao trải nghiệm của cư dân",
     "ground_truth_node_ids": [],
     "reference_answer": "",
     "question_type": "irrelevant"
   },
   {
-    "id": 3,
+    "id": 32,
+    "question": "Chính sách phát triển nhà ở của Việt Nam có thể học hỏi được gì từ mô hình nhà ở công cộng thành công của Singapore?",
+    "ground_truth_node_ids": [],
+    "reference_answer": "",
+    "question_type": "irrelevant"
+  },
+  {
+    "id": 33,
+    "question": "Thời hạn thanh toán tiền thuê mua nhà ở xã hội tối thiểu là bao nhiêu năm?",
+    "ground_truth_node_ids": ["Điều_89_Khoản_2_Điểm_a"],
+    "reference_answer": "Theo điều 89, khoản 2, điểm a Thời hạn thanh toán tiền thuê mua nhà ở xã hội tối thiểu là 05 năm, kể từ ngày ký hợp đồng thuê mua nhà ở.",
+    "question_type": "direct"
+  },
+  {
+    "id": 34,
     "question": "nhà ở là gì",
     "ground_truth_node_ids": ["Điều_2_Khoản_1"],
     "reference_answer": "Theo điều 2, khoản 1, Nhà ở là công trình xây dựng với mục đích để ở và phục vụ nhu cầu sinh hoạt của gia đình, cá nhân. Nhà ở được sử dụng vào mục đích để ở và mục đích không phải để ở mà pháp luật không cấm là nhà ở có mục đích sử dụng hỗn hợp.",
     "question_type": "direct"
   },
   {
-    "id": 4,
+    "id": 35 ,
     "question": "Nhà ở công vụ là gì",
     "ground_truth_node_ids": ["Điều_2_Khoản_5"],
     "reference_answer": "Theo điều 2, khoản 5 Nhà ở công vụ là nhà ở được dùng để bố trí cho đối tượng thuộc trường hợp được ở nhà ở công vụ thuê trong thời gian đảm nhận chức vụ, công tác theo quy định.",
+    "question_type": "direct"
+  },
+  {
+    "id": 36,
+    "question": "Bên thuê, thuê mua nhà ở xã hội được sử dụng nhà ở phục vụ vào mục đích gì\n",
+    "ground_truth_node_ids": ["Điều_88_Khoản_8"],
+    "reference_answer": "Theo điều 88, khoản 8, Bên thuê, thuê mua nhà ở xã hội chỉ được sử dụng nhà ở phục vụ vào mục đích ở cho bản thân và thành viên trong gia đình trong thời gian thuê, thuê mua; nếu bên thuê, thuê mua không còn nhu cầu thuê, thuê mua nhà ở thì chấm dứt hợp đồng và phải trả lại nhà ở này.",
+    "question_type": "direct"
+  },
+  {
+    "id": 37,
+    "question": "Việc ứng tiền trước của người mua nhà ở xã hội được quy định như nào",
+    "ground_truth_node_ids": ["Điều_89_Khoản_1_Điểm_c"],
+    "reference_answer": "Theo điều 89, khoản 1, điểm c, Việc ứng tiền trước của người mua nhà ở xã hội được thực hiện theo thỏa thuận trong hợp đồng mua bán nhà ở, phù hợp với tỷ lệ hoàn thành xây dựng công trình nhà ở và tiến độ thực hiện dự án đã được phê duyệt nhưng số tiền ứng trước lần đầu không vượt quá 30% giá trị hợp đồng bao gồm cả tiền đặt cọc (nếu có), tổng số tiền các lần thanh toán không được vượt quá 70% giá trị hợp đồng đến trước khi bàn giao nhà ở cho người mua và không được vượt quá 95% giá trị hợp đồng đến trước khi người mua nhà được cấp Giấy chứng nhận đối với nhà ở đó",
+    "question_type": "direct"
+  },
+  {
+    "id": 38,
+    "question": "Ai được hưởng chính sách hỗ trợ về nhà lưu trú công nhân trong khu công nghiệp",
+    "ground_truth_node_ids": ["Điều_91"],
+    "reference_answer": "Theo điều 91, khoản 1 và khoản 2, Đối tượng được hưởng chính sách hỗ trợ về nhà lưu trú công nhân trong khu công nghiệp là:\n1. Công nhân đang làm việc tại doanh nghiệp, hợp tác xã, liên hiệp hợp tác xã sản xuất trong khu công nghiệp.\n2. Doanh nghiệp kinh doanh kết cấu hạ tầng khu công nghiệp; doanh nghiệp, hợp tác xã, liên hiệp hợp tác xã sản xuất trong khu công nghiệp đầu tư xây dựng nhà lưu trú công nhân.\n",
+    "question_type": "direct"
+  },
+  {
+    "id": 39,
+    "question": "Ai chịu trách nhiệm ban hành mẫu giấy tờ chứng minh đối tượng được hưởng chính sách hỗ trợ nhà ở cho lực lượng vũ trang nhân dân\n",
+    "ground_truth_node_ids": ["Điều_101_Khoản_2"],
+    "reference_answer": "Theo điều 101, khoản 2, Bộ trưởng Bộ Quốc phòng, Bộ trưởng Bộ Công an ban hành mẫu giấy tờ chứng minh đối tượng được hưởng chính sách hỗ trợ về nhà ở cho lực lượng vũ trang nhân dân thuộc phạm vi quản lý. ",
+    "question_type": "direct"
+  },
+  {
+    "id": 40,
+    "question": "Ai quy định thủ tục cho thuê nhà ở cho lực lượng vũ trang nhân dân",
+    "ground_truth_node_ids": ["Điều_109_Khoản_3"],
+    "reference_answer": "Theo điều 109, khoản 3, Chính phủ quy định trình tự, thủ tục bán, cho thuê mua, cho thuê nhà ở cho lực lượng vũ trang nhân dân.",
+    "question_type": "direct"
+  },
+  {
+    "id": 41,
+    "question": "Nhà ở công vụ gồm những thành phần nào",
+    "ground_truth_node_ids": ["Điều_44_Khoản_1"],
+    "reference_answer": "Theo điều 44, khoản 1, Nhà ở công vụ bao gồm nhà biệt thự, nhà ở liền kề và căn hộ chung cư có tiêu chuẩn diện tích khác nhau phù hợp với từng nhóm đối tượng được thuê nhà ở công vụ.",
+    "question_type": "direct"
+  },
+  {
+    "id": 42,
+    "question": "Nguyên tắc cho thuê nhà lưu trú công nhân làm việc tại khu công nghiệp là gì",
+    "ground_truth_node_ids": ["Điều_100_Khoản_1"],
+    "reference_answer": "Theo điều 100, khoản 1, các điểm a,b,c, Nguyên tắc cho thuê nhà lưu trú công nhân trong khu công nghiệp bao gồm:\na) Cá nhân là công nhân trong khu công nghiệp chỉ được thuê 01 nhà lưu trú công nhân trong khu công nghiệp trong cùng thời điểm và không được cho thuê lại hoặc chuyển nhượng hợp đồng thuê;\nb) Sau khi chấm dứt hợp đồng lao động thì người thuê nhà phải bàn giao lại nhà lưu trú công nhân trong khu công nghiệp cho bên cho thuê;\nc) Doanh nghiệp, hợp tác xã, liên hiệp hợp tác xã sản xuất trong khu công nghiệp chỉ được thuê nhà lưu trú công nhân trong khu công nghiệp để cho cá nhân là công nhân của doanh nghiệp, hợp tác xã, liên hiệp hợp tác xã mình thuê lại.",
     "question_type": "direct"
   }
 ]
