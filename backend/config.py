@@ -15,10 +15,10 @@ NEO4J_PASSWORD = os.getenv('NEO4J_PASSWORD', 'password')
 NEO4J_DATABASE = os.getenv('NEO4J_DATABASE', 'neo4j')
 
 # Server Configuration
-HOST = '0.0.0.0'
-PORT = 5000
-DEBUG = True
+HOST = os.getenv('HOST', '0.0.0.0')
+PORT = int(os.getenv('PORT', 5000))
+DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
 # GraphRAG Configuration
 JSON_DATA_PATH = 'data/luatnhao_structuredv33.converted.json'
-CHROMADB_PATH = ''

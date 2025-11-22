@@ -74,9 +74,14 @@ async def query_chatbot(request: ChatRequest):
     - **user_role**: User role ('landlord' or 'tenant') for validation
     """
     if graphrag_service is None:
+        logger.error("GraphRAG service unavailable - check Neo4j connection")
         raise HTTPException(
             status_code=503,
-            detail="GraphRAG service is not available. Please check Neo4j connection."
+            detail={
+                "error": "GraphRAG service is not available",
+                "message": "Please ensure Neo4j is running and properly configured",
+                "suggestion": "Check NEO4J_URI, NEO4J_USERNAME, and NEO4J_PASSWORD in .env file"
+            }
         )
 
     try:
@@ -215,6 +220,26 @@ async def chatbot_health():
         )
 
 
+@router.get("/stats")
+async def get_stats():
+    """
+    Get chatbot service statistics for monitoring
+    """
+    if graphrag_service is None:
+        raise HTTPException(status_code=503, detail="Service not available")
+    
+    try:
+        stats = graphrag_service.get_stats()
+        return {
+            "status": "ok",
+            "database": stats,
+            "conversation_sessions": len(conversation_store)
+        }
+    except Exception as e:
+        logger.error(f"Failed to get stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/admin/rebuild-index")
 async def rebuild_index():
     """
@@ -225,16 +250,22 @@ async def rebuild_index():
         raise HTTPException(status_code=503, detail="Service not available")
 
     try:
+        logger.warning("Starting index rebuild - this will delete all existing data")
+        
         # Clear existing data using raw driver
         graphrag_service._execute_query("MATCH (n) DETACH DELETE n")
+        logger.info("Existing data cleared")
 
         # Reinitialize
         graphrag_service._initialize_graph()
-        graphrag_service._initialize_vector_index()
+        graphrag_service._initialize_neo4j_vector_index()
+        
+        logger.info("Index rebuild completed successfully")
 
         return {
             "message": "Index rebuilt successfully",
-            "status": "completed"
+            "status": "completed",
+            "stats": graphrag_service.get_stats()
         }
     except Exception as e:
         logger.error(f"Failed to rebuild index: {e}")

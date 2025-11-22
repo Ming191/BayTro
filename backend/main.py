@@ -67,14 +67,26 @@ async def root():
 # Health check
 @app.get("/health")
 async def health():
-    return {
+    from routers.chatbot import graphrag_service
+    
+    health_status = {
         "status": "ok",
         "version": "2.0.0",
         "services": {
             "meter": "available",
-            "chatbot": "available"
+            "chatbot": "available" if graphrag_service else "unavailable"
         }
     }
+    
+    # Add detailed stats if GraphRAG service is available
+    if graphrag_service:
+        try:
+            stats = graphrag_service.get_stats()
+            health_status["neo4j_stats"] = stats
+        except:
+            pass
+    
+    return health_status
 
 if __name__ == "__main__":
     import uvicorn

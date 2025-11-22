@@ -5,9 +5,7 @@ from operator import add
 
 from neo4j import GraphDatabase
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain.schema import Document
 from langchain.prompts import ChatPromptTemplate
-from langchain_community.vectorstores import Chroma
 from langgraph.graph import StateGraph, END, START
 
 from config import (
@@ -45,32 +43,45 @@ class Neo4jGraphRAGService:
     ):
         self.json_path = json_path
 
+        # Validate configuration
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is required but not set")
+        
         # Initialize LLM and Embeddings
         self.llm = ChatOpenAI(
             model=OPENAI_MODEL,
             temperature=0.1,
-            api_key=OPENAI_API_KEY
+            api_key=OPENAI_API_KEY,
+            request_timeout=30
         )
         self.embeddings = OpenAIEmbeddings(
             model=OPENAI_EMBEDDING_MODEL,
             api_key=OPENAI_API_KEY
         )
+        
+        # Determine expected embedding dimensions
+        self.expected_dimensions = 3072 if 'large' in OPENAI_EMBEDDING_MODEL else 1536
+        logger.info(f"Using embedding model: {OPENAI_EMBEDDING_MODEL} ({self.expected_dimensions} dimensions)")
 
-        # Initialize Neo4j connection (raw driver - no APOC needed)
+        # Initialize Neo4j connection with connection pooling
         try:
             self.driver = GraphDatabase.driver(
                 neo4j_uri,
-                auth=(neo4j_username, neo4j_password)
+                auth=(neo4j_username, neo4j_password),
+                max_connection_lifetime=3600,  # 1 hour
+                max_connection_pool_size=50,
+                connection_acquisition_timeout=60
             )
-            # Test connection
+            # Test connection and verify database access
             with self.driver.session(database=neo4j_database) as session:
                 result = session.run("RETURN 1 as test")
                 result.single()
             self.database = neo4j_database
-            logger.info("Connected to Neo4j successfully (APOC-free)")
+            logger.info(f"Connected to Neo4j successfully at {neo4j_uri}")
         except Exception as e:
             logger.error(f"Failed to connect to Neo4j: {e}")
-            raise
+            logger.error(f"Please ensure Neo4j is running at {neo4j_uri}")
+            raise ConnectionError(f"Neo4j connection failed: {e}")
 
         # Load data
         with open(json_path, 'r', encoding='utf-8') as f:
@@ -79,8 +90,8 @@ class Neo4jGraphRAGService:
         # Initialize or verify graph
         self._initialize_graph()
 
-        # Initialize vector index (using ChromaDB as fallback)
-        self._initialize_vector_index()
+        # Initialize Neo4j vector index
+        self._initialize_neo4j_vector_index()
 
         # Build LangGraph workflow
         self.workflow = self._build_workflow()
@@ -333,50 +344,124 @@ class Neo4jGraphRAGService:
                     except:
                         pass  # Skip if target doesn't exist
 
-    def _initialize_vector_index(self):
-        """Initialize vector index using ChromaDB (APOC-free)"""
-        # Get all law nodes from Neo4j
-        documents = []
-
+    def _initialize_neo4j_vector_index(self):
+        """Initialize Neo4j native vector index for semantic search"""
+        # Check if vector index already exists and verify embedding dimensions
+        result = self._execute_query("""
+            SHOW INDEXES
+            YIELD name, type
+            WHERE type = 'VECTOR'
+            RETURN count(*) as count
+        """)
+        
+        has_vector_index = result[0]['count'] > 0 if result else False
+        
+        # Check if embeddings exist and their dimensions
+        if has_vector_index:
+            check_result = self._execute_query("""
+                MATCH (n) 
+                WHERE n.embedding IS NOT NULL 
+                RETURN size(n.embedding) as dim 
+                LIMIT 1
+            """)
+            
+            if check_result and check_result[0].get('dim'):
+                stored_dim = check_result[0]['dim']
+                # Expected dimension for text-embedding-3-large
+                expected_dim = 3072
+                
+                if stored_dim != expected_dim:
+                    logger.warning(f"Embedding dimension mismatch! Stored: {stored_dim}, Expected: {expected_dim}")
+                    logger.info("Clearing old embeddings and re-generating...")
+                    
+                    # Clear old embeddings
+                    self._execute_query("MATCH (n) WHERE n.embedding IS NOT NULL SET n.embedding = NULL")
+                    logger.info("Old embeddings cleared")
+                else:
+                    logger.info(f"Neo4j vector index already exists with correct dimensions ({stored_dim})")
+                    return
+            else:
+                logger.info("Neo4j vector index already exists")
+                return
+        
+        logger.info("Creating Neo4j vector index...")
+        
+        # Create vector index on all nodes (Neo4j 5.x doesn't support multi-label syntax)
+        # We'll create separate indexes for each label
+        labels = ['Chapter', 'Section', 'Article', 'Clause', 'Point']
+        
+        for label in labels:
+            try:
+                index_name = f"law_vector_index_{label.lower()}"
+                self._execute_query(f"""
+                    CREATE VECTOR INDEX {index_name} IF NOT EXISTS
+                    FOR (n:{label})
+                    ON n.embedding
+                    OPTIONS {{
+                        indexConfig: {{
+                            `vector.dimensions`: 3072,
+                            `vector.similarity_function`: 'cosine'
+                        }}
+                    }}
+                """)
+                logger.info(f"Vector index created for {label}")
+            except Exception as e:
+                logger.warning(f"Vector index creation for {label}: {e}")
+        
+        # Generate and store embeddings for all nodes
         result = self._execute_query("""
             MATCH (n)
-            WHERE n.text IS NOT NULL
-            RETURN n.id as id, n.text as text, n.title as title,
-                   n.level as level, labels(n)[0] as type
-            ORDER BY n.level
+            WHERE n.text IS NOT NULL AND n.embedding IS NULL
+            RETURN n.id as id, n.text as text, n.title as title
+            ORDER BY n.id
         """)
-
-        for record in result:
-            # Build rich text for embedding
-            text_parts = []
-            if record.get('title'):
-                text_parts.append(record['title'])
-            if record.get('text'):
-                text_parts.append(record['text'])
-
-            full_text = "\n".join(text_parts)
-
-            if full_text.strip():
-                documents.append(Document(
-                    page_content=full_text,
-                    metadata={
-                        "id": record['id'],
-                        "type": record.get('type', 'unknown'),
-                        "level": record.get('level', 0) or 0
-                    }
-                ))
-
-        logger.info(f"Creating vector index for {len(documents)} documents...")
-
-        # Use ChromaDB for vector search (works without APOC)
-        self.vector_index = Chroma.from_documents(
-            documents,
-            self.embeddings,
-            collection_name="neo4j_law_vectors",
-            persist_directory="./chroma_neo4j_vectors"
-        )
-
-        logger.info("Vector index created successfully")
+        
+        logger.info(f"Generating embeddings for {len(result)} nodes...")
+        
+        # Process in batches to avoid rate limits
+        batch_size = 50
+        failed_batches = []
+        
+        for i in range(0, len(result), batch_size):
+            batch = result[i:i + batch_size]
+            
+            # Build text for each node
+            texts_to_embed = []
+            node_ids = []
+            
+            for record in batch:
+                text_parts = []
+                if record.get('title'):
+                    text_parts.append(record['title'])
+                if record.get('text'):
+                    text_parts.append(record['text'])
+                
+                full_text = "\n".join(text_parts)
+                if full_text.strip():
+                    texts_to_embed.append(full_text)
+                    node_ids.append(record['id'])
+            
+            # Generate embeddings with retry logic
+            if texts_to_embed:
+                try:
+                    embeddings = self.embeddings.embed_documents(texts_to_embed)
+                    
+                    # Store embeddings in Neo4j (batch write)
+                    for node_id, embedding in zip(node_ids, embeddings):
+                        self._execute_query("""
+                            MATCH (n {id: $node_id})
+                            SET n.embedding = $embedding
+                        """, {"node_id": node_id, "embedding": embedding})
+                    
+                    logger.info(f"Processed {min(i + batch_size, len(result))}/{len(result)} nodes")
+                except Exception as e:
+                    logger.error(f"Failed to process batch {i//batch_size + 1}: {e}")
+                    failed_batches.append(i)
+        
+        if failed_batches:
+            logger.warning(f"Failed to process {len(failed_batches)} batches. Consider retrying.")
+        
+        logger.info("Neo4j vector index initialized successfully")
 
     def _build_workflow(self) -> StateGraph:
         """Build LangGraph workflow for multi-step reasoning"""
@@ -411,39 +496,104 @@ Hãy trả về JSON với format:
             ("user", "Câu hỏi: {question}")
         ])
 
-        response = await self.llm.ainvoke(
-            analysis_prompt.format_messages(question=state["question"])
-        )
-
-        # Parse JSON response
         try:
-            result = json.loads(response.content)
-            state["query_analysis"] = result.get("analysis", "")
-            state["search_queries"] = result.get("search_queries", [state["question"]])
-        except:
+            response = await self.llm.ainvoke(
+                analysis_prompt.format_messages(question=state["question"])
+            )
+
+            # Parse JSON response
+            try:
+                result = json.loads(response.content)
+                state["query_analysis"] = result.get("analysis", "")
+                state["search_queries"] = result.get("search_queries", [state["question"]])
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse query analysis JSON: {e}")
+                state["query_analysis"] = "Phân tích đơn giản"
+                state["search_queries"] = [state["question"]]
+        except Exception as e:
+            logger.error(f"Query analysis failed: {e}")
             state["query_analysis"] = "Phân tích đơn giản"
             state["search_queries"] = [state["question"]]
 
         return state
 
     async def _semantic_search(self, state: GraphState) -> GraphState:
-        """Perform semantic search using vector index"""
+        """Perform semantic search using Neo4j vector index"""
         retrieved_nodes = []
         seen_ids = set()
 
         for query in state["search_queries"]:
-            results = self.vector_index.similarity_search_with_score(query, k=3)
-
-            for doc, score in results:
-                node_id = doc.metadata.get("id")
-                if node_id not in seen_ids:
-                    seen_ids.add(node_id)
-                    retrieved_nodes.append({
-                        "id": node_id,
-                        "content": doc.page_content,
-                        "type": doc.metadata.get("type", ""),
-                        "score": float(1.0 - score)  # ChromaDB uses distance, convert to similarity
+            # Generate embedding for query
+            query_embedding = self.embeddings.embed_query(query)
+            
+            # Search across all vector indexes (one per label)
+            labels = ['chapter', 'section', 'article', 'clause', 'point']
+            all_results = []
+            
+            for label in labels:
+                index_name = f"law_vector_index_{label}"
+                cypher_query = f"""
+                    CALL db.index.vector.queryNodes('{index_name}', $k, $query_embedding)
+                    YIELD node, score
+                    RETURN node.id as id, 
+                           coalesce(node.title, '') + '\\n' + coalesce(node.text, '') as content,
+                           labels(node)[0] as type,
+                           score
+                    ORDER BY score DESC
+                    LIMIT 3
+                """
+                
+                try:
+                    results = self._execute_query(cypher_query, {
+                        "query_embedding": query_embedding,
+                        "k": 3  # Get top 3 from each index
                     })
+                    if results:
+                        all_results.extend(results)
+                        logger.debug(f"Vector search {label}: {len(results)} results")
+                    else:
+                        logger.debug(f"Vector search {label}: no results")
+                except Exception as e:
+                    # Log only first occurrence to avoid spam
+                    if label == 'chapter':
+                        logger.warning(f"Vector search error: {str(e)[:150]}")
+                    continue
+            
+            # Process results
+            if all_results:
+                for record in all_results:
+                    node_id = record.get("id")
+                    if node_id and node_id not in seen_ids:
+                        seen_ids.add(node_id)
+                        retrieved_nodes.append({
+                            "id": node_id,
+                            "content": record.get("content", ""),
+                            "type": record.get("type", ""),
+                            "score": float(record.get("score", 0.0))
+                        })
+            else:
+                # Fallback to text search if all vector searches fail
+                logger.warning(f"All vector searches failed for query '{query}', using text fallback")
+                fallback_query = """
+                    MATCH (n)
+                    WHERE n.text CONTAINS $query OR n.title CONTAINS $query
+                    RETURN n.id as id,
+                           coalesce(n.title, '') + '\\n' + coalesce(n.text, '') as content,
+                           labels(n)[0] as type,
+                           1.0 as score
+                    LIMIT 3
+                """
+                results = self._execute_query(fallback_query, {"query": query})
+                for record in results:
+                    node_id = record.get("id")
+                    if node_id and node_id not in seen_ids:
+                        seen_ids.add(node_id)
+                        retrieved_nodes.append({
+                            "id": node_id,
+                            "content": record.get("content", ""),
+                            "type": record.get("type", ""),
+                            "score": 0.5
+                        })
 
         # Sort by score and take top results
         retrieved_nodes.sort(key=lambda x: x["score"], reverse=True)
@@ -563,19 +713,29 @@ NỘI DUNG LUẬT:
             ("user", "Câu hỏi: {question}")
         ])
 
-        response = await self.llm.ainvoke(
-            answer_prompt.format_messages(
-                question=state["question"],
-                context=context_text
+        try:
+            response = await self.llm.ainvoke(
+                answer_prompt.format_messages(
+                    question=state["question"],
+                    context=context_text
+                )
             )
-        )
 
-        state["final_answer"] = response.content
-        state["metadata"] = {
-            "num_nodes_retrieved": len(state["retrieved_nodes"]),
-            "num_nodes_expanded": len(state["expanded_context"]),
-            "search_queries": state["search_queries"]
-        }
+            state["final_answer"] = response.content
+            state["metadata"] = {
+                "num_nodes_retrieved": len(state["retrieved_nodes"]),
+                "num_nodes_expanded": len(state["expanded_context"]),
+                "search_queries": state["search_queries"],
+                "context_quality": "high" if len(state["expanded_context"]) > 3 else "medium"
+            }
+        except Exception as e:
+            logger.error(f"Answer generation failed: {e}")
+            state["final_answer"] = "Xin lỗi, tôi gặp lỗi khi tạo câu trả lời. Vui lòng thử lại."
+            state["metadata"] = {
+                "error": str(e),
+                "num_nodes_retrieved": len(state["retrieved_nodes"]),
+                "num_nodes_expanded": len(state["expanded_context"])
+            }
 
         return state
 
@@ -608,6 +768,98 @@ NỘI DUNG LUẬT:
         }
 
     def close(self):
-        """Close Neo4j connection"""
-        if hasattr(self, 'driver'):
-            self.driver.close()
+        """Close Neo4j connection and cleanup resources"""
+        try:
+            if hasattr(self, 'driver') and self.driver:
+                self.driver.close()
+                logger.info("Neo4j connection closed successfully")
+        except Exception as e:
+            logger.error(f"Error closing Neo4j connection: {e}")
+    
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit"""
+        self.close()
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get database statistics for monitoring"""
+        try:
+            stats = {}
+            
+            # Node counts by type
+            result = self._execute_query("""
+                MATCH (n)
+                RETURN labels(n)[0] as label, count(n) as count
+            """)
+            stats['node_counts'] = {r['label']: r['count'] for r in result if r['label']}
+            
+            # Embedding coverage
+            result = self._execute_query("""
+                MATCH (n)
+                WHERE n.embedding IS NOT NULL
+                RETURN count(n) as embedded_count
+            """)
+            stats['embedded_nodes'] = result[0]['embedded_count'] if result else 0
+            
+            # Vector index status
+            result = self._execute_query("""
+                SHOW INDEXES
+                YIELD name, state, type
+                WHERE type = 'VECTOR'
+                RETURN name, state
+            """)
+            stats['vector_indexes'] = {r['name']: r['state'] for r in result}
+            
+            # Total nodes
+            result = self._execute_query("MATCH (n) RETURN count(n) as total")
+            stats['total_nodes'] = result[0]['total'] if result else 0
+            
+            return stats
+        except Exception as e:
+            logger.error(f"Error getting stats: {e}")
+            return {'error': str(e)}
+    
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit"""
+        self.close()
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get database statistics"""
+        try:
+            stats = {}
+            
+            # Node counts
+            result = self._execute_query("""
+                MATCH (n)
+                RETURN labels(n)[0] as label, count(n) as count
+            """)
+            stats['node_counts'] = {r['label']: r['count'] for r in result}
+            
+            # Embedding coverage
+            result = self._execute_query("""
+                MATCH (n)
+                WHERE n.embedding IS NOT NULL
+                RETURN count(n) as embedded_count
+            """)
+            stats['embedded_nodes'] = result[0]['embedded_count'] if result else 0
+            
+            # Index status
+            result = self._execute_query("""
+                SHOW INDEXES
+                YIELD name, state, type
+                WHERE type = 'VECTOR'
+                RETURN name, state
+            """)
+            stats['vector_indexes'] = {r['name']: r['state'] for r in result}
+            
+            return stats
+        except Exception as e:
+            logger.error(f"Error getting stats: {e}")
+            return {}
